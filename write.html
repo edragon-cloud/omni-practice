@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArticuWrite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   ARTICUWRITE — Arsenal Red Theme
+   Primary: #C8102E  Dark: #1A1A16  Accent: #E8304A
+═══════════════════════════════════════════ */
+:root {
+  /* Arsenal palette */
+  --g:    #C8102E;
+  --gd:   #1A1A16;
+  --gm:   #9B0B22;
+  --gp:   #F5E6E9;
+  --red:  #C8102E;
+  --rl:   #E8304A;
+  --gold: #C9A84C;
+
+  --txt:  #1a1a1a;
+  --tm:   #3A3A35;
+  --tmt:  #77776E;
+  --bdr:  #E8C5CB;
+  --cor:  #2e7d32;
+
+  --fn:   'Sora','Helvetica Neue',Arial,sans-serif;
+  --sr:   'Playfair Display','Georgia',serif;
+  --mono: 'JetBrains Mono',monospace;
+  --r: 14px; --rs: 8px;
+  --sh: 0 8px 32px rgba(0,0,0,.14); --ss: 0 4px 16px rgba(0,0,0,.08);
+  --fs-base: 16px;
+
+  /* Green kept only for corrections display */
+  --green: #1A7A4A;
+  --green-light: #E6F4ED;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fn);background:var(--gd);color:var(--txt);min-height:100vh;overflow-x:hidden;font-size:16px}
+.hidden{display:none!important}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(200,16,46,.3);border-radius:4px}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:rgba(26,26,22,.88);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:9999}
+#loading.on{display:flex}
+#ldg-sub{color:rgba(255,255,255,.5);font-size:.75rem;margin-top:8px;font-style:italic;min-height:20px;transition:opacity .4s;text-align:center;max-width:300px}
+.spinner{width:48px;height:48px;border:3px solid rgba(200,16,46,.2);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#ldg-msg{color:white;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:14px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--gd);color:white;padding:11px 22px;border-radius:30px;font-size:.78rem;font-weight:700;box-shadow:var(--sh);z-index:10000;transition:transform .3s;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{border-left:4px solid var(--green)}
+#toast.err{border-left:4px solid var(--rl)}
+
+/* ── MODAL ── */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9998}
+.modal.on{display:flex}
+.mbox{background:white;border-radius:var(--r);padding:34px 30px;max-width:430px;width:90%;box-shadow:var(--sh);text-align:center}
+.mbox h3{font-size:1.05rem;font-weight:800;margin-bottom:8px}
+.mbox p{font-size:.82rem;color:var(--tmt);line-height:1.6;margin-bottom:18px}
+.mi{width:100%;padding:12px 15px;border:2px solid var(--bdr);border-radius:var(--rs);font-family:var(--fn);font-size:.95rem;outline:none;margin-bottom:14px}
+.mi:focus{border-color:var(--g)}
+.mbtns{display:flex;gap:9px;justify-content:center}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 18px;border-radius:50px;border:none;font-family:var(--fn);font-size:.72rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn:hover{transform:translateY(-1px)}
+.btn.g{background:var(--g);color:white;box-shadow:0 4px 14px rgba(200,16,46,.3)}.btn.g:hover{background:var(--gm)}
+.btn.r{background:var(--rl);color:white}.btn.r:hover{background:#c01020}
+.btn.ol{background:white;color:var(--g);border:2px solid var(--g)}.btn.ol:hover{background:var(--gp)}
+.btn.gh{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2)}.btn.gh:hover{background:rgba(255,255,255,.2)}
+.btn.sm{padding:6px 13px;font-size:.65rem}
+.btn.full{width:100%;justify-content:center;padding:16px;font-size:.88rem;border-radius:var(--rs)}
+
+/* ── LOGIN CSS removed — auth handled by Language Hub ── */
+/* ── API KEY WIDGET (student) ── */
+.api-key-widget{background:rgba(255,255,255,.06);border:1.5px solid rgba(200,16,46,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.api-key-widget-label{font-size:.62rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.api-key-status{font-size:.65rem;padding:2px 8px;border-radius:10px;font-weight:700}
+.api-key-status.ok{background:rgba(26,122,74,.3);color:#6ddeab}
+.api-key-status.missing{background:rgba(200,16,46,.25);color:#f87171}
+.api-key-inp{width:100%;padding:9px 12px;border:1.5px solid rgba(255,255,255,.15);border-radius:7px;font-family:var(--mono);font-size:.78rem;background:rgba(255,255,255,.08);color:white;outline:none;letter-spacing:.05em}
+.api-key-inp::placeholder{color:rgba(255,255,255,.3);font-family:var(--fn);font-size:.78rem;letter-spacing:0}
+.api-key-inp:focus{border-color:rgba(200,16,46,.6)}
+.api-key-hint{font-size:.62rem;color:rgba(255,255,255,.3);margin-top:5px}
+
+/* ── TEACHER PORTAL ── */
+#pg-teacher{min-height:100vh;background:#f5f5f0}
+.tp-nav{background:var(--gd);padding:0 32px;display:flex;align-items:center;gap:0;height:56px}
+.tp-brand{color:#fff;font-weight:800;font-size:1.2rem;margin-right:32px;letter-spacing:-.5px;font-family:'Playfair Display',Georgia,serif}
+.tp-brand span{color:var(--rl)}
+.tp-tab{color:rgba(255,255,255,.55);font-size:.83rem;font-weight:600;padding:0 16px;height:56px;display:flex;align-items:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tp-tab:hover{color:#fff}.tp-tab.on{color:#fff;border-bottom-color:var(--g)}
+.tp-logout{margin-left:auto;color:rgba(255,255,255,.45);font-size:.78rem;cursor:pointer;padding:6px 12px;border:1px solid rgba(255,255,255,.15);border-radius:6px}
+.tp-logout:hover{color:#fff;border-color:#fff}
+.tp-body{padding:32px;max-width:1200px;margin:0 auto}
+.tp-section{background:#fff;border-radius:12px;padding:28px;margin-bottom:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tp-section-title{font-size:1rem;font-weight:700;color:var(--gd);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.tp-pane{display:none}.tp-pane.on{display:block}
+.tp-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.tp-table th{background:var(--gd);color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:.76rem;letter-spacing:.5px;white-space:nowrap}
+.tp-table td{padding:9px 12px;border-bottom:1px solid #f0f0f0;color:#333;white-space:nowrap}
+.tp-table tr:hover td{background:#fafaf9}
+.tp-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700}
+.tp-badge.active{background:#fce8eb;color:var(--g)}
+.tp-badge.revoked{background:#f0f0ee;color:#888}
+.tp-badge.pending{background:#fff3e0;color:#e65100}
+.tp-band{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:.82rem;background:var(--gp);color:var(--gd)}
+.tp-action-btn{padding:4px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;font-size:.75rem;cursor:pointer;font-weight:600;transition:all .2s}
+.tp-action-btn:hover{background:var(--gd);color:#fff;border-color:var(--gd)}
+.tp-action-btn.danger{border-color:#e57373}.tp-action-btn.danger:hover{background:var(--g);border-color:var(--g)}
+.tp-approve-btn{background:var(--g);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer}
+.tp-approve-btn:hover{background:var(--gm)}
+.tp-setting-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f0f0f0}
+.tp-setting-row:last-child{border-bottom:none;margin-bottom:0}
+.tp-setting-lbl{width:160px;font-size:.82rem;font-weight:600;color:#555;flex-shrink:0}
+.tp-setting-inp{flex:1;border:1.5px solid #e0e0e0;border-radius:8px;padding:9px 13px;font-size:.88rem;outline:none;font-family:var(--fn)}
+.tp-setting-inp:focus{border-color:var(--gd)}
+.tp-save-btn{padding:8px 18px;background:var(--gd);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer}
+.tp-save-btn:hover{background:var(--g)}
+.tp-saved-badge{color:var(--g);font-size:.78rem;font-weight:700;opacity:0;transition:opacity .3s}
+@media(max-width:768px){.lp-left{display:none}.lp-right{padding:32px 20px}}
+
+/* ── Library (teacher) ── */
+.tp-lib-search{width:100%;border:none;background:var(--gd);border-radius:10px;padding:14px 18px;font-size:.95rem;color:#fff;outline:none;margin-bottom:24px;font-family:var(--fn)}
+.tp-lib-search::placeholder{color:rgba(255,255,255,.35)}
+.tp-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.tp-lib-card{background:var(--gd);border-radius:10px;padding:16px;cursor:pointer;transition:background .2s;position:relative}
+.tp-lib-card:hover{background:#2a1510}
+.tp-lib-card-icon{font-size:1.4rem;margin-bottom:8px}
+.tp-lib-card-name{color:#fff;font-weight:700;font-size:.85rem;line-height:1.3}
+.tp-lib-card-count{color:rgba(255,255,255,.4);font-size:.7rem;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.tp-lib-questions{margin-top:20px;display:none}
+
+/* ── Review modal ── */
+#tp-review-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
+.tp-review-box{background:#fff;border-radius:16px;width:100%;max-width:900px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.tp-review-header{background:var(--gd);padding:20px 28px;display:flex;align-items:center;gap:16px}
+.tp-review-header h2{color:#fff;font-size:1.1rem;font-weight:700;flex:1}
+.tp-review-close{color:rgba(255,255,255,.55);cursor:pointer;font-size:1.4rem;line-height:1;padding:4px 8px}
+.tp-review-close:hover{color:#fff}
+.tp-review-body{padding:28px;max-height:80vh;overflow-y:auto}
+.tp-review-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.tp-review-meta-item{background:#f5f5f0;border-radius:8px;padding:8px 14px;font-size:.8rem}
+.tp-review-meta-lbl{color:#888;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px}
+.tp-review-meta-val{font-weight:700;color:var(--gd)}
+.tp-review-section{margin-bottom:24px}
+.tp-review-section-title{font-size:.78rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee}
+.tp-review-essay{background:#f9f9f7;border-radius:10px;padding:18px;font-size:.88rem;line-height:1.8;color:#333;white-space:pre-wrap;max-height:300px;overflow-y:auto}
+.tp-review-scores{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.tp-review-score-box{background:#f5f5f0;border-radius:8px;padding:10px;text-align:center}
+.tp-review-score-lbl{font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:.5px}
+.tp-review-score-val{font-size:1.4rem;font-weight:800;color:var(--gd);margin-top:2px}
+.tp-review-feedback{background:#f9f9f7;border-radius:10px;padding:18px;font-size:.85rem;line-height:1.7;color:#444;white-space:pre-wrap;max-height:400px;overflow-y:auto}
+.tp-review-note-area{width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:14px;font-size:.88rem;line-height:1.6;min-height:100px;outline:none;resize:vertical;font-family:var(--fn)}
+.tp-review-note-area:focus{border-color:var(--gd)}
+.tp-review-save-btn{background:var(--gd);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:.88rem;font-weight:700;cursor:pointer;margin-top:10px}
+.tp-review-save-btn:hover{background:var(--g)}
+
+/* ── DASHBOARD ── */
+#pg-dash{min-height:100vh;background:linear-gradient(145deg,var(--gd),#2a0a10);padding:30px 22px;display:flex;flex-direction:column;align-items:center}
+.dtop{width:100%;max-width:920px;display:flex;align-items:center;justify-content:space-between;margin-bottom:34px}
+.dbrand{display:flex;align-items:center;gap:9px}
+.bname{font-family:var(--sr);font-size:1.35rem;font-weight:700;color:white;letter-spacing:2px}
+.btag{font-size:.52rem;color:rgba(255,255,255,.45);letter-spacing:2.5px;text-transform:uppercase;font-weight:600}
+.dusr{color:rgba(255,255,255,.55);font-size:.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:5px}
+.dusr span{color:white}
+.mgrid{width:100%;max-width:920px;display:flex;flex-direction:column;gap:16px}
+.mrow{display:grid;gap:16px}
+.mrow.top{grid-template-columns:repeat(3,1fr)}
+.mrow.bot{grid-template-columns:repeat(2,1fr);max-width:610px;margin:0 auto;width:100%}
+.mcard{background:white;border-radius:var(--r);padding:32px 16px 24px;text-align:center;cursor:pointer;user-select:none;transition:transform .2s,box-shadow .2s,border .2s;box-shadow:var(--ss);display:flex;flex-direction:column;align-items:center;gap:9px;border:2px solid transparent}
+.mcard:hover{transform:translateY(-5px);box-shadow:var(--sh);border-color:var(--g)}
+.mico{font-size:2.2rem;line-height:1}
+.mtag{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--gp);color:var(--g)}
+.mtitle{font-size:1.05rem;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt);line-height:1.3}
+.mdesc{font-size:.8rem;color:var(--tmt);font-weight:500;line-height:1.55}
+
+/* ── WRITING PAGE ── */
+#pg-write{min-height:100vh;background:white;display:flex;flex-direction:column}
+.wtop{background:var(--gd);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.wbn{font-family:var(--sr);font-size:1rem;font-weight:700;color:white}
+.wbt{font-size:.46rem;color:rgba(255,255,255,.45);letter-spacing:2px;text-transform:uppercase;display:block}
+.mpill{font-size:.6rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.65);background:rgba(255,255,255,.1);padding:5px 13px;border-radius:20px}
+.tbox{font-size:1.15rem;font-weight:900;color:white;font-variant-numeric:tabular-nums;background:var(--g);padding:6px 15px;border-radius:7px;letter-spacing:2px;min-width:76px;text-align:center}
+.tbox.warn{background:#7a1a1a;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.bbk{background:none;border:none;color:rgba(255,255,255,.65);font-size:1.3rem;cursor:pointer;padding:4px 7px;border-radius:4px}
+.bbk:hover{color:white}
+
+/* Setup */
+.wsetup{flex:1;background:var(--gp);display:flex;align-items:center;justify-content:center;padding:34px 18px}
+.sin{width:100%;max-width:690px;display:flex;flex-direction:column;gap:16px}
+.sh2{font-size:1.35rem;font-weight:900;letter-spacing:1px;color:var(--gd);text-transform:uppercase;text-align:center}
+.sp{font-size:.76rem;color:var(--tmt);text-align:center;margin-top:3px}
+.scard{background:white;border-radius:var(--r);padding:22px;box-shadow:var(--ss);border:1.5px solid var(--bdr)}
+.sct{font-size:.62rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--g);margin-bottom:10px}
+.sta{width:100%;min-height:88px;border:1.5px solid var(--bdr);border-radius:var(--rs);padding:12px 14px;font-family:var(--fn);font-size:.93rem;resize:vertical;outline:none;color:var(--txt);background:var(--gp);transition:border .2s}
+.sta:focus{border-color:var(--g);background:white}
+.imgdrop{border:2px dashed var(--bdr);border-radius:var(--rs);padding:26px 14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gp);position:relative;overflow:hidden}
+.imgdrop:hover,.imgdrop:focus-within{border-color:var(--g);background:#fde8ec}
+.idi{font-size:1.9rem;color:var(--g);margin-bottom:7px}
+.idt{font-size:.76rem;color:var(--tmt);font-weight:600}
+
+/* Writing panels */
+.wmain{flex:1 1 0;display:flex;overflow:hidden;min-height:0}
+.pleft{width:42%;border-right:2px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;background:#fafaf8;height:100%}
+.pright{flex:1 1 0;display:flex;flex-direction:column;background:white;overflow:hidden;min-height:0}
+.phd{padding:10px 17px;font-size:.6rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--g);border-bottom:1px solid var(--bdr);background:white;flex-shrink:0}
+.qbox{padding:14px 16px;overflow-y:auto;flex:0 0 auto;max-height:30%;border-bottom:2px solid var(--bdr);background:white;min-height:52px}
+.qtxt{font-size:1rem;line-height:1.8;color:var(--txt);white-space:pre-wrap;font-weight:500}
+.dwrap{padding:10px 12px 0;flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:#fafaf8}
+.dwrap-controls{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.dimg-wrap{overflow:auto;border-radius:var(--rs);border:1px solid var(--bdr);background:white;flex:1 1 auto;min-height:0}
+.dimg-wrap img{display:block;transition:width .2s}
+.zoom-pct{font-size:.62rem;color:var(--tmt);font-weight:700;min-width:34px;text-align:center}
+.notep{background:white;flex:1 1 auto;display:flex;flex-direction:column;overflow:hidden;min-height:0;border:none}
+.notep-hd{padding:9px 16px;font-size:.6rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--g);background:#fde8ec;border-bottom:2px solid var(--bdr);flex-shrink:0}
+.noteta{width:100%;flex:1 1 auto;border:none;outline:none;padding:16px;font-family:var(--fn);font-size:1rem;line-height:1.9;color:var(--tm);background:white;resize:none;min-height:0;overflow-y:auto;display:block}
+.wta-wrap{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.wta{flex:1;width:100%;border:none;outline:none;padding:20px 22px;font-family:var(--fn);font-size:1.1rem;line-height:1.9;color:var(--txt);resize:none;background:white;position:relative;z-index:2}
+.wta:disabled{background:#f5f5f5;color:#999;cursor:not-allowed}
+.err-badge{font-size:.62rem;font-weight:700;padding:4px 8px;border-radius:10px;cursor:pointer}
+.err-spell{background:#fde8ec;color:var(--rl);border:1px solid var(--rl)}
+.err-gram{background:#e8f0ff;color:#1a3a8c;border:1px solid #1a3a8c}
+.err-tip{position:fixed;background:var(--gd);color:white;padding:7px 12px;border-radius:6px;font-size:.72rem;font-weight:600;max-width:220px;z-index:9999;pointer-events:none;display:none;line-height:1.4}
+.simlock{position:absolute;inset:0;background:rgba(245,245,245,.96);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50}
+.simlock.on{display:flex}
+.libp{width:295px;border-right:2px solid rgba(255,255,255,.07);background:var(--gd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.lphead{padding:10px 13px;background:rgba(0,0,0,.2);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between}
+.lptt{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.bclp{background:none;border:none;color:rgba(255,255,255,.45);font-size:1rem;cursor:pointer}
+.lpbody{flex:1;overflow-y:auto;padding:9px}
+.lptopic{padding:8px 11px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.7);transition:background .2s;margin-bottom:3px}
+.lptopic:hover{background:rgba(255,255,255,.1)}
+.lptopic.on{background:var(--g);color:white}
+.lpidea{padding:6px 11px;border-radius:4px;background:rgba(255,255,255,.05);margin-bottom:4px;font-size:.7rem;color:rgba(255,255,255,.65);line-height:1.5;border-left:2px solid rgba(200,16,46,.5)}
+.wfoot{padding:8px 17px;background:var(--gd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-height:50px}
+.wfl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#sim-switcher{min-height:50px;box-sizing:border-box}
+.wcbadge{background:var(--g);color:white;padding:6px 15px;border-radius:20px;font-size:.7rem;font-weight:800;letter-spacing:1px}
+.sim-sw-btn{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5);border:2px solid rgba(255,255,255,.15);padding:7px 22px;border-radius:50px;font-size:.72rem;font-weight:800;letter-spacing:1px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.sim-sw-btn:hover{background:rgba(255,255,255,.15);color:white}
+.sim-sw-btn.sw-on{background:var(--g);color:white;border-color:var(--g)}
+
+/* ── LIBRARY ── */
+#pg-lib{min-height:100vh;background:linear-gradient(145deg,var(--gd),#2a0a10);display:flex;flex-direction:column}
+.libtop{background:rgba(0,0,0,.25);padding:13px 24px;display:flex;align-items:center;gap:13px;border-bottom:1px solid rgba(255,255,255,.07)}
+.libbc{display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;flex-wrap:wrap}
+.libbc .crumb{color:white;cursor:pointer}.libbc .crumb:hover{color:#f5a0b0}
+.libbc span{color:rgba(255,255,255,.3)}
+.libbody{flex:1;padding:24px;overflow-y:auto}
+.liblt{font-size:.6rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:18px}
+.libgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:13px}
+.libcard{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:var(--r);padding:20px 15px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:8px}
+.libcard:hover{background:rgba(255,255,255,.12);border-color:rgba(200,16,46,.5);transform:translateY(-3px)}
+.lico{font-size:1.65rem}.lct{font-size:1rem;font-weight:700;color:white;line-height:1.4}
+.lcc{font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.qdetail{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--r);padding:0;margin-bottom:14px;overflow:hidden}
+.qd-header{padding:16px 18px;background:rgba(200,16,46,.2);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.qd-q{font-size:var(--lib-fs,15px);font-weight:700;color:white;line-height:1.5;flex:1}
+.qd-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.qd-tag{font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:1px;text-transform:uppercase}
+.qd-tag.type{background:rgba(200,16,46,.4);color:#fbb8c3}
+.qd-tag.kw{background:rgba(255,255,255,.1);color:rgba(255,255,255,.65)}
+.qd-tag.date{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45)}
+.qd-body{padding:14px 18px;font-size:var(--lib-fs,15px)}
+.bp-title{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.45);margin:10px 0 8px}
+.mp-card{background:rgba(255,255,255,.06);border-radius:6px;padding:12px;margin-bottom:8px;border-left:3px solid rgba(200,16,46,.5)}
+.mp-idea{font-size:var(--lib-fs,15px);font-weight:700;color:#f5a0b0;margin-bottom:6px}
+.mp-row{font-size:calc(var(--lib-fs,15px) - 1px);color:rgba(255,255,255,.6);line-height:1.5;margin-bottom:3px}
+.mp-row strong{color:rgba(255,255,255,.85);font-weight:600}
+.qd-actions{padding:12px 18px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:8px}
+.lib-search{width:100%;padding:10px 14px;border:1.5px solid rgba(255,255,255,.15);border-radius:var(--rs);font-family:var(--fn);font-size:.85rem;background:rgba(255,255,255,.08);color:white;outline:none;margin-bottom:16px}
+.lib-search::placeholder{color:rgba(255,255,255,.35)}
+.lib-search:focus{border-color:rgba(200,16,46,.5)}
+
+/* ── RESULTS ── */
+#pg-res{min-height:100vh;background:#f2f2f0;display:flex;flex-direction:column}
+.restop{background:var(--gd);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.resn{font-family:var(--sr);font-size:1rem;font-weight:700;color:white}
+.resl{font-size:.62rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.resbody{flex:1;display:flex;overflow:hidden}
+.resr-l{width:54%;border-right:2px solid var(--bdr);padding:24px;overflow-y:auto;background:white}
+.resr-r{flex:1;padding:24px;overflow-y:auto;background:var(--gp)}
+.resst{font-size:.6rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--g);margin-bottom:13px;padding-bottom:7px;border-bottom:2px solid var(--bdr)}
+.cortxt{font-size:1rem;color:var(--txt)}
+.cortxt-para{line-height:1.9;margin:0 0 1.1em 0;color:var(--txt)}
+.eorig{text-decoration:line-through;color:var(--rl);font-weight:700}
+.efix{color:var(--green);font-weight:700}
+.scard{background:white;border-radius:var(--r);padding:20px;box-shadow:var(--ss);margin-bottom:16px;border:1.5px solid var(--bdr)}
+.bandrow{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.bandcirc{width:76px;height:76px;border-radius:50%;background:var(--g);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.bandnum{font-size:1.85rem;font-weight:900;color:white;line-height:1}
+.bandlbl{font-size:.43rem;font-weight:700;color:rgba(255,255,255,.65);letter-spacing:1px;text-transform:uppercase}
+.bandinfo h3{font-size:.9rem;font-weight:800;color:var(--txt)}
+.bandinfo p{font-size:.72rem;color:var(--tmt);margin-top:3px;line-height:1.5}
+.critgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+.crit{background:var(--gp);border-radius:var(--rs);padding:10px 12px;border:1px solid var(--bdr)}
+.cname{font-size:.56rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--g);margin-bottom:4px}
+.cscore{font-size:1.3rem;font-weight:900;color:var(--txt)}
+.cbar{height:4px;background:var(--bdr);border-radius:2px;margin-top:5px;overflow:hidden}
+.cfill{height:100%;background:var(--g);border-radius:2px;transition:width .8s ease}
+.fbcard{background:white;border-radius:var(--r);padding:17px;box-shadow:var(--ss);border:1px solid var(--bdr);margin-bottom:13px}
+.fbttl{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--g);margin-bottom:8px}
+.fb-task-header{font-size:.7rem;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--g);padding:7px 0 6px;border-bottom:2px solid var(--g);margin:4px 0 12px}
+.fb-crit-block{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--bdr)}
+.fb-crit-block:last-child{border-bottom:none}
+.impr-block{background:linear-gradient(135deg,#fef2f4,#fde8ec);border-radius:12px;padding:12px 14px;border:1.5px solid #f5c0c8}
+.impr-section{margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(200,16,46,.1)}
+.impr-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.impr-title{font-size:.73rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--g);margin:0 0 3px}
+.impr-body{font-size:.82rem;color:#333;line-height:1.5;margin:0}
+.impr-num{font-weight:700;color:var(--g);margin-right:2px}
+.fb-crit-title{font-size:.82rem;font-weight:800;color:var(--tm);margin-bottom:8px}
+.fb-score{color:var(--g);font-size:.95rem;font-weight:800}
+.fb-general{font-size:.85rem;line-height:1.7;color:var(--tm);margin-bottom:14px;padding:10px 14px;background:var(--gp);border-left:3px solid var(--g);border-radius:0 6px 6px 0}
+.fb-section{font-size:.8rem;font-weight:800;margin:10px 0 4px;display:flex;align-items:center;gap:5px}
+.fb-str{color:#1a6b2a}.fb-weak{color:var(--rl)}.fb-tip{color:#b7600a}
+.fb-logic{color:#6a0dad}.fb-why{color:#1a4a8a}
+.fb-bullet{font-size:.82rem;line-height:1.6;color:var(--tm);padding:2px 0 2px 14px;display:block;border-left:2px solid var(--bdr);margin:2px 0}
+.fb-why-line{font-size:.8rem;font-weight:700;color:#1a4a8a;margin:8px 0 2px;padding:4px 8px;background:#eef4ff;border-radius:6px}
+.fb-tip-line{font-size:.8rem;font-weight:700;color:#b7600a;margin:6px 0 2px}
+.fb-plain{font-size:.82rem;color:var(--tm);padding:1px 0}
+.fbtxt{font-size:.96rem;line-height:1.75;color:var(--tm)}
+.fb-overall-vi{font-size:.88rem;line-height:1.75;color:var(--tm);padding:14px 16px;background:var(--gp);border-left:4px solid var(--g);border-radius:0 8px 8px 0;margin-bottom:16px}
+.fb-tr-card{background:#f8fff8;border:1px solid #c8e6c9;border-left:4px solid var(--cor);border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:10px}
+.fb-tr-num{font-size:.72rem;font-weight:800;color:var(--cor);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.fb-tr-row{font-size:.83rem;line-height:1.65;color:var(--tm);margin-bottom:5px}
+.fb-tr-suggestion{font-size:.82rem;color:#5a7a5a;font-style:italic;padding:8px 10px;margin-top:6px;background:rgba(200,230,201,.3);border-radius:6px}
+.fb-gra-card{background:#fff8f8;border:1px solid #ffcdd2;border-radius:8px;padding:12px 14px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
+.fb-gra-badge{display:inline-block;background:#ffcdd2;color:#c62828;font-size:.68rem;font-weight:800;padding:2px 8px;border-radius:3px;letter-spacing:.06em;align-self:flex-start}
+.fb-gra-diff{font-size:.88rem;line-height:1.6;word-break:break-word}
+.fb-gra-wrong{text-decoration:line-through;color:var(--rl);background:rgba(239,83,80,.08);padding:1px 3px;border-radius:3px}
+.fb-gra-arrow{color:var(--tmt);font-weight:700;padding:0 4px}
+.fb-gra-correct{color:var(--cor);font-weight:700}
+.fb-gra-expl{font-size:.8rem;color:var(--tmt);line-height:1.6}
+.fb-lr-card{background:#f5f0fa;border-left:4px solid #9c6fbb;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:10px}
+.fb-lr-pair{font-size:.88rem;font-weight:700;color:#5a2d82;margin-bottom:6px}
+.fb-lr-expl{font-size:.82rem;color:var(--tm);margin-bottom:5px;line-height:1.6}
+.fb-lr-alts{font-size:.8rem;color:var(--cor);line-height:1.65}
+.fb-cc-assess{font-size:.85rem;color:var(--tm);line-height:1.7;margin-bottom:8px;padding:8px 12px;background:#f0f4ff;border-radius:6px}
+.fb-cc-sub{font-size:.78rem;font-weight:700;color:var(--tmt);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px}
+.fb-cc-list{margin:0;padding-left:18px;font-size:.83rem;color:var(--tm);line-height:1.7}
+.fb-cc-list li{margin-bottom:3px}
+.resacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+
+@media(max-width:768px){
+  .mrow.top{grid-template-columns:1fr 1fr}
+  .mrow.bot{grid-template-columns:1fr 1fr}
+  .pleft{width:44%}
+  .resbody{flex-direction:column}
+  .resr-l{width:100%;border-right:none;border-bottom:2px solid var(--bdr)}
+}
+@media(max-width:480px){.mrow.top,.mrow.bot{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><div id="ldg-msg">Processing...</div><div id="ldg-sub"></div></div>
+<div id="toast"></div>
+<div class="err-tip" id="err-tip"></div>
+<div class="modal" id="modal-email">
+  <div class="mbox">
+    <h3>📧 Send Results to Email</h3>
+    <p>Enter your email to receive your graded writing, corrections and detailed feedback.</p>
+    <input class="mi" id="email-inp" type="email" placeholder="your@email.com">
+    <div class="mbtns">
+      <button class="btn g" onclick="sendEmail()">Send Results</button>
+      <button class="btn ol" onclick="closeModal('modal-email')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ DASHBOARD ════ -->
+<div id="pg-dash" class="hidden">
+  <div class="dtop">
+    <div>
+      <div class="dbrand">
+        <span style="font-size:1.55rem">🪶</span>
+        <div><div class="bname">ArticuWrite</div><div class="btag">AI-powered Writing Platform</div></div>
+      </div>
+      <div class="dusr">Welcome, <span id="user-display">Student</span></div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <button class="btn gh sm" onclick="goToHub()">← Hub</button>
+      <span style="color:rgba(255,255,255,.4);font-size:.62rem;font-weight:700;letter-spacing:1px">Text</span>
+      <button class="btn gh sm" onclick="adjZ(-.05)">A−</button>
+      <button class="btn gh sm" onclick="adjZ(.05)">A+</button>
+    </div>
+  </div>
+  <div class="mgrid">
+    <div class="mrow top">
+      <div class="mcard" onclick="enterMode(1)"><div class="mico">✍️</div><div class="mtag">Mode 01</div><div class="mtitle">Free Writing</div><div class="mdesc">Open practice with live spell & grammar check</div></div>
+      <div class="mcard" onclick="enterMode(2)"><div class="mico">📊</div><div class="mtag">Mode 02</div><div class="mtitle">IELTS Writing Task 1</div><div class="mdesc">Describe graphs, charts, maps & processes</div></div>
+      <div class="mcard" onclick="enterMode(3)"><div class="mico">💬</div><div class="mtag">Mode 03</div><div class="mtitle">IELTS Writing Task 2</div><div class="mdesc">Opinion, discussion & problem-solution essays</div></div>
+    </div>
+    <div class="mrow bot">
+      <div class="mcard" onclick="enterMode(5)"><div class="mico">⏱️</div><div class="mtag">Mode 05</div><div class="mtitle">IELTS Test Simulation</div><div class="mdesc">Full 60-min timed test — Task 1 + Task 2</div></div>
+      <div class="mcard" onclick="enterMode(4)"><div class="mico">📚</div><div class="mtag">Mode 04</div><div class="mtitle">Library</div><div class="mdesc">Browse 365+ topics, questions & essay ideas</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ WRITING ════ -->
+<div id="pg-write" class="hidden">
+  <div class="wtop">
+    <div style="display:flex;align-items:center;gap:9px">
+      <button class="bbk" onclick="goBack()">←</button>
+      <div><div class="wbn">ArticuWrite</div><span class="wbt">AI-POWERED WRITING</span></div>
+    </div>
+    <div class="mpill" id="mpill">FREE WRITING</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="tbox hidden" id="tbox">60:00</div>
+      <button class="btn gh sm hidden" id="btn-lib-top" onclick="window.open('./library.html','_blank')">📚 Library</button>
+    </div>
+  </div>
+  <!-- SETUP -->
+  <div class="wsetup" id="wsetup">
+    <div class="sin">
+      <div><div class="sh2" id="setup-title">FREE WRITING</div><div class="sp" id="setup-desc">Practice with real-time support</div></div>
+      <div class="stabs hidden" id="stabs"></div>
+      <!-- Student API Key widget (shown for modes 1, 3, 5) -->
+      <div class="scard" id="student-api-key-card" style="display:none">
+        <div class="sct">🔑 Gemini API Key (free)</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <input type="password" id="student-api-key"
+            style="flex:1;padding:11px 14px;border:2px solid var(--bdr);border-radius:8px;font-family:var(--mono);font-size:.85rem;background:#1A1A16;color:#fff;outline:none;letter-spacing:.05em"
+            placeholder="AIza..."
+            oninput="onStudentKeyInput(this.value)"
+            onfocus="this.style.borderColor='var(--g)'"
+            onblur="this.style.borderColor='var(--bdr)'">
+          <span class="api-key-status missing" id="student-key-status" style="white-space:nowrap">no key</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--tmt)">
+          Get your free key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--g);font-weight:700">aistudio.google.com →</a>
+        </div>
+      </div>
+      <div class="scard" id="normal-q-card">
+        <div class="sct" id="qclbl">📝 Question / Prompt</div>
+        <textarea class="sta" id="setup-q" rows="4" placeholder="Paste or type the writing question here..."></textarea>
+      </div>
+      <div class="scard" id="sim-q1-card" style="display:none">
+        <div class="sct">📊 Task 1 — Describe the diagram / chart</div>
+        <textarea class="sta" id="setup-q-t1" rows="3" placeholder="Paste Task 1 question here..."></textarea>
+      </div>
+      <div class="scard" id="sim-q2-card" style="display:none">
+        <div class="sct">💬 Task 2 — Essay question</div>
+        <textarea class="sta" id="setup-q-t2" rows="3" placeholder="Paste Task 2 question here..."></textarea>
+      </div>
+      <div class="scard" id="imgcard">
+        <div class="sct">🖼️ Diagram / Chart (optional)</div>
+        <div id="imgdrop-area" style="border:2px dashed var(--bdr);border-radius:var(--rs);padding:20px 14px;text-align:center;background:var(--gp)">
+          <div class="idi">📷</div>
+          <div class="idt" style="margin-bottom:12px">Upload diagram, graph or chart<br><span style="font-size:.65rem;opacity:.6">PNG, JPG, JPEG, GIF</span></div>
+          <label for="imgfile" style="display:inline-block;background:var(--g);color:white;padding:9px 22px;border-radius:50px;font-size:.72rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer">📁 CHOOSE FILE</label>
+          <input type="file" id="imgfile" accept="image/*" onchange="handleImg(event)" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px">
+          <div id="img-name" style="font-size:.72rem;color:var(--tmt);margin-top:8px"></div>
+          <img id="img-prev" src="" alt="Preview" style="max-width:100%;max-height:220px;border-radius:var(--rs);margin-top:10px;display:none;object-fit:contain;border:1px solid var(--bdr)">
+        </div>
+        <div id="img-remove-wrap" class="hidden" style="text-align:center;margin-top:8px">
+          <button class="btn ol sm" onclick="removeImg()">✕ Remove Image</button>
+        </div>
+      </div>
+      <button class="btn g full" style="font-size:.95rem;padding:17px;border-radius:var(--rs)" onclick="startWriting()">▶ START WRITING</button>
+    </div>
+  </div>
+  <!-- WRITING MAIN -->
+  <div class="wmain hidden" id="wmain">
+    <div class="libp hidden" id="libp">
+      <div class="lphead"><div class="lptt">📚 Idea Library</div><button class="bclp" onclick="toggleLib()">✕</button></div>
+      <div class="lpbody" id="lpbody"><div style="color:rgba(255,255,255,.3);font-size:.7rem;padding:8px">Loading…</div></div>
+    </div>
+    <div class="pleft" id="pleft">
+      <div class="phd" id="phd-l">QUESTION & DIAGRAM</div>
+      <div class="qbox" id="qbox"><div class="qtxt" id="qdisplay"></div></div>
+      <div class="dwrap hidden" id="dwrap">
+        <div class="dwrap-controls">
+          <button class="btn gh sm" onclick="zoomImg(-20)">−</button>
+          <span class="zoom-pct" id="zoom-pct">100%</span>
+          <button class="btn gh sm" onclick="zoomImg(20)">+</button>
+          <button class="btn gh sm" onclick="zoomImg(0)">Fit</button>
+        </div>
+        <div class="dimg-wrap" id="dimg-wrap"><img id="dimg" src="" alt="Diagram" style="width:100%"></div>
+      </div>
+      <div class="notep hidden" id="notep">
+        <div class="notep-hd">✏️ BRAINSTORM / NOTES (private)</div>
+        <textarea class="noteta" placeholder="Outline key ideas, vocabulary, essay structure…"></textarea>
+      </div>
+      <div id="sim-switcher" style="display:none;background:var(--gd);border-top:2px solid var(--g);padding:8px 17px;flex-shrink:0;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="sw-btn-1" class="sim-sw-btn sw-on" onclick="simSwitch(1)">📊 Task 1</button>
+          <button id="sw-btn-2" class="sim-sw-btn" onclick="simSwitch(2)">💬 Task 2</button>
+        </div>
+        <span style="color:rgba(255,255,255,.3);font-size:.65rem;font-weight:600;letter-spacing:.5px">auto-saved ✓</span>
+      </div>
+    </div>
+    <div class="pright">
+      <div class="phd" id="phd-r">YOUR WRITING</div>
+      <div class="wta-wrap">
+        <textarea class="wta" id="wta" placeholder="Begin writing here…" oninput="onInput()" onscroll="syncScroll()"></textarea>
+        <div class="simlock" id="simlock">
+          <div style="font-size:3rem">🔒</div>
+          <div style="font-size:.9rem;font-weight:800;color:var(--txt);text-align:center;margin-top:8px">TIME'S UP<br><span style="font-size:.7rem;font-weight:500;color:var(--tmt);display:block;margin-top:4px">Your writing has been locked</span></div>
+        </div>
+      </div>
+      <div class="wfoot">
+        <div class="wfl">
+          <button class="btn gh sm" onclick="adjWF(-1)">A−</button>
+          <button class="btn gh sm" onclick="adjWF(1)">A+</button>
+          <button class="btn r sm" onclick="submitWriting()">SUBMIT →</button>
+          <span class="err-badge err-spell hidden" id="spell-badge" onclick="showErrorList('spell')" title="Click to see spelling errors">S: <span id="spell-cnt">0</span></span>
+          <span class="err-badge err-gram hidden" id="gram-badge" onclick="showErrorList('gram')" title="Click to see grammar issues">G: <span id="gram-cnt">0</span></span>
+        </div>
+        <div class="wcbadge"><span id="wc">0</span> words</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ LIBRARY ════ -->
+<div id="pg-lib" class="hidden">
+  <div class="libtop">
+    <button class="bbk" onclick="showPage('pg-dash')">←</button>
+    <span style="font-family:var(--sr);font-size:1.02rem;font-weight:700;color:white">📚 Library</span>
+    <div class="libbc" id="libbc"><span class="crumb" onclick="libHome()">ALL TOPICS</span></div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <span style="color:rgba(255,255,255,.4);font-size:.62rem;font-weight:700">TEXT</span>
+      <button class="btn gh sm" onclick="adjLibFont(-1)">A−</button>
+      <button class="btn gh sm" onclick="adjLibFont(1)">A+</button>
+    </div>
+  </div>
+  <div class="libbody">
+    <div class="liblt" id="liblt">BROWSE TOPICS</div>
+    <input class="lib-search hidden" id="lib-search" placeholder="🔍 Search questions, keywords, ideas..." oninput="libSearch(this.value)">
+    <div class="libgrid" id="libgrid"></div>
+  </div>
+</div>
+
+<!-- ════ RESULTS ════ -->
+<div id="pg-res" class="hidden">
+  <div class="restop">
+    <div class="resn">🪶 ArticuWrite</div>
+    <div class="resl">Assessment Results</div>
+    <div style="display:flex;gap:7px">
+      <button class="btn g sm" onclick="openModal('modal-email')">📧 Email</button>
+      <button class="btn gh sm" onclick="showPage('pg-dash')">← Back</button>
+    </div>
+  </div>
+  <div class="resbody">
+    <div class="resr-l">
+      <div class="resst">📝 Your Corrected Writing</div>
+      <div class="cortxt" id="cortxt"></div>
+      <div style="margin-top:13px;padding:9px 13px;background:var(--gp);border-radius:var(--rs);border:1px solid var(--bdr)">
+        <div style="font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--tmt);margin-bottom:6px">Legend</div>
+        <div style="display:flex;gap:16px;font-size:.76rem;flex-wrap:wrap">
+          <span><span class="eorig">wrong</span> — Original error (red strikethrough)</span>
+          <span><span class="efix">correct</span> — Correction (bold green)</span>
+        </div>
+      </div>
+    </div>
+    <div class="resr-r">
+      <div class="resst">🏆 Score Card</div>
+      <div class="scard">
+        <div class="bandrow">
+          <div class="bandcirc"><div class="bandnum" id="bnum">—</div><div class="bandlbl">BAND</div></div>
+          <div class="bandinfo"><h3 id="bname">Awaiting Grade</h3><p id="bdesc">Overall IELTS Writing Band Score</p></div>
+        </div>
+        <div class="critgrid" id="scores-single">
+          <div class="crit"><div class="cname">Task Response</div><div class="cscore" id="s-tr">—</div><div class="cbar"><div class="cfill" id="b-tr" style="width:0"></div></div></div>
+          <div class="crit"><div class="cname">Coherence & Cohesion</div><div class="cscore" id="s-cc">—</div><div class="cbar"><div class="cfill" id="b-cc" style="width:0"></div></div></div>
+          <div class="crit"><div class="cname">Lexical Resource</div><div class="cscore" id="s-lr">—</div><div class="cbar"><div class="cfill" id="b-lr" style="width:0"></div></div></div>
+          <div class="crit"><div class="cname">Grammatical Range</div><div class="cscore" id="s-gra">—</div><div class="cbar"><div class="cfill" id="b-gra" style="width:0"></div></div></div>
+        </div>
+        <div id="scores-sim" style="display:none">
+          <div style="font-size:.65rem;font-weight:800;letter-spacing:2px;color:var(--g);text-transform:uppercase;margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--bdr)">📊 Task 1 <span id="sim-t1-band" style="font-size:1rem;margin-left:8px">—</span></div>
+          <div class="critgrid" style="margin-bottom:16px">
+            <div class="crit"><div class="cname">Task Achievement</div><div class="cscore" id="s1-tr">—</div><div class="cbar"><div class="cfill" id="b1-tr" style="width:0"></div></div></div>
+            <div class="crit"><div class="cname">Coherence & Cohesion</div><div class="cscore" id="s1-cc">—</div><div class="cbar"><div class="cfill" id="b1-cc" style="width:0"></div></div></div>
+            <div class="crit"><div class="cname">Lexical Resource</div><div class="cscore" id="s1-lr">—</div><div class="cbar"><div class="cfill" id="b1-lr" style="width:0"></div></div></div>
+            <div class="crit"><div class="cname">Grammatical Range</div><div class="cscore" id="s1-gra">—</div><div class="cbar"><div class="cfill" id="b1-gra" style="width:0"></div></div></div>
+          </div>
+          <div style="font-size:.65rem;font-weight:800;letter-spacing:2px;color:var(--g);text-transform:uppercase;margin-bottom:8px;padding:6px 0;border-bottom:1px solid var(--bdr)">💬 Task 2 <span id="sim-t2-band" style="font-size:1rem;margin-left:8px">—</span></div>
+          <div class="critgrid">
+            <div class="crit"><div class="cname">Task Response</div><div class="cscore" id="s2-tr">—</div><div class="cbar"><div class="cfill" id="b2-tr" style="width:0"></div></div></div>
+            <div class="crit"><div class="cname">Coherence & Cohesion</div><div class="cscore" id="s2-cc">—</div><div class="cbar"><div class="cfill" id="b2-cc" style="width:0"></div></div></div>
+            <div class="crit"><div class="cname">Lexical Resource</div><div class="cscore" id="s2-lr">—</div><div class="cbar"><div class="cfill" id="b2-lr" style="width:0"></div></div></div>
+            <div class="crit"><div class="cname">Grammatical Range</div><div class="cscore" id="s2-gra">—</div><div class="cbar"><div class="cfill" id="b2-gra" style="width:0"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="fbcard"><div class="fbttl">📋 Detailed Feedback</div><div class="fbtxt" id="fbtxt">Loading…</div></div>
+      <div class="resacts">
+        <button class="btn g sm" onclick="openWriteDetail()">📄 View Full Report</button>
+        <button class="btn g sm" onclick="openModal('modal-email')">📧 Send to Email</button>
+        <button class="btn ol sm" onclick="showPage('pg-dash')">← New Practice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIBRARY MODAL -->
+<div class="modal" id="modal-lib" style="z-index:9997;align-items:center;justify-content:center">
+  <div id="lib-modal-box" style="background:var(--gd);border-radius:16px;width:50%;max-width:680px;min-width:340px;height:78vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 60px rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.12)">
+    <div style="background:rgba(0,0,0,.25);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
+      <span style="font-size:.62rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.65)">📚 IDEA LIBRARY</span>
+      <button onclick="closeModal('modal-lib');resetLibModal()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:1.1rem;cursor:pointer;padding:4px 8px">✕</button>
+    </div>
+    <div style="padding:10px 14px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <input id="lib-modal-search" style="width:100%;padding:9px 13px;border:1.5px solid rgba(255,255,255,.15);border-radius:8px;font-family:var(--fn);font-size:.83rem;background:rgba(255,255,255,.08);color:white;outline:none" placeholder="Search questions, keywords, ideas..." oninput="libModalSearch(this.value)">
+    </div>
+    <div id="lib-modal-body" style="flex:1;overflow-y:auto;padding:12px 14px"></div>
+    <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);text-align:center;flex-shrink:0">
+      <span style="font-size:.65rem;color:rgba(255,255,255,.3)">Click any question to practice it, or use Copy Ideas</span>
+    </div>
+  </div>
+</div>
+<script>
+// ── CONFIG ──
+const GAS = 'https://script.google.com/macros/s/AKfycbzrQ8pLC3LUlY0_DxlgXqd1uZiO7y_KhNfkXtZ-3_QUazhG4BQPWoyKAzobuDkrg5y-Dg/exec'; // Hub GAS — has JSONP handler in doGet
+const STUDENT_KEY_STORAGE = 'articuwrite_student_gemini_key';
+
+// ── STATE ──
+const S = {
+  mode:0, name:'', code:'', email:'', sessionToken:'',
+  question:'', imgData:'', writingText:'', started:false,
+  timer:null, timeLeft:3600, wfs:16, zoom:1, ltTimer:null,
+  lastResult:null, simTask:1, libTopics:[], imgZoom:100,
+  ltMatches:[], libFontSize:14,
+  simQ1:'', simQ2:'', simT1:'', simT2:'', simImg1:''
+};
+
+// ── STUDENT API KEY HELPERS ──
+function onStudentKeyInput(val) {
+  val = val.trim();
+  val ? localStorage.setItem(STUDENT_KEY_STORAGE, val) : localStorage.removeItem(STUDENT_KEY_STORAGE);
+  updateStudentKeyStatus();
+}
+function getStudentKey() {
+  const fromInput = (document.getElementById('student-api-key')?.value || '').trim();
+  const fromStorage = localStorage.getItem(STUDENT_KEY_STORAGE) || '';
+  return fromInput || fromStorage;
+}
+function validateGeminiKey(key) {
+  if (!key) return 'Chưa nhập API key.';
+  if (key.startsWith('sk-')) return 'Đây là OpenAI key — bạn cần Gemini key (bắt đầu bằng AIza...) từ aistudio.google.com';
+  if (!key.startsWith('AIza')) return 'Gemini key không hợp lệ — phải bắt đầu bằng "AIza"';
+  if (key.length < 35) return 'Key quá ngắn — hãy copy lại đầy đủ từ AI Studio';
+  return null; // valid
+}
+function updateStudentKeyStatus() {
+  const dot = document.getElementById('student-key-status');
+  if (!dot) return;
+  const key = getStudentKey();
+  if (!key) { dot.textContent = 'chưa có key'; dot.className = 'api-key-status missing'; return; }
+  if (!key.startsWith('AIza')) { dot.textContent = '⚠️ sai định dạng'; dot.className = 'api-key-status missing'; return; }
+  dot.textContent = '✅ đã lưu'; dot.className = 'api-key-status ok';
+}
+// Restore on load
+(function() {
+  const k = localStorage.getItem(STUDENT_KEY_STORAGE);
+  const inp = document.getElementById('student-api-key');
+  if (k && inp) inp.value = k;
+  updateStudentKeyStatus();
+})();
+
+// Modes that show student API key card
+const MODES_WITH_STUDENT_KEY = [1, 2, 3, 5]; // All grading modes require student key
+
+// ── PAGES ──
+const PAGES = ['pg-dash','pg-write','pg-lib','pg-res','pg-teacher'];
+function showPage(id){ PAGES.forEach(p=>document.getElementById(p).classList.toggle('hidden',p!==id)); }
+
+// ── HUB BOOTSTRAP ──
+const IS_GAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+
+function goToHub() { window.location.href = './index.html'; }
+
+document.addEventListener('DOMContentLoaded', function hubBootstrap() {
+  const tok = sessionStorage.getItem('ielts_hub_token');
+  const usr = sessionStorage.getItem('ielts_hub_user');
+  if (!tok || !usr) { window.location.href = './index.html'; return; }
+  try {
+    const user = JSON.parse(usr);
+    S.name  = user.fullName  || user.FullName  || 'Student';
+    S.code  = user.studentId || user.StudentID || '';
+    S.email = user.email     || user.Email     || '';
+    S.class = user.class     || user.Class     || '';
+    document.getElementById('user-display').textContent = S.name;
+    showPage('pg-dash');
+
+    // Get a valid Articuwrite session token by validating the access code
+    // This is needed because Articuwrite GAS has its own session system
+    if (S.code) {
+      // Use Hub token as the write session token (Hub validateStudentSession handles it)
+      // Also try to validate write-specific code if available
+      S.sessionToken = tok; // Hub session token works for write.grade via validateStudentSession fallback
+      sessionStorage.setItem('articu_session', tok);
+    }
+
+    loadLib();
+    // Handle question passed from library.html
+    const urlParams = new URLSearchParams(window.location.search);
+    const qFromLib = urlParams.get('q') || sessionStorage.getItem('articu_question');
+    if (qFromLib) {
+      sessionStorage.removeItem('articu_question');
+      // Pre-load question into Task 2 mode
+      setTimeout(() => {
+        enterMode(3);
+        setTimeout(() => {
+          document.getElementById('setup-q').value = qFromLib;
+        }, 100);
+      }, 300);
+    }
+  } catch(e) {
+    window.location.href = './index.html';
+  }
+});
+
+// ── ZOOM ──
+function adjZ(d){ S.zoom=Math.max(.75,Math.min(1.4,S.zoom+d)); document.documentElement.style.fontSize=(S.zoom*16)+'px'; }
+function adjWF(d){ S.wfs=Math.max(12,Math.min(24,S.wfs+d)); document.getElementById('wta').style.fontSize=S.wfs+'px'; }
+function zoomImg(delta){ if(delta===0){S.imgZoom=100;}else{S.imgZoom=Math.max(40,Math.min(300,S.imgZoom+delta));} document.getElementById('dimg').style.width=S.imgZoom+'%'; document.getElementById('zoom-pct').textContent=S.imgZoom+'%'; }
+function removeImg(){ S.imgData=''; document.getElementById('img-prev').style.display='none'; document.getElementById('img-prev').src=''; document.getElementById('imgfile').value=''; document.getElementById('img-name').textContent=''; document.getElementById('img-remove-wrap').classList.add('hidden'); }
+
+// ── MODE SETUP ──
+function enterMode(mode){
+  S.mode=mode; S.started=false; S.imgData=''; S.simImg1=''; S.simTask=1;
+  if(mode===4){ window.location.href='./library.html'; return; }
+  showPage('pg-write'); resetWUI();
+  const T={1:'FREE WRITING',2:'IELTS WRITING TASK 1',3:'IELTS WRITING TASK 2',5:'TEST SIMULATION'};
+  const D={1:'Practice freely — add your OpenAI key to use your own quota',2:'Describe the graph, chart, map or process shown',3:'Write your essay — open Library for ideas — add your key to use own quota',5:'Full test: 60 min, Task 1 + Task 2 — add your key to use own quota'};
+  document.getElementById('mpill').textContent=T[mode]||'WRITING';
+  document.getElementById('setup-title').textContent=T[mode]||'WRITING';
+  document.getElementById('setup-desc').textContent=D[mode]||'';
+  // Show/hide student API key card
+  const keyCard = document.getElementById('student-api-key-card');
+  keyCard.style.display = MODES_WITH_STUDENT_KEY.includes(mode) ? 'block' : 'none';
+  const nqc=document.getElementById('normal-q-card');
+  const sq1=document.getElementById('sim-q1-card');
+  const sq2=document.getElementById('sim-q2-card');
+  const ic=document.getElementById('imgcard');
+  if(mode===5){
+    nqc.style.display='none'; sq1.style.display='block'; sq2.style.display='block';
+    ic.style.display='block'; ic.classList.remove('hidden');
+  } else {
+    nqc.style.display=''; sq1.style.display='none'; sq2.style.display='none';
+    ic.classList.toggle('hidden',mode===3||mode===4);
+    if(mode!==3&&mode!==4) ic.style.display='';
+  }
+  document.getElementById('btn-lib-top').classList.toggle('hidden',mode!==3);
+}
+
+function resetWUI(){
+  document.getElementById('wsetup').classList.remove('hidden');
+  document.getElementById('wmain').classList.add('hidden');
+  document.getElementById('tbox').classList.add('hidden');
+  document.getElementById('btn-lib-top').classList.add('hidden');
+  document.getElementById('setup-q').value='';
+  const wta=document.getElementById('wta'); wta.value=''; wta.disabled=false;
+  document.getElementById('simlock').classList.remove('on');
+  document.getElementById('wc').textContent='0';
+  document.getElementById('img-prev').style.display='none';
+  document.getElementById('img-prev').src='';
+  document.getElementById('img-remove-wrap').classList.add('hidden');
+  document.getElementById('dwrap').classList.add('hidden');
+  document.getElementById('spell-badge').classList.add('hidden');
+  document.getElementById('gram-badge').classList.add('hidden');
+  var simSw=document.getElementById('sim-switcher'); if(simSw) simSw.style.display='none';
+  clearTmr(); S.writingText=''; S.imgData=''; S.ltMatches=[];
+  S.simQ1=''; S.simQ2=''; S.simT1=''; S.simT2=''; S.simImg1='';
+}
+
+function handleImg(e){
+  const f=e.target.files[0]; if(!f) return;
+  document.getElementById('img-name').textContent='📎 '+f.name;
+  const r=new FileReader();
+  r.onload=ev=>{
+    S.imgData=ev.target.result;
+    const p=document.getElementById('img-prev'); p.src=ev.target.result; p.style.display='block';
+    document.getElementById('img-remove-wrap').classList.remove('hidden');
+  };
+  r.readAsDataURL(f);
+}
+
+// ── SIM SWITCH ──
+function simSwitch(n){
+  if(!S.started||S.mode!==5) return;
+  const wta=document.getElementById('wta');
+  if(S.simTask===1) S.simT1=wta.value; else S.simT2=wta.value;
+  S.simTask=n; S.question=n===1?S.simQ1:S.simQ2; S.imgData=n===1?S.simImg1:'';
+  wta.value=n===1?S.simT1:S.simT2;
+  const wc=wta.value.trim()?wta.value.trim().split(/\s+/).length:0;
+  document.getElementById('wc').textContent=wc;
+  document.getElementById('sw-btn-1').classList.toggle('sw-on',n===1);
+  document.getElementById('sw-btn-2').classList.toggle('sw-on',n===2);
+  document.getElementById('qdisplay').textContent=S.question;
+  const dwr=document.getElementById('dwrap'),np=document.getElementById('notep'),qb=document.getElementById('qbox');
+  const showNote=(n===2), showDiag=!showNote&&!!S.imgData;
+  qb.style.display='block';
+  if(showNote){np.classList.remove('hidden');np.style.display='flex';dwr.classList.add('hidden');dwr.style.display='none';}
+  else if(showDiag){dwr.classList.remove('hidden');dwr.style.display='flex';np.classList.add('hidden');np.style.display='none';document.getElementById('dimg').src=S.imgData;document.getElementById('dimg').style.width='100%';S.imgZoom=100;document.getElementById('zoom-pct').textContent='100%';}
+  else{dwr.classList.add('hidden');dwr.style.display='none';np.classList.add('hidden');np.style.display='none';}
+  document.getElementById('phd-l').textContent=n===1?'QUESTION & DIAGRAM':'QUESTION';
+  document.getElementById('wta').placeholder='Task '+n+': Begin writing here...';
+  toast('Switched to Task '+n,'ok');
+}
+
+// ── START WRITING ──
+function startWriting(){
+  if(S.mode===5){
+    S.simQ1=document.getElementById('setup-q-t1').value.trim();
+    S.simQ2=document.getElementById('setup-q-t2').value.trim();
+    if(!S.simQ1){toast('Please enter the Task 1 question!','err');return;}
+    if(!S.simQ2){toast('Please enter the Task 2 question!','err');return;}
+    S.simTask=1; S.simT1=''; S.simT2=''; S.simImg1=S.imgData; S.question=S.simQ1;
+    const simSw=document.getElementById('sim-switcher'); simSw.style.display='flex';
+    document.getElementById('sw-btn-1').classList.add('sw-on');
+    document.getElementById('sw-btn-2').classList.remove('sw-on');
+    document.getElementById('wta').placeholder='Task 1: Begin writing here...';
+  } else {
+    S.question=document.getElementById('setup-q').value.trim();
+    if(S.mode===3) S.imgData='';
+  }
+  document.getElementById('wsetup').classList.add('hidden');
+  document.getElementById('wmain').classList.remove('hidden');
+  S.started=true;
+  S.startedAt = new Date().toISOString();
+  document.getElementById('qdisplay').textContent=S.question||'(No question — free write!)';
+  const dwr=document.getElementById('dwrap'),np=document.getElementById('notep'),qb=document.getElementById('qbox');
+  const showNote=(S.mode===3)||(S.mode===5&&S.simTask===2);
+  const showDiag=!showNote&&!!S.imgData;
+  qb.style.display='block';
+  if(showNote){np.classList.remove('hidden');np.style.display='flex';dwr.classList.add('hidden');dwr.style.display='none';}
+  else if(showDiag){dwr.classList.remove('hidden');dwr.style.display='flex';np.classList.add('hidden');np.style.display='none';document.getElementById('dimg').src=S.imgData;document.getElementById('dimg').style.width='100%';S.imgZoom=100;}
+  else{qb.style.display='block';dwr.classList.add('hidden');dwr.style.display='none';np.classList.add('hidden');np.style.display='none';}
+  const ll={1:'📝 QUESTION & DIAGRAM',2:'📝 QUESTION & DIAGRAM',3:'📝 QUESTION',5:`📝 TASK ${S.simTask}`};
+  document.getElementById('phd-l').textContent=ll[S.mode]||'QUESTION';
+  document.getElementById('phd-r').textContent='✍️ YOUR WRITING';
+  document.getElementById('tbox').classList.remove('hidden');
+  S.timeLeft=3600; startTmr();
+  if(S.mode===3) document.getElementById('btn-lib-top').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('wta').focus(),80);
+}
+
+// ── TIMER ──
+function startTmr(){clearTmr();updateTmr();S.timer=setInterval(()=>{S.timeLeft--;updateTmr();if(S.timeLeft<=0){clearTmr();onTimeUp();}},1000);}
+function clearTmr(){if(S.timer){clearInterval(S.timer);S.timer=null;}}
+function updateTmr(){const m=Math.floor(S.timeLeft/60),s=S.timeLeft%60,el=document.getElementById('tbox');el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;el.classList.toggle('warn',S.timeLeft<=300);}
+function onTimeUp(){if(S.mode===5){document.getElementById('wta').disabled=true;document.getElementById('simlock').classList.add('on');toast('Time is up! Writing locked.','err');}else toast('60 min up — continue or submit.','err');}
+
+// ── INPUT + WORD COUNT + LANGUAGE TOOL ──
+function onInput(){
+  const t=document.getElementById('wta').value; S.writingText=t;
+  document.getElementById('wc').textContent=t.trim()?t.trim().split(/\s+/).length:0;
+  clearTimeout(S.ltTimer); S.ltTimer=setTimeout(()=>runLT(t),900);
+}
+function syncScroll(){}
+async function runLT(text){
+  if(!text||text.length<15){hideLTBadges();return;}
+  try{
+    let matches=[];
+    try{
+      const ltRes=await gasPost({action:'checkLT',payload:{text},sessionToken:S.sessionToken});
+      if(ltRes&&ltRes.success&&ltRes.matches) matches=ltRes.matches;
+    }catch(e2){}
+    if(!matches.length){
+      const fd=new URLSearchParams();
+      fd.append('text',text);fd.append('language','en-US');fd.append('level','picky');
+      const r=await fetch('https://api.languagetool.org/v2/check',{method:'POST',body:fd});
+      const d=await r.json();
+      matches=(d.matches||[]).map(m=>({offset:m.offset,length:m.length,message:m.message,replacements:(m.replacements||[]).slice(0,3),rule:{id:(m.rule||{}).id||'',issueType:(m.rule||{}).issueType||'grammar',category:((m.rule||{}).category||{}).id||''}}));
+    }
+    if(matches.length) showLTErrors(matches); else hideLTBadges();
+  }catch(e){}
+}
+function showLTErrors(matches){
+  let spell=0,gram=0;
+  matches.forEach(m=>{const t=(m.rule&&m.rule.issueType)||'',id=(m.rule&&m.rule.id)||'';if(t==='misspelling'||id.includes('MORFOLOGIK')||id.includes('HUNSPELL')||id.includes('SPELL'))spell++;else gram++;});
+  S.ltMatches=matches;
+  const sb=document.getElementById('spell-badge'),gb=document.getElementById('gram-badge');
+  sb.classList.toggle('hidden',spell===0); document.getElementById('spell-cnt').textContent=spell;
+  gb.classList.toggle('hidden',gram===0);  document.getElementById('gram-cnt').textContent=gram;
+}
+function hideLTBadges(){document.getElementById('spell-badge').classList.add('hidden');document.getElementById('gram-badge').classList.add('hidden');}
+
+// ── GAS HELPERS ──
+// gasPost: uses JSONP (not fetch POST) to avoid CORS block from Netlify → GAS
+function gasPost(payload) {
+  // Extract action and pass rest as payload for JSONP
+  const action = payload.action || '';
+  const data   = Object.assign({}, payload);
+  delete data.action;
+  return gasGet(action, data);
+}
+// Action name mapping: write.html legacy names → Hub GAS names
+var ACTION_MAP = {
+  'validateStudent':  'validateStudent',
+  'getLibraryData':   'write.getLibrary',
+  'checkLT':          'write.checkLT',
+  'gradeWriting':     'write.grade',
+  'describeImage':    'write.describeImage',
+  'saveResult':       'write.saveResult',   // Hub GAS: writeSaveResult()
+  'sendEmail':        'sendEmail',           // Hub GAS: writeSendEmail()
+  'getResults':       'teacher.write.getResults',
+  'getAccessCodes':   'teacher.write.getCodes',
+  'revokeAccessCode': 'teacher.write.revokeCode',
+  'getPendingRegs':   'teacher.write.getPending',
+  'approveRegistration': 'teacher.write.approveReg',
+  'getTeacherSettings':  'teacher.getSettings',
+  'updateTeacherSetting':'teacher.saveSetting',
+  'saveTeacherNote':     'teacher.write.saveNote',
+  'teacherLogin':        'auth.teacherLogin',
+};
+
+// JSONP for GAS GET requests (bypasses CORS, needed for library etc.)
+function gasGet(action, payload) {
+  action = ACTION_MAP[action] || action; // translate to Hub GAS names
+  payload = payload || {};
+  return new Promise((resolve, reject) => {
+    const cb = 'arw_cb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+    const params = 'callback=' + encodeURIComponent(cb)
+      + '&action=' + encodeURIComponent(action)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload))
+      + '&sessionToken=' + encodeURIComponent(S.sessionToken || '');
+    const s = document.createElement('script');
+    s.src = GAS + '?' + params;
+    const t = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
+    window[cb] = r => { cleanup(); resolve(r); };
+    const cleanup = () => { clearTimeout(t); delete window[cb]; s.parentNode && s.parentNode.removeChild(s); };
+    s.onerror = () => { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(s);
+  });
+}
+// ── gasPostFetch: fetch POST to GAS doPost (handles large payloads) ──
+// GAS doPost returns JSON; browser may get CORS error on response read
+// but the request IS processed by GAS. We use a workaround:
+// send twice — once for processing (no-cors), once attempt to read response
+async function gasPostFetch(action, payload) {
+  const mappedAction = ACTION_MAP[action] || action;
+  const body = JSON.stringify({
+    action:       mappedAction,
+    payload:      payload || {},
+    sessionToken: S.sessionToken || ''
+  });
+  // Try normal fetch first (may work in some environments)
+  try {
+    const resp = await fetch(GAS, {
+      method:  'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body:    body
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return data;
+    }
+  } catch(e) { /* CORS block — fall through to no-cors */ }
+  // Fire-and-forget no-cors (GAS processes it but we can't read response)
+  await fetch(GAS, {
+    method:  'POST',
+    mode:    'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body:    body
+  }).catch(() => {});
+  // Wait for GAS to finish, return optimistic success
+  await new Promise(r => setTimeout(r, 3500));
+  return { success: true, _noCorsFallback: true };
+}
+
+function callGAS(fnName,...args){
+  return new Promise((resolve,reject)=>{
+    if(!IS_GAS){reject(new Error('Not in GAS environment'));return;}
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(e=>reject(new Error(e.message||String(e))))[fnName](...args);
+  });
+}
+
+// ── +1 MOTIVATION BOOST (silent, not shown to students) ──
+// Applied after AI returns scores to gently encourage learners
+// +1.0 per criterion, overall = avg of 4 boosted criteria
+function applyMotivationBoost(scores) {
+  if (!scores || typeof scores !== 'object') return scores;
+  const boosted = {};
+  ['TR','CC','LR','GRA'].forEach(k => {
+    const v = parseFloat(scores[k]);
+    boosted[k] = !isNaN(v) ? Math.round(Math.min(9.0, v + 1.0) * 2) / 2 : scores[k];
+  });
+  return boosted;
+}
+function calcOverallFromBoosted(s) {
+  const vals = ['TR','CC','LR','GRA'].map(k => parseFloat(s[k])).filter(v => !isNaN(v));
+  if (!vals.length) return 0;
+  return Math.round((vals.reduce((a,b) => a+b, 0) / vals.length) * 2) / 2;
+}
+function applyBoostToResult(result) {
+  if (!result) return result;
+  const r = JSON.parse(JSON.stringify(result));
+  if (r.scores) {
+    r.scores = applyMotivationBoost(r.scores);
+    r.overall = calcOverallFromBoosted(r.scores);
+  }
+  if (r.task1 && r.task1.scores) {
+    r.task1.scores = applyMotivationBoost(r.task1.scores);
+    r.task1.overall = calcOverallFromBoosted(r.task1.scores);
+  }
+  if (r.task2 && r.task2.scores) {
+    r.task2.scores = applyMotivationBoost(r.task2.scores);
+    r.task2.overall = calcOverallFromBoosted(r.task2.scores);
+  }
+  if (r.task1 && r.task2) {
+    r.overall = Math.round(((r.task1.overall + r.task2.overall) / 2) * 2) / 2;
+  }
+  return r;
+}
+
+
+// ── DIRECT GEMINI GRADING (browser → Gemini API, no CORS issues) ──
+async function gradeWithGemini(payload, geminiKey) {
+  const text     = payload.writing || payload.text || '';
+  const mode     = payload.mode || 3;
+  const question = payload.question || '';
+  const imgDesc  = payload.imgDesc || '';
+
+    const prompt =
+`You are a strict IELTS Writing examiner AND a bilingual (English/Vietnamese) writing coach.
+Analyze the essay below and return ONLY valid JSON (no markdown, no extra text).
+
+SCORING RULES (anti-inflation):
+- Score ONLY what is written. Choose LOWER band if borderline.
+- Unclear viewpoint → max 6. Mechanical linking → max 6.5.
+- Wrong collocations → max 6. 2+ major grammar errors → max 6.
+
+TASK: ${question}
+${imgDesc ? 'DIAGRAM: ' + imgDesc : ''}
+ESSAY:
+${text}
+
+Return this EXACT JSON structure:
+{
+  "scores": {"TR": 6.0, "CC": 6.0, "LR": 6.5, "GRA": 6.0},
+  "overall": 6.0,
+  "band_description": "Competent User",
+  "tr_comments": [
+    {
+      "original_idea": "exact quote from essay (the key idea being assessed)",
+      "assessment_vi": "Nhận xét bằng tiếng Việt: điểm mạnh/yếu của ý tưởng này",
+      "suggestion_en": "Improved version of this idea in English (full sentence, well-developed)"
+    }
+  ],
+  "gra_errors": [
+    {
+      "wrong": "exact wrong phrase from essay",
+      "correct": "corrected version",
+      "explanation_vi": "Giải thích lỗi ngắn gọn bằng tiếng Việt"
+    }
+  ],
+  "lr_issues": [
+    {
+      "original": "word or phrase from essay",
+      "better": "more appropriate word/phrase",
+      "explanation_vi": "Giải thích bằng tiếng Việt tại sao nên thay",
+      "alternatives": ["example sentence using the better word", "another example sentence"]
+    }
+  ],
+  "cc_feedback": {
+    "assessment_vi": "Nhận xét tổng quan về coherence & cohesion bằng tiếng Việt",
+    "issues": ["specific issue 1 in English", "specific issue 2 in English"],
+    "suggestions": ["concrete suggestion 1 in English", "concrete suggestion 2 in English"]
+  },
+  "corrected_text": "FULL essay word-for-word. Mark wrong words only: ~~wrong~~correct~~ Never wrap whole sentences.",
+  "overall_feedback_vi": "Nhận xét tổng quan bằng tiếng Việt (3-4 câu): điểm mạnh, điểm yếu chính, lời khuyên cụ thể để lên band."
+}
+
+RULES:
+- tr_comments: 2-4 key ideas (intro, body 1, body 2, conclusion)
+- gra_errors: 3-5 real grammar errors found in the essay
+- lr_issues: 2-4 vocabulary items that could be improved
+- Vietnamese text must be natural, specific, encouraging
+- corrected_text must contain the FULL essay every sentence`;
+
+  const maxTokens = 10000;
+  const resp = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey,
+    {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [{text: prompt}]}],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: maxTokens,
+          responseMimeType: 'application/json'
+        }
+      })
+    }
+  );
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error('Gemini error: ' + (err?.error?.message || resp.status));
+  }
+  const data = await resp.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!raw) throw new Error('Gemini returned empty response');
+
+  // Parse JSON — strip markdown/thinking tags defensively
+  let clean = raw
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+  // Find outermost JSON object
+  const si = clean.indexOf('{');
+  let depth = 0, ei = -1;
+  for (let ci = si; ci < clean.length; ci++) {
+    if (clean[ci]==='{') depth++;
+    else if (clean[ci]==='}') { depth--; if(depth===0){ei=ci;break;} }
+  }
+  if (si===-1||ei===-1) throw new Error('No valid JSON in Gemini response');
+  const result = JSON.parse(clean.substring(si, ei+1));
+  return applyBoostToResult(result);
+}
+
+// ── SUBMIT ──
+async function submitWriting(){
+  let text;
+  if(S.mode===5){
+    const cur=document.getElementById('wta').value;
+    if(S.simTask===1) S.simT1=cur; else S.simT2=cur;
+    S.writingText='Task 1: '+S.simT1+'\n\nTask 2: '+S.simT2;
+    S.question='T1: '+S.simQ1+' | T2: '+S.simQ2; text=S.writingText;
+  } else {
+    text=document.getElementById('wta').value.trim(); S.writingText=text;
+  }
+  if(!text||text.split(/\s+/).length<30){toast('Please write at least 30 words.','err');return;}
+
+  // Require student's own Gemini key — teacher's quota is NOT used for grading
+  const studentKey = getStudentKey();
+  const keyError = validateGeminiKey(studentKey);
+  if (keyError) {
+    toast('⚠️ ' + keyError, 'err');
+    showPage('pg-write');
+    document.getElementById('wmain').classList.add('hidden');
+    document.getElementById('wsetup').classList.remove('hidden');
+    const keyInp = document.getElementById('student-api-key');
+    if (keyInp) { keyInp.focus(); keyInp.style.borderColor = '#E8304A'; setTimeout(() => keyInp.style.borderColor = '', 3000); }
+    return;
+  }
+
+  showLdg('Grading with AI — this takes about 20 seconds…',true);
+  try {
+    let raw, imgDesc='';
+    const hasImg=(S.mode===1||S.mode===5)&&(S.imgData||S.simImg1);
+    if(hasImg){
+      const imgB64=S.mode===5?S.simImg1:S.imgData;
+      if(imgB64){
+        try{
+          let descRaw;
+          descRaw=await gasPost({action:'describeImage',imgBase64:imgB64,sessionToken:S.sessionToken});
+          if(descRaw&&descRaw.success) imgDesc=descRaw.description||'';
+        }catch(e){imgDesc='';}
+      }
+    }
+    const payload={text:S.writingText,mode:S.mode,question:S.question,imgDesc,sessionToken:S.sessionToken};
+    // Always use student's Gemini key — direct browser call, no CORS, no teacher quota used
+    let result;
+    const sKey = getStudentKey();
+    if (sKey) {
+      result = await gradeWithGemini(payload, sKey);
+    } else {
+      throw new Error('Gemini key required. Please add your key from aistudio.google.com');
+    }
+    if (!result) throw new Error('No result from AI');
+    S.lastResult=result;
+    hideLdg();
+    showResults(result,S.writingText);
+    saveData(result);
+    // Save full result to localStorage for write-detail.html
+    try {
+      localStorage.setItem('arw_last_result', JSON.stringify({
+        timestamp:   new Date().toISOString(),
+        startedAt:   S.startedAt   || '',
+        submittedAt: new Date().toISOString(),
+        name:        S.name,
+        code:        S.code,
+        class:       S.class || '',
+        mode:        ({1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing'),
+        question:    S.question || '',
+        writing:     S.writingText || '',
+        result:      result
+      }));
+    } catch(e2) {}
+  }catch(e){
+    hideLdg();
+    const msg=e.message||String(e);
+    if(msg.includes('permission')||msg.includes('UrlFetchApp')||msg.includes('authorization')) showPermissionHelp();
+    else toast('Grading error: '+msg,'err');
+  }
+}
+
+// ── FORMAT FEEDBACK ──
+function escHtmlFb(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function formatFeedback(text){
+  if(!text) return '';
+  if(typeof text==='object'&&text!==null){
+    let parts=[];
+    if(text.strengths){parts.push('Strengths:');(Array.isArray(text.strengths)?text.strengths:[text.strengths]).forEach(s=>parts.push('- '+s));}
+    if(text.weaknesses){parts.push('Weaknesses:');(Array.isArray(text.weaknesses)?text.weaknesses:[text.weaknesses]).forEach(s=>parts.push('- '+s));}
+    text=parts.join('\n');
+  }
+  if(typeof text!=='string') text=String(text);
+  const lines=text.split('\n'); let html='';
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim(); if(!line) continue;
+    if(/^strengths[:：]/i.test(line)) html+='<div class="fb-section fb-str">✅ <strong>Strengths</strong></div>';
+    else if(/^weaknesses[:：]/i.test(line)) html+='<div class="fb-section fb-weak">❌ <strong>Weaknesses</strong></div>';
+    else if(/^[-•]\s/.test(line)) html+='<div class="fb-bullet">• '+line.replace(/^[-•]\s+/,'')+'</div>';
+    else html+='<div class="fb-plain">'+line+'</div>';
+  }
+  return html;
+}
+
+// ── NEW DETAILED RENDER FUNCTIONS ──
+function renderTRComments(comments){
+  if(!comments||!comments.length) return '';
+  const items=comments.map((c,i)=>`
+    <div class="fb-tr-card">
+      <div class="fb-tr-num">Comment ${i+1}</div>
+      <div class="fb-tr-row"><strong>Original Idea:</strong> "${escHtmlFb(c.original_idea||'')}"</div>
+      <div class="fb-tr-row"><strong>Assessment:</strong> ${escHtmlFb(c.assessment_vi||'')}</div>
+      ${c.suggestion_en?`<div class="fb-tr-suggestion">💡 <em>Suggestion: ${escHtmlFb(c.suggestion_en)}</em></div>`:''}
+    </div>`).join('');
+  return `<div class="fb-crit-block">
+    <div class="fb-crit-title">✅ TASK RESPONSE &amp; CONTENT FEEDBACK (${comments.length})</div>${items}</div>`;
+}
+function renderGRAErrors(errors){
+  if(!errors||!errors.length) return '';
+  const items=errors.map((e,i)=>`
+    <div class="fb-gra-card">
+      <div class="fb-gra-badge">ERROR ${i+1}</div>
+      <div class="fb-gra-diff"><span class="fb-gra-wrong">${escHtmlFb(e.wrong||'')}</span><span class="fb-gra-arrow"> → </span><span class="fb-gra-correct">${escHtmlFb(e.correct||'')}</span></div>
+      ${e.explanation_vi?`<div class="fb-gra-expl">${escHtmlFb(e.explanation_vi)}</div>`:''}
+    </div>`).join('');
+  return `<div class="fb-crit-block">
+    <div class="fb-crit-title">⚠️ GRAMMATICAL RANGE &amp; ACCURACY (${errors.length})</div>${items}</div>`;
+}
+function renderLRIssues(issues){
+  if(!issues||!issues.length) return '';
+  const items=issues.map(iss=>`
+    <div class="fb-lr-card">
+      <div class="fb-lr-pair">"<strong>${escHtmlFb(iss.original||'')}</strong> → <strong>${escHtmlFb(iss.better||'')}</strong>"</div>
+      ${iss.explanation_vi?`<div class="fb-lr-expl">${escHtmlFb(iss.explanation_vi)}</div>`:''}
+      ${iss.alternatives&&iss.alternatives.length?`<div class="fb-lr-alts"><strong>Alternatives:</strong> ${iss.alternatives.map(a=>escHtmlFb(a)).join(' &nbsp;·&nbsp; ')}</div>`:''}
+    </div>`).join('');
+  return `<div class="fb-crit-block">
+    <div class="fb-crit-title">📚 LEXICAL RESOURCE (${issues.length})</div>${items}</div>`;
+}
+function renderCCFeedback(cc){
+  if(!cc) return '';
+  const issHtml=(cc.issues||[]).map(i=>`<li>${escHtmlFb(i)}</li>`).join('');
+  const sugHtml=(cc.suggestions||[]).map(s=>`<li>${escHtmlFb(s)}</li>`).join('');
+  return `<div class="fb-crit-block">
+    <div class="fb-crit-title">🔗 COHERENCE &amp; COHESION</div>
+    ${cc.assessment_vi?`<div class="fb-cc-assess">${escHtmlFb(cc.assessment_vi)}</div>`:''}
+    ${issHtml?`<div class="fb-cc-sub">❌ Issues:</div><ul class="fb-cc-list">${issHtml}</ul>`:''}
+    ${sugHtml?`<div class="fb-cc-sub">💡 Suggestions:</div><ul class="fb-cc-list">${sugHtml}</ul>`:''}
+  </div>`;
+}
+
+// ── SHOW RESULTS ──
+function showResults(r,orig){
+  showPage('pg-res');
+  const corrected=String(r.corrected_text||orig||'');
+  function applyCorrections(txt){
+    return txt.replace(/~~([^~]+)~~([^~]*)~~/g,(_,wrong,fix)=>{
+      if(!fix||!fix.trim()) return wrong;
+      return `<span class="eorig">${wrong.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>&nbsp;<span class="efix">${fix.trim().replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+    }).replace(/~~([^~]*)~~/g,'$1');
+  }
+  const paragraphs=corrected.split(/\n{2,}/);
+  document.getElementById('cortxt').innerHTML=paragraphs.map(para=>{
+    const ls=para.split(/\n/).map(ln=>applyCorrections(ln));
+    return `<p class="cortxt-para">${ls.join('<br>')}</p>`;
+  }).join('');
+  document.getElementById('bnum').textContent=r.overall||'—';
+  document.getElementById('bname').textContent=bandName(r.overall);
+  document.getElementById('bdesc').textContent=r.band_description||'Overall IELTS Writing Band';
+  const isSim=S.mode===5&&r.task1&&r.task2;
+  document.getElementById('scores-single').style.display=isSim?'none':'';
+  document.getElementById('scores-sim').style.display=isSim?'block':'none';
+  if(isSim){
+    const t1=r.task1,t2=r.task2;
+    document.getElementById('sim-t1-band').textContent='Band '+t1.overall;
+    document.getElementById('sim-t2-band').textContent='Band '+t2.overall;
+    ['tr','cc','lr','gra'].forEach(k=>{
+      const K=k.toUpperCase();
+      const el1=document.getElementById('s1-'+k);if(el1)el1.textContent=t1.scores[K]||'—';
+      const el2=document.getElementById('s2-'+k);if(el2)el2.textContent=t2.scores[K]||'—';
+      setTimeout(()=>{const b1=document.getElementById('b1-'+k);if(b1)b1.style.width=((t1.scores[K]||0)/9*100)+'%';const b2=document.getElementById('b2-'+k);if(b2)b2.style.width=((t2.scores[K]||0)/9*100)+'%';},200);
+    });
+    const fb1=t1.feedback||{},fb2=t2.feedback||{};
+    const mkSimFb=(fb,s)=>[
+      fb.general&&`<div class="fb-general">${fb.general}</div>`,
+      fb.TR&&`<div class="fb-crit-block"><div class="fb-crit-title">1️⃣ Task Response — <span class="fb-score">${s.TR||''}</span></div>${formatFeedback(fb.TR)}</div>`,
+      fb.CC&&`<div class="fb-crit-block"><div class="fb-crit-title">2️⃣ Coherence & Cohesion — <span class="fb-score">${s.CC||''}</span></div>${formatFeedback(fb.CC)}</div>`,
+      fb.LR&&`<div class="fb-crit-block"><div class="fb-crit-title">3️⃣ Lexical Resource — <span class="fb-score">${s.LR||''}</span></div>${formatFeedback(fb.LR)}</div>`,
+      fb.GRA&&`<div class="fb-crit-block"><div class="fb-crit-title">4️⃣ Grammar — <span class="fb-score">${s.GRA||''}</span></div>${formatFeedback(fb.GRA)}</div>`,
+    ].filter(Boolean).join('');
+    document.getElementById('fbtxt').innerHTML=
+      '<div class="fb-task-header">📊 Task 1 Feedback</div>'+mkSimFb(fb1,t1.scores)+
+      '<div class="fb-task-header" style="margin-top:20px">💬 Task 2 Feedback</div>'+mkSimFb(fb2,t2.scores);
+  } else {
+    const s=r.scores||{};
+    ['tr','cc','lr','gra'].forEach(k=>{
+      const K=k.toUpperCase();
+      const el=document.getElementById('s-'+k);if(el)el.textContent=s[K]||'—';
+      setTimeout(()=>{const b=document.getElementById('b-'+k);if(b)b.style.width=((s[K]||0)/9*100)+'%';},200);
+    });
+    const overallVI=r.overall_feedback_vi||'';
+    const overallHtml=overallVI?`<div class="fb-overall-vi">${escHtmlFb(overallVI)}</div>`:'';
+    const trHtml  =r.tr_comments ?renderTRComments(r.tr_comments) :(r.feedback&&r.feedback.TR ?`<div class="fb-crit-block"><div class="fb-crit-title">✅ Task Response</div>${formatFeedback(r.feedback.TR)}</div>`:'');
+    const graHtml =r.gra_errors  ?renderGRAErrors(r.gra_errors)   :(r.feedback&&r.feedback.GRA?`<div class="fb-crit-block"><div class="fb-crit-title">⚠️ Grammar</div>${formatFeedback(r.feedback.GRA)}</div>`:'');
+    const lrHtml  =r.lr_issues   ?renderLRIssues(r.lr_issues)     :(r.feedback&&r.feedback.LR ?`<div class="fb-crit-block"><div class="fb-crit-title">📚 Lexical</div>${formatFeedback(r.feedback.LR)}</div>`:'');
+    const ccHtml  =r.cc_feedback ?renderCCFeedback(r.cc_feedback) :(r.feedback&&r.feedback.CC ?`<div class="fb-crit-block"><div class="fb-crit-title">🔗 Coherence</div>${formatFeedback(r.feedback.CC)}</div>`:'');
+    document.getElementById('fbtxt').innerHTML=[overallHtml,trHtml,graHtml,lrHtml,ccHtml].filter(Boolean).join('');
+  }
+}
+function bandName(b){if(b>=9)return'Expert User';if(b>=8)return'Very Good User';if(b>=7)return'Good User';if(b>=6)return'Competent User';if(b>=5)return'Modest User';if(b>=4)return'Limited User';return'Extremely Limited';}
+
+
+// ── SAVE ──
+async function saveData(result){
+  // Keep payload SMALL to fit JSONP URL limit (~6000 chars)
+  // Only send metadata + truncated writing — GAS handles the rest
+  const mode = {1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing';
+  try {
+    await gasGet('saveResult', {
+      name:        S.name,
+      email:       S.email      || '',
+      code:        S.code       || '',
+      class:       S.class      || '',
+      mode:        mode,
+      question:    (S.question    || '').substring(0, 200),
+      writing:     (S.writingText || '').substring(0, 800),
+      scores:      result.scores  || {},
+      overall:     result.overall || '',
+      startedAt:   S.startedAt   || '',
+      submittedAt: new Date().toISOString(),
+      sessionToken: S.sessionToken || ''
+    });
+    console.log('[ArticuWrite] saveData OK');
+  } catch(e) {
+    console.warn('[ArticuWrite] saveData error:', e.message);
+  }
+}
+// ── EXPORT FEEDBACK REPORT (replaces broken GAS sendEmail) ──
+function buildReportHTML() {
+  const r = S.lastResult;
+  if (!r) return null;
+  const scores      = r.scores || {};
+  const overall     = r.overall || r.boosted_overall || '—';
+  const feedback    = r.feedback || {};
+  const corrections = r.corrected_text || r.corrections || '';
+  const writing     = S.writingText || '';
+  const name        = S.name || '';
+  const mode        = ({1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing');
+  const question    = S.question || '';
+  const now         = new Date().toLocaleString('vi-VN');
+  const criteriaLabels = {TR:'Task Response',CC:'Coherence & Cohesion',LR:'Lexical Resource',GRA:'Grammatical Range & Accuracy'};
+  const scoreRows = Object.entries(criteriaLabels).map(([k,label])=>{
+    const v=scores[k]??'—';
+    const color=parseFloat(v)>=7?'#1A7A4A':parseFloat(v)>=5.5?'#B45309':'#C8102E';
+    return `<tr><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:.88rem">${label}</td><td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:800;font-size:1rem;color:${color};text-align:center">${v}</td></tr>`;
+  }).join('');
+  const fbHTML = typeof feedback==='object'&&feedback!==null
+    ? Object.entries(feedback).map(([k,v])=>{
+        if(!v)return'';
+        const title=k.replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
+        const content=Array.isArray(v)?'<ul>'+v.map(i=>`<li>${i}</li>`).join('')+'</ul>':`<p>${String(v)}</p>`;
+        return `<div style="margin-bottom:18px"><h4 style="font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:#C8102E;margin-bottom:8px">${title}</h4>${content}</div>`;
+      }).join('')
+    : `<p style="white-space:pre-wrap">${feedback}</p>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>ArticuWrite Feedback — ${name}</title>
+<style>body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:0;background:#f8f8f8;color:#222}
+.page{max-width:800px;margin:0 auto;background:#fff;padding:40px 48px;box-shadow:0 2px 20px rgba(0,0,0,.08)}
+.header{background:#1A1A16;color:white;padding:28px 32px;border-radius:8px;margin-bottom:28px}
+.header h1{font-size:1.5rem;margin:0 0 6px}
+.band{display:inline-block;font-size:3rem;font-weight:900;padding:6px 18px;border-radius:10px;background:rgba(200,16,46,.12);color:#C8102E;border:2px solid rgba(200,16,46,.25);margin-bottom:20px}
+table{width:100%;border-collapse:collapse;margin-bottom:24px;border:1px solid #eee;border-radius:8px;overflow:hidden}
+th{background:#1A1A16;color:white;padding:10px 14px;font-size:.78rem;text-align:left;letter-spacing:.06em}
+h2{font-size:1rem;text-transform:uppercase;letter-spacing:.08em;color:#C8102E;border-bottom:2px solid #C8102E;padding-bottom:6px;margin:28px 0 14px}
+.box{background:#f9f9f9;border:1px solid #ddd;border-radius:8px;padding:18px 20px;font-size:.9rem;line-height:1.8;white-space:pre-wrap;margin-bottom:24px}
+.footer{text-align:center;font-size:.72rem;color:#aaa;margin-top:32px;border-top:1px solid #eee;padding-top:16px}
+@media print{body{background:#fff}.page{box-shadow:none;padding:20px}}</style></head>
+<body><div class="page">
+<div class="header"><h1>✍ ArticuWrite — Feedback Report</h1>
+<p>Student: <strong>${name}</strong> &nbsp;·&nbsp; ${mode}</p>
+<p>Generated: ${now}</p></div>
+<div style="text-align:center;margin-bottom:24px">
+<div class="band">Band ${overall}</div>
+<p style="color:#888;font-size:.82rem;margin:4px 0">Overall IELTS Band Score</p></div>
+<h2>📊 Criterion Scores</h2>
+<table><thead><tr><th>Criterion</th><th style="text-align:center">Band</th></tr></thead><tbody>${scoreRows}</tbody></table>
+${question?`<h2>❓ Task Question</h2><div class="box">${question}</div>`:''}
+<h2>✍ Student's Writing</h2><div class="box">${writing}</div>
+${corrections?`<h2>✅ Corrected Version</h2><div class="box">${corrections}</div>`:''}
+<h2>📋 Detailed Feedback</h2><div style="font-size:.9rem;line-height:1.8">${fbHTML}</div>
+<div class="footer">ArticuWrite · Language Hub · DNU English Faculty<br>Gửi báo cáo về: duongthanhtu.dnu@gmail.com</div>
+</div></body></html>`;
+}
+
+function downloadFeedbackReport() {
+  if (!S.lastResult) { toast('Chưa có kết quả. Hãy submit bài trước.','err'); return; }
+  const html = buildReportHTML(); if (!html) return;
+  closeModal('modal-email');
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ArticuWrite_Feedback_' + (S.name||'student').replace(/[^a-z0-9]/gi,'_') + '.html';
+  a.click();
+  toast('Report đã tải! Mở bằng Chrome → Ctrl+P → Save as PDF rồi gửi email.','ok');
+}
+
+function printFeedbackReport() {
+  if (!S.lastResult) { toast('Chưa có kết quả. Hãy submit bài trước.','err'); return; }
+  const html = buildReportHTML(); if (!html) return;
+  closeModal('modal-email');
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(()=>{ win.focus(); win.print(); }, 600);
+}
+
+// ── OPEN WRITE DETAIL ──
+function openWriteDetail() {
+  // Open write-detail.html with the full result from localStorage
+  window.open('write-detail.html', '_blank');
+}
+
+// ── SEND EMAIL: fetch POST → GAS doPost → sendResultEmail (creates Doc + emails student) ──
+async function sendEmail(){
+  const email = document.getElementById('email-inp').value.trim();
+  if (!email || !email.includes('@')) { toast('Please enter a valid email.','err'); return; }
+  closeModal('modal-email');
+  showLdg('Sending results…');
+  try {
+    const mode = {1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing';
+    const r = S.lastResult || {};
+    // Keep payload small for JSONP — GAS looks up Doc from sheet by student name
+    await gasGet('sendEmail', {
+      email,
+      name:    S.name,
+      code:    S.code  || '',
+      mode:    mode,
+      overall: r.overall || '',
+      scores:  r.scores  || {},
+      writing: (S.writingText || '').substring(0, 300),
+      sessionToken: S.sessionToken || ''
+    });
+    hideLdg();
+    toast('Results sent to ' + email + '! Check your inbox in ~30 seconds ✅', 'ok');
+  } catch(e) {
+    hideLdg();
+    toast('Failed to send: ' + e.message, 'err');
+  }
+}
+
+// ── LIBRARY ──
+const DEMO_LIB=[
+  {topic:'Environment',questions:[{q:'Should governments ban single-use plastics?',taskType:'Agree/Disagree',keywords:'pollution, ban, waste',body1:{mp1:{why:'Plastics cause lasting environmental harm',idea:'Marine pollution',example:'8 million tons of plastic enter oceans yearly',result:'Marine biodiversity declines significantly'},mp2:{why:'Alternatives exist and are viable',idea:'Biodegradable substitutes',example:'Bamboo, paper, reusable containers',result:'Reduced waste with minimal economic impact'}},body2:{mp1:{why:'Economic disruption for industry',idea:'Job losses in plastics sector',example:'Thousands employed in manufacturing',result:'Needs transition support'},mp2:{why:'Consumer habits are hard to change',idea:'Behavioral resistance',example:'Reusable bag adoption varies by country',result:'Education campaigns essential'}}}]},
+  {topic:'Technology',questions:[{q:'Has social media done more harm than good?',taskType:'Discuss both views',keywords:'mental health, connectivity, misinformation',body1:{mp1:{why:'Mental health crisis linked to social media',idea:'Depression and anxiety',example:'Instagram and self-image issues in teens',result:'Rising mental health referrals'},mp2:{why:'Misinformation spreads rapidly',idea:'Fake news',example:'COVID vaccine misinformation 2020-2021',result:'Public health consequences'}},body2:{mp1:{why:'Connects people across distances',idea:'Global community',example:'Diaspora communities maintain cultural identity',result:'Reduced isolation'},mp2:{why:'Creates economic opportunities',idea:'Influencer economy',example:'Small businesses reach global markets',result:'Economic empowerment'}}}]},
+  {topic:'Education',questions:[{q:'Should university education be free for all?',taskType:'Agree/Disagree',keywords:'equality, funding, access',body1:{mp1:{why:'Higher education drives social mobility',idea:'Equal access to opportunity',example:'Countries with free tuition show lower inequality',result:'More diverse graduate workforce'},mp2:{why:'Reduces student debt burden',idea:'Financial freedom for graduates',example:'Average UK graduate debt: £45,000',result:'More entrepreneurship and creativity'}},body2:{mp1:{why:'Enormous cost to taxpayers',idea:'Fiscal unsustainability',example:'UK free tuition would cost £11bn/year',result:'May require cuts elsewhere'},mp2:{why:'May reduce perceived value of degrees',idea:'Overcrowding of universities',example:'Increased enrollment without capacity',result:'Quality may decline'}}}]},
+];
+async function loadLib(){
+  // Library loaded via JSONP GET (goes through GAS doGet → student session route)
+  // Retry after short delay to allow validateStudent token to be ready
+  const tryLoad = async () => {
+    try {
+      const data = await gasGet('getLibraryData', {});
+      // GAS returns array directly from getLibraryData()
+      const lib = Array.isArray(data) ? data : null;
+      if (lib && lib.length) {
+        S.libTopics = lib;
+        renderLibPanel();
+        // Refresh library grid if currently on library page
+        const libGrid = document.getElementById('libgrid');
+        if (libGrid && !document.getElementById('pg-lib').classList.contains('hidden')) renderLib();
+        return;
+      }
+    } catch(e) {}
+    S.libTopics = DEMO_LIB;
+    renderLibPanel();
+  };
+  // First attempt immediately, retry after token is ready
+  tryLoad();
+  setTimeout(tryLoad, 1200);
+}
+function renderLib(){libHome();}
+function libHome(){
+  document.getElementById('liblt').textContent='BROWSE TOPICS';
+  document.getElementById('libbc').innerHTML='<span class="crumb" onclick="libHome()">ALL TOPICS</span>';
+  document.getElementById('lib-search').classList.remove('hidden');
+  const g=document.getElementById('libgrid'); g.style.gridTemplateColumns=''; g.innerHTML='';
+  S.libTopics.forEach((t,i)=>{const c=document.createElement('div');c.className='libcard';c.innerHTML=`<div class="lico">📁</div><div class="lct">${t.topic}</div><div class="lcc">${t.questions.length} questions</div>`;c.onclick=()=>libTopic(i);g.appendChild(c);});
+}
+function libTopic(i){
+  const t=S.libTopics[i];
+  document.getElementById('liblt').textContent=t.topic.toUpperCase();
+  document.getElementById('libbc').innerHTML=`<span class="crumb" onclick="libHome()">ALL TOPICS</span><span> › </span><span style="color:white">${t.topic}</span>`;
+  document.getElementById('lib-search').classList.remove('hidden');
+  renderQuestionList(t.questions,i);
+}
+function renderQuestionList(questions,topicIdx){const g=document.getElementById('libgrid');g.style.gridTemplateColumns='1fr';g.innerHTML='';questions.forEach((q,qi)=>g.appendChild(buildQuestionCard(q,topicIdx,qi)));}
+function buildQuestionCard(q,ti,qi){
+  const div=document.createElement('div');div.className='qdetail';
+  const kws=(q.keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+  const kwHtml=kws.map(k=>`<span class="qd-tag kw">${k}</span>`).join('');
+  function mpHtml(mp){if(!mp||(!mp.idea&&!mp.why))return '';return `<div class="mp-card">${mp.idea?`<div class="mp-idea">${mp.idea}</div>`:''} ${mp.why?`<div class="mp-row"><strong>Why:</strong> ${mp.why}</div>`:''} ${mp.example?`<div class="mp-row"><strong>Example:</strong> ${mp.example}</div>`:''} ${mp.result?`<div class="mp-row"><strong>Result:</strong> ${mp.result}</div>`:''}</div>`;}
+  const b1=(q.body1||{}),b2=(q.body2||{});
+  const hasBody1=b1.mp1||b1.mp2,hasBody2=b2.mp1||b2.mp2;
+  div.innerHTML=`<div class="qd-header"><div><div class="qd-q">${q.q}</div><div class="qd-meta">${q.taskType?`<span class="qd-tag type">${q.taskType}</span>`:''} ${q.date?`<span class="qd-tag date">${q.date}</span>`:''} ${kwHtml}</div></div></div><div class="qd-body">${hasBody1?`<div class="bp-title">BODY PARAGRAPH 1</div>${mpHtml(b1.mp1)}${mpHtml(b1.mp2)}`:''}${hasBody2?`<div class="bp-title">BODY PARAGRAPH 2</div>${mpHtml(b2.mp1)}${mpHtml(b2.mp2)}`:''}</div><div class="qd-actions"><button class="btn g sm" onclick="practiceThis('${q.q.replace(/'/g,"\\'")}')">▶ Practice This</button><button class="btn gh sm" onclick="copyIdeas(this,${ti},${qi})">📋 Copy Ideas</button></div>`;
+  return div;
+}
+function copyIdeas(btn,ti,qi){try{const q=S.libTopics[ti].questions[qi];let text=`Question: ${q.q}\n\nBODY 1:\n`;const addMP=mp=>{if(!mp)return;if(mp.idea)text+=`- ${mp.idea}\n`;if(mp.example)text+=`  Ex: ${mp.example}\n`;};if(q.body1){addMP(q.body1.mp1);addMP(q.body1.mp2);}text+='\nBODY 2:\n';if(q.body2){addMP(q.body2.mp1);addMP(q.body2.mp2);}navigator.clipboard.writeText(text).then(()=>{btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='📋 Copy Ideas',2000);});}catch(e){toast('Copy failed','err');}}
+function practiceThis(question){enterMode(3);setTimeout(()=>{document.getElementById('setup-q').value=question;},100);}
+function libSearch(val){if(!val.trim()){renderLib();return;}const v=val.toLowerCase();const allQ=[];S.libTopics.forEach((t,ti)=>{t.questions.forEach((q,qi)=>{const s=(q.q+' '+(q.keywords||'')+' '+(q.taskType||'')+' '+((q.body1&&q.body1.mp1&&q.body1.mp1.idea)||'')).toLowerCase();if(s.includes(v))allQ.push({q,ti,qi});});});document.getElementById('liblt').textContent=`SEARCH RESULTS (${allQ.length})`;document.getElementById('libbc').innerHTML='<span class="crumb" onclick="libHome()">ALL TOPICS</span><span> › </span><span style="color:white">Search</span>';const g=document.getElementById('libgrid');g.style.gridTemplateColumns='1fr';g.innerHTML='';if(!allQ.length){g.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:.85rem;padding:20px">No results found.</div>';return;}allQ.forEach(({q,ti,qi})=>g.appendChild(buildQuestionCard(q,ti,qi)));}
+function renderLibPanel(){const b=document.getElementById('lpbody');b.innerHTML='';S.libTopics.forEach((t,i)=>{const el=document.createElement('div');el.className='lptopic';el.textContent='📁 '+t.topic;el.onclick=()=>{document.querySelectorAll('.lptopic').forEach(e=>e.classList.remove('on'));el.classList.add('on');document.querySelectorAll('.lpidea').forEach(e=>e.remove());t.questions.slice(0,5).forEach(q=>{const d=document.createElement('div');d.className='lpidea';d.textContent=q.q.length>70?q.q.substring(0,70)+'…':q.q;d.onclick=()=>practiceThis(q.q);b.appendChild(d);});};b.appendChild(el);});}
+function toggleLib(){document.getElementById('libp').classList.toggle('hidden');}
+
+// ── LIBRARY MODAL ──
+function openLibModal(){
+  openModal('modal-lib');
+  const body=document.getElementById('lib-modal-body');body.innerHTML='';document.getElementById('lib-modal-search').value='';
+  S.libTopics.forEach((t,ti)=>{
+    const card=document.createElement('div');
+    card.style.cssText='background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:10px;transition:background .2s';
+    card.onmouseenter=()=>card.style.background='rgba(255,255,255,.12)';card.onmouseleave=()=>card.style.background='rgba(255,255,255,.07)';
+    card.innerHTML=`<div style="font-size:.75rem;font-weight:800;color:white;margin-bottom:6px">📁 ${t.topic}</div><div style="font-size:.65rem;color:rgba(255,255,255,.4);letter-spacing:1px">${t.questions.length} QUESTIONS</div>`;
+    card.onclick=()=>showTopicInModal(ti);body.appendChild(card);
+  });
+}
+function showTopicInModal(ti){
+  const t=S.libTopics[ti];const body=document.getElementById('lib-modal-body');
+  body.innerHTML=`<div style="margin-bottom:12px"><button onclick="window.open('./library.html','_blank')" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.65);padding:6px 14px;border-radius:20px;cursor:pointer;font-size:.68rem;font-weight:700">← ALL TOPICS</button><span style="color:rgba(255,255,255,.45);font-size:.7rem;margin-left:10px">${t.topic}</span></div>`;
+  t.questions.forEach((q,qi)=>{
+    const card=document.createElement('div');
+    card.style.cssText='background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;margin-bottom:10px';
+    const kws=(q.keywords||'').split(',').map(k=>`<span style="background:rgba(200,16,46,.3);color:white;padding:2px 7px;border-radius:10px;font-size:.6rem;font-weight:700;margin-right:4px">${k.trim()}</span>`).join('');
+    let ideasHtml='';
+    function addMp(mp){if(!mp||!mp.idea)return;ideasHtml+=`<div style="background:rgba(255,255,255,.05);border-left:2px solid rgba(200,16,46,.5);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:5px"><div style="font-size:.75rem;font-weight:700;color:#f5a0b0">${mp.idea}</div>${mp.why?`<div style="font-size:.68rem;color:rgba(255,255,255,.55);margin-top:3px"><strong>Why:</strong> ${mp.why}</div>`:''} ${mp.example?`<div style="font-size:.68rem;color:rgba(255,255,255,.5)"><strong>Ex:</strong> ${mp.example}</div>`:''}</div>`;}
+    if(q.body1){addMp(q.body1.mp1);addMp(q.body1.mp2);}if(q.body2){addMp(q.body2.mp1);addMp(q.body2.mp2);}
+    card.innerHTML=`<div style="font-size:.85rem;font-weight:700;color:white;line-height:1.5;margin-bottom:8px">${q.q}</div><div style="margin-bottom:10px">${kws}${q.taskType?`<span style="background:rgba(200,16,46,.3);color:#fbb8c3;padding:2px 7px;border-radius:10px;font-size:.6rem;font-weight:700">${q.taskType}</span>`:''}</div>${ideasHtml}<div style="margin-top:10px;display:flex;gap:8px"><button onclick="practiceThisModal('${q.q.replace(/'/g,"\\'")}');closeModal('modal-lib')" style="background:var(--g);color:white;border:none;padding:7px 16px;border-radius:20px;font-size:.68rem;font-weight:800;cursor:pointer;letter-spacing:1px">▶ PRACTICE</button><button onclick="copyIdeasModal(${ti},${qi},this)" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);padding:7px 16px;border-radius:20px;font-size:.68rem;font-weight:700;cursor:pointer">📋 COPY</button></div>`;
+    body.appendChild(card);
+  });
+}
+function practiceThisModal(question){document.getElementById('setup-q').value=question;toast('Question loaded! Click START WRITING','ok');}
+function copyIdeasModal(ti,qi,btn){const q=S.libTopics[ti].questions[qi];let text=`Question: ${q.q}\n\nBODY 1:\n`;const addMP=mp=>{if(!mp)return;if(mp.idea)text+=`- ${mp.idea}\n`;if(mp.example)text+=`  Ex: ${mp.example}\n`;};if(q.body1){addMP(q.body1.mp1);addMP(q.body1.mp2);}text+='\nBODY 2:\n';if(q.body2){addMP(q.body2.mp1);addMP(q.body2.mp2);}navigator.clipboard.writeText(text).then(()=>{btn.textContent='✓ COPIED!';setTimeout(()=>btn.textContent='📋 COPY',2000);}).catch(()=>toast('Copy failed','err'));}
+function libModalSearch(val){if(!val.trim()){openLibModal();return;}const v=val.toLowerCase();const body=document.getElementById('lib-modal-body');body.innerHTML=`<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:12px;letter-spacing:2px;text-transform:uppercase">Search results for "${val}"</div>`;let found=0;S.libTopics.forEach((t,ti)=>{t.questions.forEach((q,qi)=>{const search=(q.q+' '+(q.keywords||'')+' '+(q.taskType||'')).toLowerCase();if(!search.includes(v))return;found++;const card=document.createElement('div');card.style.cssText='background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;margin-bottom:8px';card.innerHTML=`<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:4px">${t.topic}</div><div style="font-size:.83rem;font-weight:700;color:white;margin-bottom:8px">${q.q}</div><button onclick="practiceThisModal('${q.q.replace(/'/g,"\\'")}');closeModal('modal-lib')" style="background:var(--g);color:white;border:none;padding:6px 14px;border-radius:20px;font-size:.66rem;font-weight:800;cursor:pointer">▶ PRACTICE</button>`;body.appendChild(card);});});if(!found)body.innerHTML+=`<div style="color:rgba(255,255,255,.4);font-size:.83rem;padding:16px">No results found.</div>`;}
+function resetLibModal(){}
+function adjLibFont(d){S.libFontSize=Math.max(11,Math.min(22,S.libFontSize+d));document.documentElement.style.setProperty('--lib-fs',S.libFontSize+'px');}
+document.documentElement.style.setProperty('--lib-fs','15px');
+
+// ── BACK / MODAL / TOAST / LOADING ──
+function goBack(){if(S.started&&!confirm('Exit? Writing will be lost.'))return;clearTmr();showPage('pg-dash');}
+function openModal(id){document.getElementById(id).classList.add('on');}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function showLdg(m,useHints){
+  document.getElementById('ldg-msg').textContent=m||'Loading…';document.getElementById('loading').classList.add('on');
+  const sub=document.getElementById('ldg-sub');sub.textContent='';clearInterval(window._ldgTimer);
+  if(useHints){const hints=['Reading your introduction…','Evaluating task response…','Analysing coherence and cohesion…','Checking lexical resources…','Reviewing grammatical range…','Looking for strong vocabulary…','Checking sentence structures…','Measuring argument development…','Reviewing your conclusion…','Calculating band scores…','Preparing detailed feedback…','Almost done…'];let idx=0;sub.textContent=hints[0];window._ldgTimer=setInterval(()=>{idx=(idx+1)%hints.length;sub.style.opacity='0';setTimeout(()=>{sub.textContent=hints[idx];sub.style.opacity='1';},400);},2200);}
+}
+function hideLdg(){document.getElementById('loading').classList.remove('on');clearInterval(window._ldgTimer);document.getElementById('ldg-sub').textContent='';}
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(()=>t.classList.remove('show'),3800);}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.on').forEach(m=>m.classList.remove('on'));});
+
+// ── Error List Popup ──
+function showErrorList(type){
+  const existing=document.getElementById('err-list-popup');if(existing){existing.remove();return;}
+  if(!S.ltMatches||!S.ltMatches.length)return;
+  const filtered=S.ltMatches.filter(m=>{const t=(m.rule&&m.rule.issueType)||'',id=(m.rule&&m.rule.id)||'';const isSpell=t==='misspelling'||id.includes('MORFOLOGIK')||id.includes('HUNSPELL')||id.includes('SPELL');return type==='spell'?isSpell:!isSpell;});
+  if(!filtered.length)return;
+  const text=document.getElementById('wta').value;
+  const div=document.createElement('div');div.id='err-list-popup';div.style.cssText='position:fixed;bottom:55px;left:16px;background:var(--gd);color:white;border-radius:10px;padding:14px;max-width:320px;max-height:280px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:9000;border:1px solid rgba(255,255,255,.15);font-size:.8rem';
+  const title=type==='spell'?'🔴 Spelling Errors':'🔵 Grammar Issues';
+  let html=`<div style="font-weight:800;margin-bottom:10px;font-size:.75rem;letter-spacing:1px;text-transform:uppercase">${title} (${filtered.length})</div>`;
+  filtered.slice(0,10).forEach(m=>{const word=text.substr(m.offset,m.length);const sugg=m.replacements&&m.replacements[0]&&m.replacements[0].value?' → <strong style="color:#f5a0b0">'+m.replacements[0].value+'</strong>':'';html+=`<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="color:#fda;font-weight:700">"${word}"</span>${sugg}<br><span style="color:rgba(255,255,255,.5);font-size:.72rem">${m.message||''}</span></div>`;});
+  if(filtered.length>10)html+=`<div style="color:rgba(255,255,255,.4);font-size:.7rem;padding-top:6px">+ ${filtered.length-10} more…</div>`;
+  html+=`<button onclick="document.getElementById('err-list-popup').remove()" style="margin-top:10px;background:rgba(255,255,255,.1);border:none;color:white;padding:5px 14px;border-radius:20px;font-size:.7rem;cursor:pointer;width:100%">Close</button>`;
+  div.innerHTML=html;document.body.appendChild(div);
+  setTimeout(()=>{document.addEventListener('click',function h(e){if(!div.contains(e.target)&&e.target.id!=='spell-badge'&&e.target.id!=='gram-badge'){div.remove();document.removeEventListener('click',h);}},true);},100);
+}
+function showPermissionHelp(){const existing=document.getElementById('perm-help');if(existing)existing.remove();const div=document.createElement('div');div.id='perm-help';div.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--gd);color:white;padding:28px 30px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.7);z-index:10001;max-width:460px;width:92%;text-align:center;border:2px solid var(--g)';div.innerHTML=`<div style="font-size:2rem;margin-bottom:10px">🔐</div><h3 style="color:#f5a0b0;font-size:1rem;margin-bottom:14px">GAS PERMISSION REQUIRED</h3><p style="font-size:.8rem;line-height:1.8;color:rgba(255,255,255,.85)">Open Code.gs in GAS Editor → Select gradeWritingGAS → Run → Allow permissions</p><button onclick="document.getElementById('perm-help').remove()" style="background:var(--g);color:white;border:none;padding:10px 28px;border-radius:50px;font-weight:800;font-size:.78rem;cursor:pointer;margin-top:14px">GOT IT</button>`;document.body.appendChild(div);}
+
+// ══════════════════════════════════════════
+// TEACHER PORTAL
+// ══════════════════════════════════════════
+function tpCall(action,params){
+  params=params||{};params.sessionToken=T.token;
+  if(IS_GAS){return new Promise((resolve,reject)=>{google.script.run.withSuccessHandler(jsonStr=>{try{resolve(typeof jsonStr==='string'?JSON.parse(jsonStr):jsonStr);}catch(e){reject(new Error('Parse error: '+jsonStr));}}).withFailureHandler(e=>{reject(new Error(e.message||String(e)));}).doPostProxy(action,params);});}
+  else{return gasGet(action, params);}
+}
+function switchLoginTab(tab){
+  ['signin','register','teacher'].forEach(t=>{document.getElementById('tab-'+t)&&document.getElementById('tab-'+t).classList.toggle('on',t===tab);document.getElementById('pane-'+t).classList.toggle('on',t===tab);});
+  const titles={signin:'Welcome back',register:'Create account',teacher:'Teacher Portal'};
+  const subs={signin:'Sign in to continue learning',register:'Register for access',teacher:'Sign in to manage your class'};
+  document.getElementById('lp-title').textContent=titles[tab]||'';
+  document.getElementById('lp-sub').textContent=subs[tab]||'';
+  document.getElementById('tab-signin').style.display=tab==='teacher'?'none':'';
+  document.getElementById('tab-register').style.display=tab==='teacher'?'none':'';
+}
+async function doRegister(){
+  const name=document.getElementById('reg-name').value.trim(),email=document.getElementById('reg-email').value.trim(),pkg=document.getElementById('reg-package').value;
+  const err=document.getElementById('reg-err'),ok=document.getElementById('reg-ok');err.textContent='';ok.textContent='';
+  if(!name){err.textContent='Please enter your full name.';return;}
+  if(!email||!email.includes('@')){err.textContent='Please enter a valid email.';return;}
+  showLdg('Submitting registration…');
+  try{let r=await tpCall('registerStudent',{name,email,package:pkg});hideLdg();if(r&&r.success){ok.textContent=r.message||'Registration submitted!';document.getElementById('reg-name').value='';document.getElementById('reg-email').value='';}else err.textContent=r.error||'Registration failed.';}
+  catch(e){hideLdg();err.textContent='Error: '+e.message;}
+}
+var T={token:'',currTab:'results'};
+async function doTeacherLogin(){
+  const pass=document.getElementById('teacher-pass').value,err=document.getElementById('teacher-err');err.textContent='';
+  if(!pass){err.textContent='Please enter the teacher password.';return;}
+  showLdg('Verifying…');
+  try{let r=await tpCall('teacherLogin',{password:pass});hideLdg();if(r&&r.success){T.token=r.token||'';document.getElementById('teacher-pass').value='';showPage('pg-teacher');tpShowTab('results');tpLoadResults();}else err.textContent=r.error||'Invalid password.';}
+  catch(e){hideLdg();err.textContent='Error: '+e.message;}
+}
+function tpLogout(){T.token='';window.location.href='./index.html';}
+function tpShowTab(tab){
+  T.currTab=tab;
+  ['results','codes','pending','library','settings'].forEach(t=>{document.getElementById('tp-tab-'+t).classList.toggle('on',t===tab);document.getElementById('tp-pane-'+t).classList.toggle('on',t===tab);});
+  if(tab==='codes')tpLoadCodes();if(tab==='pending')tpLoadPending();if(tab==='library')tpLoadLibrary();if(tab==='settings')tpLoadSettings();
+}
+var _tpResultsCache=[];
+async function tpLoadResults(){
+  document.getElementById('tp-results-body').innerHTML='<tr><td colspan="12" style="text-align:center;padding:32px;color:#aaa">Loading...</td></tr>';
+  try{let r=await tpCall('getResults',{});if(!r||!r.success){document.getElementById('tp-results-body').innerHTML='<tr><td colspan="12" style="text-align:center;color:#c00">Error: '+(r&&r.error||'Failed')+'</td></tr>';return;}document.getElementById('tp-results-count').textContent=r.rows.length+' submissions';_tpResultsCache=r.rows;const tbody=document.getElementById('tp-results-body');if(!r.rows.length){tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:32px;color:#aaa">No results yet</td></tr>';return;}tbody.innerHTML=r.rows.map((row,i)=>{const d=row['Timestamp']?new Date(row['Timestamp']).toLocaleDateString('vi-VN'):'';const band=row['Overall Band']||'';const q=(row['Question']||'').substring(0,60)+((row['Question']||'').length>60?'…':'');return `<tr><td style="color:#aaa">${r.rows.length-i}</td><td>${d}</td><td><strong>${row['Student Name']||''}</strong></td><td style="font-family:monospace;font-size:.78rem">${row['Access Code']||''}</td><td>${row['Mode']||''}</td><td>${row['Task Response']||''}</td><td>${row['Coherence']||''}</td><td>${row['Lexical']||''}</td><td>${row['Grammar']||''}</td><td><span class="tp-band">${band}</span></td><td style="max-width:200px;white-space:normal;font-size:.75rem;color:#666">${q}</td><td><button class="tp-action-btn" onclick="tpOpenReview(${i})">Review</button></td></tr>`;}).join('');}
+  catch(e){document.getElementById('tp-results-body').innerHTML='<tr><td colspan="12" style="color:#c00">Error: '+e.message+'</td></tr>';}
+}
+async function tpLoadCodes(){
+  document.getElementById('tp-codes-body').innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:#aaa">Loading...</td></tr>';
+  try{let r=await tpCall('getAccessCodes',{});if(!r||!r.success){document.getElementById('tp-codes-body').innerHTML='<tr><td colspan="9" style="color:#c00">Error</td></tr>';return;}const tbody=document.getElementById('tp-codes-body');if(!r.rows.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:#aaa">No access codes yet</td></tr>';return;}tbody.innerHTML=r.rows.map((row,i)=>{const status=String(row['Status']||'').toUpperCase();const badgeCls=status==='ACTIVE'?'active':status==='REVOKED'?'revoked':'pending';const activated=row['Activated At']?new Date(row['Activated At']).toLocaleDateString('vi-VN'):'';const expires=row['Expires']?new Date(row['Expires']).toLocaleDateString('vi-VN'):'';return `<tr><td style="color:#aaa">${i+1}</td><td>${activated}</td><td><strong>${row['Full Name']||''}</strong></td><td style="font-size:.78rem;color:#666">${row['Email']||''}</td><td style="font-family:monospace;font-size:.82rem;font-weight:700;color:var(--gd)">${row['Access Code']||''}</td><td>${row['Package']||''}</td><td><span class="tp-badge ${badgeCls}">${status}</span></td><td style="font-size:.78rem">${expires}</td><td>${status==='ACTIVE'?`<button class="tp-action-btn danger" onclick="tpRevoke('${row['Access Code']}')">Revoke</button>`:'—'}</td></tr>`;}).join('');}
+  catch(e){document.getElementById('tp-codes-body').innerHTML='<tr><td colspan="9" style="color:#c00">'+e.message+'</td></tr>';}
+}
+async function tpRevoke(code){if(!confirm('Revoke access code '+code+'?'))return;try{let r=await tpCall('revokeAccessCode',{code});if(r&&r.success)tpLoadCodes();else alert('Error: '+(r&&r.error||'Failed'));}catch(e){alert('Error: '+e.message);}}
+async function tpLoadPending(){
+  document.getElementById('tp-pending-body').innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:#aaa">Loading...</td></tr>';
+  try{let r=await tpCall('getPendingRegs',{});const tbody=document.getElementById('tp-pending-body');if(!r||!r.rows||!r.rows.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:#aaa">No pending registrations</td></tr>';return;}tbody.innerHTML=r.rows.map((row,i)=>{const d=row.submitted?new Date(row.submitted).toLocaleDateString('vi-VN'):'';return `<tr><td style="color:#aaa">${i+1}</td><td>${d}</td><td><strong>${row.name||''}</strong></td><td style="font-size:.78rem;color:#666">${row.email||''}</td><td>${row.package||''}</td><td><button class="tp-approve-btn" onclick="tpApprove(${row.rowIndex},'${row.name}','${row.email}','${row.package}')">✓ Approve</button></td></tr>`;}).join('');}
+  catch(e){document.getElementById('tp-pending-body').innerHTML='<tr><td colspan="6" style="color:#c00">'+e.message+'</td></tr>';}
+}
+async function tpApprove(rowIndex,name,email,pkg){if(!confirm('Approve and send access code to '+name+'?'))return;try{let r=await tpCall('approveRegistration',{rowIndex,name,email,package:pkg});if(r&&r.success){alert('✓ Approved! Code '+r.code+' sent to '+email);tpLoadPending();}else alert('Error: '+(r&&r.error||'Failed'));}catch(e){alert('Error: '+e.message);}}
+
+var _tpLibData=[];
+async function tpLoadLibrary(){
+  document.getElementById('tp-lib-grid').innerHTML='<p style="color:rgba(255,255,255,.4);text-align:center;padding:32px;grid-column:1/-1">Loading...</p>';
+  try{let r=await tpCall('getLibraryData',{});if(!r||!r.length){document.getElementById('tp-lib-grid').innerHTML='<p style="color:rgba(255,255,255,.4);text-align:center;padding:32px;grid-column:1/-1">No library data found.</p>';return;}_tpLibData=r;tpLibRenderGrid(r);}
+  catch(e){document.getElementById('tp-lib-grid').innerHTML='<p style="color:#f87171;grid-column:1/-1">Error: '+e.message+'</p>';}
+}
+function tpLibRenderGrid(topics){
+  document.getElementById('tp-lib-questions').style.display='none';
+  document.getElementById('tp-lib-label').textContent='BROWSE TOPICS — '+topics.length+' topics';
+  const grid=document.getElementById('tp-lib-grid');grid.style.display='grid';
+  const icons=['📁','📂','🗂','📋','📌','🗒'];
+  grid.innerHTML=topics.map((t,i)=>`<div class="tp-lib-card" onclick="tpLibShowTopic(${i})"><div class="tp-lib-card-icon">${icons[i%icons.length]}</div><div class="tp-lib-card-name">${t.topic||'Untitled'}</div><div class="tp-lib-card-count">${(t.questions||[]).length} question${(t.questions||[]).length!==1?'s':''}</div></div>`).join('');
+}
+function tpLibShowTopic(idx){
+  const topic=_tpLibData[idx];if(!topic)return;
+  document.getElementById('tp-lib-grid').style.display='none';
+  document.getElementById('tp-lib-label').innerHTML=`<span style="cursor:pointer;opacity:.6" onclick="tpLibRenderGrid(_tpLibData)">← ALL TOPICS</span> / <span style="text-transform:uppercase">${topic.topic}</span>`;
+  const qDiv=document.getElementById('tp-lib-questions');qDiv.style.display='block';
+  qDiv.innerHTML=(topic.questions||[]).map((q,i)=>{
+    const txt=typeof q==='string'?q:(q.q||q.question||'');const type=typeof q==='object'?(q.taskType||q.type||''):'';
+    const keys=typeof q==='object'?(typeof q.keywords==='string'?q.keywords.split(',').map(s=>s.trim()).filter(Boolean):(q.keywords||[])):[];
+    const body1=typeof q==='object'?(q.body1||{}):{};const body2=typeof q==='object'?(q.body2||{}):{};
+    let bodyHtml='';
+    const renderBodyPara=(body,label)=>{if(!body||(!body.mp1&&!body.mp2))return '';let s=`<div style="margin-top:14px"><div style="font-size:.68rem;letter-spacing:1.5px;color:rgba(255,255,255,.4);margin-bottom:8px">${label}</div>`;[body.mp1,body.mp2].forEach(mp=>{if(!mp||!mp.idea)return;s+=`<div style="background:rgba(255,255,255,.08);border-radius:8px;padding:14px;margin-bottom:8px"><div style="color:#f5a0b0;font-weight:700;font-size:.88rem;margin-bottom:6px">${mp.idea}</div>${mp.why?`<div style="font-size:.82rem;color:rgba(255,255,255,.75);margin-bottom:4px"><b style="color:rgba(255,255,255,.45)">Why: </b>${mp.why}</div>`:''} ${mp.example?`<div style="font-size:.82rem;color:rgba(255,255,255,.75);margin-bottom:4px"><b style="color:rgba(255,255,255,.45)">Example: </b>${mp.example}</div>`:''} ${mp.result?`<div style="font-size:.82rem;color:rgba(255,255,255,.75)"><b style="color:rgba(255,255,255,.45)">Result: </b>${mp.result}</div>`:''}</div>`;});return s+'</div>';};
+    bodyHtml=renderBodyPara(body1,'BODY PARAGRAPH 1')+renderBodyPara(body2,'BODY PARAGRAPH 2');
+    const keyHtml=Array.isArray(keys)&&keys.length?keys.map(k=>`<span style="background:rgba(255,255,255,.12);border-radius:4px;padding:2px 8px;font-size:.72rem;color:rgba(255,255,255,.65)">${k}</span>`).join(' '):'';
+    return `<div style="background:rgba(255,255,255,.05);border-radius:12px;padding:20px;margin-bottom:12px"><div style="font-size:.95rem;font-weight:700;color:#fff;line-height:1.5;margin-bottom:8px">${txt}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">${type?`<span style="background:var(--g);border-radius:4px;padding:2px 8px;font-size:.7rem;color:#fff;text-transform:uppercase;letter-spacing:.5px">${type}</span>`:''} ${keyHtml}</div>${bodyHtml}</div>`;
+  }).join('');
+}
+function tpLibFilter(val){if(!val.trim()){tpLibRenderGrid(_tpLibData);return;}const q=val.toLowerCase();const filtered=_tpLibData.filter(t=>(t.topic||'').toLowerCase().includes(q)||(t.questions||[]).some(x=>String(typeof x==='string'?x:x.q||x.question||'').toLowerCase().includes(q)));document.getElementById('tp-lib-label').textContent='SEARCH RESULTS — '+filtered.length+' topics';document.getElementById('tp-lib-grid').style.display='grid';document.getElementById('tp-lib-questions').style.display='none';const icons=['📁','📂','🗂','📋','📌','🗒'];document.getElementById('tp-lib-grid').innerHTML=filtered.map((t,i)=>`<div class="tp-lib-card" onclick="tpLibShowTopic(${_tpLibData.indexOf(t)})"><div class="tp-lib-card-icon">${icons[i%icons.length]}</div><div class="tp-lib-card-name">${t.topic||'Untitled'}</div><div class="tp-lib-card-count">${(t.questions||[]).length} question${(t.questions||[]).length!==1?'s':''}</div></div>`).join('');}
+
+var _reviewRow=null;
+function tpOpenReview(displayIdx){
+  const row=_tpResultsCache[displayIdx];if(!row){alert('Error: could not find submission data');return;}
+  _reviewRow=row;document.getElementById('tp-review-modal').style.display='flex';
+  document.getElementById('tp-review-title').textContent=(row['Student Name']||'Student')+' — '+(row['Mode']||'')+' — Band '+(row['Overall Band']||'?');
+  const docUrl=row['Doc URL']||'';const docEl=document.getElementById('tp-review-doc');const docSub=document.getElementById('tp-review-doc-sub');
+  if(docUrl){docEl.href=docUrl;docEl.style.opacity='1';docEl.style.pointerEvents='';if(docSub)docSub.style.display='none';}
+  else{docEl.href='#';docEl.style.opacity='.4';docEl.style.pointerEvents='none';if(docSub){docSub.style.display='';docSub.textContent='No Google Doc for this submission.';}}
+  const d=row['Timestamp']?new Date(row['Timestamp']).toLocaleString('vi-VN'):'';
+  document.getElementById('tp-review-meta').innerHTML=[{lbl:'Student',val:row['Student Name']||''},{lbl:'Code',val:row['Access Code']||''},{lbl:'Date',val:d},{lbl:'Mode',val:row['Mode']||''}].map(m=>`<div class="tp-review-meta-item"><div class="tp-review-meta-lbl">${m.lbl}</div><div class="tp-review-meta-val">${m.val}</div></div>`).join('');
+  document.getElementById('tp-review-scores').innerHTML=[{lbl:'TR',val:row['Task Response']||'—'},{lbl:'CC',val:row['Coherence']||'—'},{lbl:'LR',val:row['Lexical']||'—'},{lbl:'GRA',val:row['Grammar']||'—'},{lbl:'BAND',val:row['Overall Band']||'—'}].map(s=>`<div class="tp-review-score-box"><div class="tp-review-score-lbl">${s.lbl}</div><div class="tp-review-score-val">${s.val}</div></div>`).join('');
+  const essayRaw=row['Essay']||'';const essayEl=document.getElementById('tp-review-essay');
+  if(essayRaw)essayEl.innerHTML=essayRaw.replace(/\n/g,'<br>');
+  else essayEl.innerHTML='<em style="color:#aaa">(Essay not stored for this submission)</em>';
+  const fbEl=document.getElementById('tp-review-feedback');
+  try{const fb=JSON.parse(row['Feedback JSON']||'{}');fbEl.innerHTML=tpFormatFeedback(fb);}
+  catch(e){fbEl.innerHTML=row['Feedback JSON']?'<pre style="white-space:pre-wrap;font-size:.8rem">'+row['Feedback JSON']+'</pre>':'<em style="color:#aaa">(No feedback data)</em>';}
+  document.getElementById('tp-review-note').value=row['Teacher Notes']||'';
+  document.getElementById('tp-note-saved').style.opacity='0';
+}
+function tpFormatFeedback(fb){
+  if(!fb||typeof fb!=='object')return '<em style="color:#aaa">No feedback available</em>';
+  if(Object.keys(fb).length===0)return '<em style="color:#aaa">(No feedback data)</em>';
+  const criterionLabels={TR:'1️⃣ Task Response',CC:'2️⃣ Coherence & Cohesion',LR:'3️⃣ Lexical Resource',GRA:'4️⃣ Grammatical Range & Accuracy'};
+  function renderBlock(obj,title){
+    if(!obj)return '';let html='';
+    if(title)html+=`<div style="font-weight:800;font-size:.9rem;color:var(--gd);margin:14px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--g)">${title}</div>`;
+    const sc=obj.scores||{};
+    if(sc.TR||obj.overall){html+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">';[['TR',sc.TR],['CC',sc.CC],['LR',sc.LR],['GRA',sc.GRA]].forEach(([k,v])=>{if(v)html+=`<div style="background:var(--gp);border:1px solid var(--bdr);border-radius:8px;padding:4px 10px;font-size:.78rem"><strong style="color:var(--g)">${k}</strong> ${v}</div>`;});if(obj.overall)html+=`<div style="background:var(--g);color:white;border-radius:8px;padding:4px 12px;font-size:.78rem;font-weight:800">Band ${obj.overall}</div>`;html+='</div>';}
+    const fbObj=obj.feedback||obj;if(fbObj.general)html+=`<div style="background:var(--gp);border-left:3px solid var(--g);padding:8px 12px;border-radius:0 8px 8px 0;margin-bottom:10px;font-size:.83rem;color:#333">${fbObj.general}</div>`;
+    Object.keys(criterionLabels).forEach(k=>{const val=fbObj[k];if(!val)return;html+=`<div class="fb-crit-block"><div class="fb-crit-title">${criterionLabels[k]}</div>${formatFeedback(val)}</div>`;});
+    return html;
+  }
+  if(fb.task1||fb.task2)return renderBlock(fb.task1,'📝 Task 1')+renderBlock(fb.task2,'📝 Task 2')+(fb.overall?`<div style="font-weight:800;color:var(--g);font-size:1rem;margin-top:12px">🎯 Overall Band: ${fb.overall}</div>`:'');
+  return renderBlock(fb,'');
+}
+function tpCloseReview(){document.getElementById('tp-review-modal').style.display='none';_reviewRow=null;}
+async function tpSaveNote(){
+  if(!_reviewRow)return;const note=document.getElementById('tp-review-note').value;
+  try{const r=await tpCall('saveTeacherNote',{rowIndex:_reviewRow._rowIndex,note});if(r&&r.success){_reviewRow['Teacher Notes']=note;const badge=document.getElementById('tp-note-saved');badge.style.opacity='1';setTimeout(()=>badge.style.opacity='0',2500);}else alert('Error saving: '+(r&&r.error||'Unknown'));}
+  catch(e){alert('Error: '+e.message);}
+}
+const API_KEY_FIELDS=[{field:'openaiKey',label:'OpenAI API Key',placeholder:'sk-proj-...'},{field:'geminiKey',label:'Gemini API Key',placeholder:'AIza...'},{field:'deepseekKey',label:'DeepSeek API Key',placeholder:'sk-...'},{field:'grokKey',label:'Grok API Key',placeholder:'xai-...'},{field:'claudeKey',label:'Claude API Key',placeholder:'sk-ant-...'}];
+async function tpLoadSettings(){
+  try{let r=await tpCall('getTeacherSettings',{});const container=document.getElementById('tp-api-keys-rows');
+  container.innerHTML=API_KEY_FIELDS.map(f=>`<div class="tp-setting-row"><div class="tp-setting-lbl">${f.label}</div><input class="tp-setting-inp" id="tp-key-${f.field}" type="password" placeholder="${r&&r['has'+f.field.charAt(0).toUpperCase()+f.field.slice(1)]?'••••••• (saved)':f.placeholder}" autocomplete="new-password"><button class="tp-save-btn" onclick="tpSaveSetting('${f.field}')">Save</button><span class="tp-saved-badge" id="tp-saved-${f.field}">✓ Saved</span></div>`).join('');
+  const currentProvider=r&&r.aiProvider?r.aiProvider:'openai';
+  container.insertAdjacentHTML('beforeend',`<div class="tp-setting-row" style="margin-top:18px;border-top:1px solid var(--bdr);padding-top:18px;"><div class="tp-setting-lbl" style="font-weight:700;font-size:.9rem">🤖 Active AI for Grading</div><select id="tp-ai-provider" class="tp-setting-inp" style="cursor:pointer;max-width:220px;"><option value="openai" ${currentProvider==='openai'?'selected':''}>OpenAI GPT-4o-mini</option><option value="grok" ${currentProvider==='grok'?'selected':''}>xAI Grok-3-Fast</option></select><button class="tp-save-btn" onclick="tpSaveProvider()">Save</button><span class="tp-saved-badge" id="tp-saved-provider">✓ Saved</span></div>`);}
+  catch(e){console.error(e);}
+}
+async function tpSaveProvider(){const val=document.getElementById('tp-ai-provider').value;try{await tpCall('updateTeacherSetting',{field:'aiProvider',value:val});const badge=document.getElementById('tp-saved-provider');badge.style.opacity='1';setTimeout(()=>badge.style.opacity='0',2000);}catch(e){alert('Save failed: '+e.message);}}
+async function tpSaveSetting(field){const val=document.getElementById('tp-key-'+field).value.trim();if(!val){alert('Please enter a value.');return;}try{let r=await tpCall('updateTeacherSetting',{field,value:val});if(r&&r.success){document.getElementById('tp-key-'+field).value='';document.getElementById('tp-key-'+field).placeholder='••••••• (saved)';const badge=document.getElementById('tp-saved-'+field);badge.style.opacity='1';setTimeout(()=>badge.style.opacity='0',2000);}else alert('Error: '+(r&&r.error||'Failed'));}catch(e){alert('Error: '+e.message);}}
+async function tpUpdatePassword(){const curr=document.getElementById('tp-curr-pass').value,newp=document.getElementById('tp-new-pass').value;if(!curr||!newp){alert('Please fill both fields.');return;}try{let r=await tpCall('teacherLogin',{password:curr});if(!r||!r.success){alert('Current password is incorrect.');return;}r=await tpCall('updateTeacherSetting',{field:'teacherPass',value:newp});if(r&&r.success){document.getElementById('tp-curr-pass').value='';document.getElementById('tp-new-pass').value='';const badge=document.getElementById('tp-pass-saved');badge.style.opacity='1';setTimeout(()=>badge.style.opacity='0',2500);}else alert('Error: '+(r&&r.error||'Failed'));}catch(e){alert('Error: '+e.message);}}
+</script>
+<!-- ════ TEACHER PORTAL ════ -->
+<div id="pg-teacher" class="hidden">
+  <div class="tp-nav">
+    <div class="tp-brand">Articu<span>Write</span></div>
+    <div class="tp-tab on" id="tp-tab-results" onclick="tpShowTab('results')">📊 Results</div>
+    <div class="tp-tab" id="tp-tab-codes" onclick="tpShowTab('codes')">🔑 Access Codes</div>
+    <div class="tp-tab" id="tp-tab-pending" onclick="tpShowTab('pending')">📝 Pending</div>
+    <div class="tp-tab" id="tp-tab-library" onclick="tpShowTab('library')">📚 Library</div>
+    <div class="tp-tab" id="tp-tab-settings" onclick="tpShowTab('settings')">⚙️ Settings</div>
+    <div class="tp-logout" onclick="tpLogout()">Logout</div>
+  </div>
+  <div class="tp-body">
+    <!-- RESULTS -->
+    <div class="tp-pane on" id="tp-pane-results">
+      <div class="tp-section">
+        <div class="tp-section-title">📊 Student Results
+          <span style="margin-left:auto;font-size:.78rem;font-weight:400;color:#888" id="tp-results-count"></span>
+          <button class="tp-action-btn" style="margin-left:12px" onclick="tpLoadResults()">↻ Refresh</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tp-table">
+            <thead><tr><th>#</th><th>Date</th><th>Student</th><th>Code</th><th>Mode</th><th>TR</th><th>CC</th><th>LR</th><th>GRA</th><th>Band</th><th>Question</th><th></th></tr></thead>
+            <tbody id="tp-results-body"><tr><td colspan="12" style="text-align:center;padding:32px;color:#aaa">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- ACCESS CODES -->
+    <div class="tp-pane" id="tp-pane-codes">
+      <div class="tp-section">
+        <div class="tp-section-title">🔑 Access Codes <button class="tp-action-btn" style="margin-left:auto" onclick="tpLoadCodes()">↻ Refresh</button></div>
+        <div style="overflow-x:auto">
+          <table class="tp-table">
+            <thead><tr><th>#</th><th>Activated</th><th>Name</th><th>Email</th><th>Access Code</th><th>Package</th><th>Status</th><th>Expires</th><th>Action</th></tr></thead>
+            <tbody id="tp-codes-body"><tr><td colspan="9" style="text-align:center;padding:32px;color:#aaa">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- PENDING -->
+    <div class="tp-pane" id="tp-pane-pending">
+      <div class="tp-section">
+        <div class="tp-section-title">📝 Pending Registrations <button class="tp-action-btn" style="margin-left:auto" onclick="tpLoadPending()">↻ Refresh</button></div>
+        <div style="overflow-x:auto">
+          <table class="tp-table">
+            <thead><tr><th>#</th><th>Submitted</th><th>Name</th><th>Email</th><th>Package</th><th>Action</th></tr></thead>
+            <tbody id="tp-pending-body"><tr><td colspan="6" style="text-align:center;padding:32px;color:#aaa">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- LIBRARY -->
+    <div class="tp-pane" id="tp-pane-library">
+      <div style="background:var(--gd);border-radius:16px;padding:28px;margin-bottom:16px">
+        <input class="tp-lib-search" id="tp-lib-search" type="text" placeholder="🔍  Search questions, keywords, topics..." oninput="tpLibFilter(this.value)">
+        <div style="color:rgba(255,255,255,.45);font-size:.72rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px" id="tp-lib-label">BROWSE TOPICS</div>
+        <div class="tp-lib-grid" id="tp-lib-grid"></div>
+        <div class="tp-lib-questions" id="tp-lib-questions"></div>
+      </div>
+    </div>
+    <!-- REVIEW MODAL -->
+    <div id="tp-review-modal" style="display:none">
+      <div class="tp-review-box">
+        <div class="tp-review-header">
+          <h2 id="tp-review-title">Student Submission Review</h2>
+          <span class="tp-review-close" onclick="tpCloseReview()">✕</span>
+        </div>
+        <div class="tp-review-body">
+          <div class="tp-review-meta" id="tp-review-meta"></div>
+          <div class="tp-review-scores" id="tp-review-scores"></div>
+          <div class="tp-review-section">
+            <div class="tp-review-section-title">📝 Student Essay</div>
+            <div class="tp-review-essay" id="tp-review-essay"></div>
+          </div>
+          <div class="tp-review-section">
+            <div class="tp-review-section-title">🤖 AI Feedback</div>
+            <div class="tp-review-feedback" id="tp-review-feedback"></div>
+          </div>
+          <div class="tp-review-section">
+            <div class="tp-review-section-title">📄 Google Doc</div>
+            <div style="padding:12px;background:#f9f9f7;border-radius:10px">
+              <a id="tp-review-doc" href="#" target="_blank" style="color:var(--gd);font-weight:700;font-size:.95rem;text-decoration:none">📂 Open Full Report in Google Docs →</a>
+              <p style="font-size:.78rem;color:#aaa;margin-top:6px" id="tp-review-doc-sub"></p>
+            </div>
+          </div>
+          <div class="tp-review-section">
+            <div class="tp-review-section-title">✏️ Teacher Notes</div>
+            <textarea class="tp-review-note-area" id="tp-review-note" placeholder="Add your notes here..."></textarea>
+            <br>
+            <button class="tp-review-save-btn" onclick="tpSaveNote()">💾 Save Note</button>
+            <span class="tp-saved-badge" id="tp-note-saved" style="margin-left:12px">✓ Saved</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- SETTINGS -->
+    <div class="tp-pane" id="tp-pane-settings">
+      <div class="tp-section">
+        <div class="tp-section-title">🤖 AI API Keys</div>
+        <p style="font-size:.82rem;color:#888;margin-bottom:20px">Configure API keys for AI-powered grading.</p>
+        <div id="tp-api-keys-rows"></div>
+      </div>
+      <div class="tp-section">
+        <div class="tp-section-title">🔐 Teacher Password</div>
+        <div class="tp-setting-row">
+          <div class="tp-setting-lbl">Current Password</div>
+          <input class="tp-setting-inp" id="tp-curr-pass" type="password" placeholder="Current password">
+        </div>
+        <div class="tp-setting-row">
+          <div class="tp-setting-lbl">New Password</div>
+          <input class="tp-setting-inp" id="tp-new-pass" type="password" placeholder="New password">
+        </div>
+        <div style="margin-top:12px">
+          <button class="tp-save-btn" onclick="tpUpdatePassword()">Update Password</button>
+          <span class="tp-saved-badge" id="tp-pass-saved">✓ Saved</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VocabMaster — Free Reading Detail</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #F2F0EB;
+  --ink:     #141410;
+  --white:   #FAFAF7;
+  --red:     #C8102E;
+  --red-l:   #FDEAED;
+  --green:   #1A7A4A;
+  --green-l: #E4F4EC;
+  --gold:    #B45309;
+  --gold-l:  #FEF3C7;
+  --purple:  #6D28D9;
+  --purple-l:#EDE9FE;
+  --grey:    #77776E;
+  --border:  #E0DDD5;
+  --r:       10px;
+  --sh:      0 2px 12px rgba(20,20,16,.07);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--ink); height: 54px; padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.brand { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -.02em; }
+.brand em { color: var(--red); font-style: normal; }
+.topbar-right { display: flex; gap: 8px; align-items: center; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; font-family: 'Inter', sans-serif;
+  font-size: .8rem; font-weight: 600; cursor: pointer; border: none;
+  text-decoration: none; transition: all .15s; white-space: nowrap;
+}
+.btn-ink    { background: var(--ink); color: #fff; }
+.btn-ink:hover    { background: #2a2a20; }
+.btn-red    { background: var(--red); color: #fff; }
+.btn-red:hover    { background: #a50d25; }
+.btn-green  { background: var(--green); color: #fff; }
+.btn-green:hover  { background: #155a38; }
+.btn-ghost  { background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); }
+.btn-ghost:hover  { background: rgba(255,255,255,.2); }
+.btn-outline { background: var(--white); color: var(--ink); border: 1.5px solid var(--border); }
+.btn-outline:hover { border-color: var(--ink); }
+
+/* ── LAYOUT ── */
+.container { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* ── HEADER CARD ── */
+.header-card {
+  background: var(--ink); border-radius: 14px; padding: 28px 32px;
+  margin-bottom: 28px; display: grid; grid-template-columns: 1fr auto;
+  gap: 24px; align-items: start;
+}
+.hc-label { font-size: .65rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.4); margin-bottom: 4px; }
+.hc-title  { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800; color: #fff; margin-bottom: 10px; line-height: 1.2; }
+.hc-meta   { display: flex; gap: 14px; flex-wrap: wrap; }
+.hc-meta span { font-size: .78rem; color: rgba(255,255,255,.5); }
+.hc-meta strong { color: rgba(255,255,255,.9); }
+.score-box {
+  background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.12);
+  border-radius: 12px; padding: 18px 24px; text-align: center; min-width: 100px;
+}
+.score-num { font-family: 'Syne', sans-serif; font-size: 2.8rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.score-lbl { font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.35); }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+.tab { padding: 10px 18px; font-size: .84rem; font-weight: 600; color: var(--grey); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.tab.active { color: var(--red); border-bottom-color: var(--red); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── SECTION ── */
+.section { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--r); margin-bottom: 20px; overflow: hidden; }
+.section-head { padding: 14px 20px; border-bottom: 1.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+.section-body { padding: 20px; }
+
+/* ── PASSAGE ── */
+.passage-text { font-size: .92rem; line-height: 1.95; color: var(--ink); white-space: pre-wrap; }
+
+/* ── VOCAB TABLE ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th { background: var(--ink); color: #fff; padding: 10px 14px; text-align: left; font-size: .7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg); }
+tbody td { padding: 11px 14px; font-size: .86rem; vertical-align: middle; }
+.ipa-cell { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--grey); }
+.vi-cell  { color: var(--purple); font-weight: 500; }
+.wrong-chip { display: inline-block; background: var(--red-l); color: var(--red); padding: 2px 8px; border-radius: 12px; font-size: .72rem; font-weight: 600; margin: 2px; }
+.word-num { font-size: .7rem; color: var(--grey); font-family: 'JetBrains Mono', monospace; }
+
+/* ── QUESTIONS ── */
+.q-item { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start; }
+.q-item:last-child { border-bottom: none; }
+.q-num { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--grey); min-width: 28px; padding-top: 2px; }
+.q-body { flex: 1; }
+.q-prompt { font-size: .88rem; color: var(--ink); margin-bottom: 4px; line-height: 1.55; }
+.q-answer { font-size: .8rem; color: var(--green); font-weight: 600; }
+.q-type { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: .65rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-left: 6px; }
+.q-mc   { background: var(--purple-l); color: var(--purple); }
+.q-fitb { background: var(--green-l); color: var(--green); }
+.q-wrong { background: var(--red-l); color: var(--red); }
+
+/* ── STATS ROW ── */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--r); padding: 16px 18px; }
+.stat-label { font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--grey); margin-bottom: 6px; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; line-height: 1; }
+
+/* ── EXPORT MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 200; padding: 24px; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--white); border-radius: 14px; padding: 32px; max-width: 480px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+.modal-sub { font-size: .84rem; color: var(--grey); margin-bottom: 20px; line-height: 1.6; }
+.modal-input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: .88rem; outline: none; margin-bottom: 12px; transition: border .15s; }
+.modal-input:focus { border-color: var(--ink); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+@media print {
+  .topbar, .tabs, .modal-overlay { display: none !important; }
+  .container { padding: 0; }
+  .section { break-inside: avoid; }
+}
+@media (max-width: 640px) {
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .header-card { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Vocab<em>Master</em> <span style="color:rgba(255,255,255,.3);font-size:.75rem;font-weight:400;margin-left:6px">Free Reading Detail</span></div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost" onclick="history.back()">← Back</button>
+    <button class="btn btn-green" onclick="openExportModal()">📤 Export to Google Sheets</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal-box">
+    <div class="modal-title">📤 Export to Google Sheets</div>
+    <div class="modal-sub">Nhập URL Google Sheet để ghi dữ liệu vào (sheet phải được chia sẻ public "Anyone with link can edit"), hoặc tạo mới.</div>
+    <label style="font-size:.78rem;font-weight:600;color:var(--grey);display:block;margin-bottom:6px">Google Sheet URL (để trống = tạo sheet mới qua Apps Script)</label>
+    <input class="modal-input" id="sheet-url-input" placeholder="https://docs.google.com/spreadsheets/d/...">
+    <div id="export-status" style="font-size:.8rem;color:var(--grey);min-height:20px;margin-bottom:8px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeExportModal()">Cancel</button>
+      <button class="btn btn-green" onclick="doExport()" id="export-btn">Export</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="app-content">
+    <div style="text-align:center;padding:60px;color:var(--grey)">Loading session data…</div>
+  </div>
+</div>
+
+<script>
+const HUB_GAS = 'https://script.google.com/macros/s/AKfycbzrQ8pLC3LUlY0_DxlgXqd1uZiO7y_KhNfkXtZ-3_QUazhG4BQPWoyKAzobuDkrg5y-Dg/exec';
+
+var SESSION = null;
+
+// ── Boot ──
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const rowParam = params.get('row');
+  if (rowParam) {
+    try { SESSION = JSON.parse(decodeURIComponent(rowParam)); }
+    catch(e) { SESSION = null; }
+  }
+  if (!SESSION) {
+    // Fallback: load from localStorage (student just finished)
+    try { SESSION = JSON.parse(localStorage.getItem('vd_last_fr') || 'null'); } catch(e) {}
+  }
+  if (SESSION) render();
+  else {
+    document.getElementById('app-content').innerHTML =
+      '<div style="text-align:center;padding:60px"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:1rem;font-weight:700;margin-bottom:6px">No session data</div><p style="color:var(--grey)">Please open this page from the teacher dashboard or after completing a Free Reading quiz.</p></div>';
+  }
+})();
+
+// ── Render ──
+function render() {
+  const s = SESSION;
+  const score     = parseInt(s.score || 0);
+  const scoreClr  = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--gold)' : 'var(--red)';
+  const vocab     = Array.isArray(s.vocabulary) ? s.vocabulary : [];
+  const questions = Array.isArray(s.questions)  ? s.questions  : [];
+  const wrong     = Array.isArray(s.wrongWords)  ? s.wrongWords : [];
+  const passage   = s.passage || '';
+  const fmtDate   = ts => { try { const d=new Date(ts); if(isNaN(d)) return ts||'—'; return d.toLocaleString('vi-VN',{hour12:false}); } catch(e){ return ts||'—'; } };
+
+  document.getElementById('app-content').innerHTML = `
+    <!-- Header -->
+    <div class="header-card">
+      <div>
+        <div class="hc-label">Free Reading Session</div>
+        <div class="hc-title">${esc(s.topic || 'Free Reading')}</div>
+        <div class="hc-meta">
+          <span>👤 <strong>${esc(s.studentName||'Student')}</strong></span>
+          ${s.class ? `<span>🎓 <strong>${esc(s.class)}</strong></span>` : ''}
+          ${s.studentId ? `<span>🔑 <strong>${esc(s.studentId)}</strong></span>` : ''}
+          <span>🕐 <strong>${fmtDate(s.timestamp)}</strong></span>
+          <span>🎮 <strong>${esc(s.quizMode||'mixed')}</strong> mode</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="score-num" style="color:${scoreClr}">${score}%</div>
+        <div class="score-lbl">Quiz Score</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Vocabulary</div>
+        <div class="stat-value">${vocab.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Questions</div>
+        <div class="stat-value">${questions.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Correct</div>
+        <div class="stat-value" style="color:var(--green)">${questions.length ? Math.round(score/100*questions.length) : '—'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Wrong Words</div>
+        <div class="stat-value" style="color:var(--red)">${wrong.length}</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('vocab')">📚 Vocabulary (${vocab.length})</div>
+      ${passage ? `<div class="tab" onclick="switchTab('passage')">📖 Reading Passage</div>` : ''}
+      <div class="tab" onclick="switchTab('questions')">❓ Questions (${questions.length})</div>
+      ${wrong.length ? `<div class="tab" onclick="switchTab('wrong')">⚠️ Wrong Words (${wrong.length})</div>` : ''}
+    </div>
+
+    <!-- Vocab tab -->
+    <div class="tab-pane active" id="tab-vocab">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">Vocabulary List</span>
+          <span style="font-size:.78rem;color:var(--grey)">${vocab.length} words</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Word</th><th>IPA</th><th>Synonyms / Definition</th><th>Vietnamese</th><th>Status</th></tr></thead>
+            <tbody>
+              ${vocab.map((v,i) => {
+                const word = v.original || v.word || String(v);
+                const isWrong = wrong.some(w => w.toLowerCase() === word.toLowerCase());
+                return `<tr>
+                  <td class="word-num">${i+1}</td>
+                  <td><strong>${esc(word)}</strong></td>
+                  <td class="ipa-cell">${esc(v.ipa||'—')}</td>
+                  <td style="font-size:.84rem">${esc(v.synonyms||v.definition||'—')}</td>
+                  <td class="vi-cell">${esc(v.vietnamese||'—')}</td>
+                  <td>${isWrong ? '<span class="wrong-chip">✗ Wrong</span>' : '<span style="color:var(--green);font-size:.78rem;font-weight:600">✓ OK</span>'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Passage tab -->
+    ${passage ? `
+    <div class="tab-pane" id="tab-passage">
+      <div class="section">
+        <div class="section-head"><span class="section-title">Reading Passage</span></div>
+        <div class="section-body"><div class="passage-text">${esc(passage)}</div></div>
+      </div>
+    </div>` : ''}
+
+    <!-- Questions tab -->
+    <div class="tab-pane" id="tab-questions">
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">All ${questions.length} Questions</span>
+        </div>
+        ${questions.length ? `
+        <div>
+          ${questions.map((q,i) => {
+            const qWord  = q.word || '';
+            const isWrong = wrong.some(w => w.toLowerCase() === qWord.toLowerCase());
+            const qType  = q.type || (q.letters ? 'fitb' : 'mc');
+            const prompt = q.prompt || (qType==='fitb' ? `Type the word: "${q.hint||qWord[0]+'_'.repeat(qWord.length-1)}"` : q.prompt || '');
+            return `<div class="q-item">
+              <div class="q-num">${String(i+1).padStart(2,'0')}</div>
+              <div class="q-body">
+                <div class="q-prompt">
+                  ${esc(prompt || qWord)}
+                  <span class="q-type ${qType==='fitb'?'q-fitb':'q-mc'}">${qType.toUpperCase()}</span>
+                  ${isWrong ? '<span class="q-type q-wrong">WRONG</span>' : ''}
+                </div>
+                <div class="q-answer">✓ ${esc(q.correct || qWord)}</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>` : '<div style="text-align:center;padding:32px;color:var(--grey)">No question data saved (older sessions).</div>'}
+      </div>
+    </div>
+
+    ${wrong.length ? `
+    <!-- Wrong Words tab -->
+    <div class="tab-pane" id="tab-wrong">
+      <div class="section">
+        <div class="section-head"><span class="section-title">Words Answered Incorrectly</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Word</th><th>IPA</th><th>Synonyms</th><th>Vietnamese</th></tr></thead>
+            <tbody>
+              ${wrong.map((w,i) => {
+                const vEntry = vocab.find(v => (v.original||v.word||'').toLowerCase() === w.toLowerCase()) || {};
+                return `<tr>
+                  <td class="word-num">${i+1}</td>
+                  <td><strong style="color:var(--red)">${esc(w)}</strong></td>
+                  <td class="ipa-cell">${esc(vEntry.ipa||'—')}</td>
+                  <td style="font-size:.84rem">${esc(vEntry.synonyms||'—')}</td>
+                  <td class="vi-cell">${esc(vEntry.vietnamese||'—')}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div style="text-align:center;padding:32px 0;color:var(--grey);font-size:.75rem">
+      VocabMaster — Language Hub · DNU English Faculty · Developed by Duong Thanh Tu
+    </div>`;
+}
+
+// ── Tab switching ──
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['vocab','passage','questions','wrong'].filter(id => document.getElementById('tab-'+id));
+    t.classList.toggle('active', ids[i] === name);
+  });
+  ['vocab','passage','questions','wrong'].forEach(id => {
+    const el = document.getElementById('tab-'+id);
+    if (el) el.classList.toggle('active', id === name);
+  });
+}
+
+// ── Export to Google Sheets ──
+function openExportModal() { document.getElementById('export-modal').classList.add('open'); }
+function closeExportModal() { document.getElementById('export-modal').classList.remove('open'); }
+
+async function doExport() {
+  if (!SESSION) return;
+  const btn    = document.getElementById('export-btn');
+  const status = document.getElementById('export-status');
+  const sheetUrl = document.getElementById('sheet-url-input').value.trim();
+  btn.disabled = true; btn.textContent = '⏳ Exporting…';
+  status.textContent = 'Preparing data…';
+
+  const s       = SESSION;
+  const vocab   = Array.isArray(s.vocabulary) ? s.vocabulary : [];
+  const questions = Array.isArray(s.questions) ? s.questions : [];
+  const wrong   = Array.isArray(s.wrongWords)  ? s.wrongWords : [];
+  const fmtDate = ts => { try { return new Date(ts).toLocaleString('vi-VN',{hour12:false}); } catch(e){ return ts||''; } };
+
+  try {
+    // Build CSV strings for each sheet/section
+    // 1. Session info
+    const infoRows = [
+      ['Field','Value'],
+      ['Student', s.studentName||''],
+      ['Class', s.class||''],
+      ['Student ID', s.studentId||''],
+      ['Topic', s.topic||'Free Reading'],
+      ['Date', fmtDate(s.timestamp)],
+      ['Score', s.score+'%'],
+      ['Quiz Mode', s.quizMode||'mixed'],
+      ['Word Count', vocab.length],
+      ['Questions', questions.length],
+      ['Wrong Words', wrong.join(', ')],
+    ];
+
+    // 2. Vocabulary
+    const vocabRows = [['#','Word','IPA','Synonyms / Definition','Vietnamese','Result']];
+    vocab.forEach((v, i) => {
+      const word = v.original || v.word || String(v);
+      const isWrong = wrong.some(w => w.toLowerCase() === word.toLowerCase());
+      vocabRows.push([i+1, word, v.ipa||'', v.synonyms||v.definition||'', v.vietnamese||'', isWrong ? 'Wrong' : 'Correct']);
+    });
+
+    // 3. Reading Passage
+    const passageRows = [['Reading Passage'], [s.passage||'(no passage)']];
+
+    // 4. Questions
+    const qRows = [['#','Word','Type','Prompt','Answer','Result']];
+    questions.forEach((q,i) => {
+      const qWord = q.word||'';
+      const isWrong = wrong.some(w => w.toLowerCase() === qWord.toLowerCase());
+      qRows.push([i+1, qWord, q.type||'mc', q.prompt||'', q.correct||qWord, isWrong?'Wrong':'Correct']);
+    });
+
+    // Convert to CSV
+    const toCSV = rows => rows.map(r =>
+      r.map(cell => '"' + String(cell||'').replace(/"/g,'""') + '"').join(',')
+    ).join('\n');
+
+    // If sheet URL provided, try to write via GAS
+    if (sheetUrl && sheetUrl.includes('spreadsheets')) {
+      status.textContent = 'Sending to Google Sheets via Hub GAS…';
+      const payload = {
+        sheetUrl,
+        sessionInfo:   infoRows,
+        vocabularyData: vocabRows,
+        passageData:   passageRows,
+        questionsData: qRows,
+        sheetTitle:    s.topic || 'Free Reading'
+      };
+      try {
+        const res = await gasGet('vocab.exportFreeReadToSheet', payload);
+        if (res && res.success) {
+          status.textContent = '✅ Exported! Opening sheet…';
+          window.open(sheetUrl, '_blank');
+          setTimeout(closeExportModal, 1500);
+        } else {
+          throw new Error(res?.error || 'Export failed');
+        }
+      } catch(gasErr) {
+        // Fallback: download as CSV zip
+        status.textContent = '⚠ GAS export failed, downloading CSV instead…';
+        downloadCSV(toCSV(vocabRows), s.topic + '_vocab.csv');
+      }
+    } else {
+      // No URL: download CSV files
+      status.textContent = 'Downloading CSV files…';
+      downloadCSV(toCSV(infoRows),   (s.topic||'fr') + '_info.csv');
+      setTimeout(() => downloadCSV(toCSV(vocabRows),  (s.topic||'fr') + '_vocab.csv'), 400);
+      setTimeout(() => downloadCSV(toCSV(qRows),      (s.topic||'fr') + '_questions.csv'), 800);
+      if (s.passage) setTimeout(() => downloadCSV(toCSV(passageRows), (s.topic||'fr') + '_passage.csv'), 1200);
+      status.textContent = '✅ Downloaded! Open CSV files in Google Sheets (File → Import).';
+    }
+  } catch(err) {
+    status.textContent = '❌ Error: ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Export';
+  }
+}
+
+function downloadCSV(csv, filename) {
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ── JSONP helper ──
+function gasGet(action, payload) {
+  return new Promise((resolve, reject) => {
+    const cb = 'vd_cb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+    const params = 'callback=' + encodeURIComponent(cb)
+      + '&action=' + encodeURIComponent(action)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload||{}));
+    const s = document.createElement('script');
+    s.src = HUB_GAS + '?' + params;
+    const t = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
+    window[cb] = r => { cleanup(); resolve(r); };
+    const cleanup = () => { clearTimeout(t); delete window[cb]; s.parentNode && s.parentNode.removeChild(s); };
+    s.onerror = () => { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(s);
+  });
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>

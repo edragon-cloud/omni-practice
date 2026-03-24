@@ -1,0 +1,6 @@
+# GitHub Pages configuration for Language Hub
+# No Jekyll processing needed — pure static HTML
+exclude:
+  - README.md
+  - "*.toml"
+  - ".github/"
