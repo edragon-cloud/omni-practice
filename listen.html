@@ -183,8 +183,8 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 #shortcut-modal .sm-table tr:last-child{border-bottom:none}
 #shortcut-modal .sm-table td{padding:8px 4px;font-size:13px}
 #shortcut-modal .sm-table td:first-child{color:#555;width:55%;font-weight:500}
-#shortcut-modal .sm-table td:last-child{text-align:right}
-#shortcut-modal .sm-kbd{display:inline-flex;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);font-weight:700;color:#283593;margin:1px}
+#shortcut-modal .sm-table td:last-child{text-align:right;white-space:nowrap}
+#shortcut-modal .sm-kbd{display:inline-flex !important;visibility:visible !important;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);font-weight:700;color:#283593;margin:1px}
 #shortcut-modal .sm-tip{background:#f8f7f4;border-left:3px solid var(--teal);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#555;line-height:1.6;margin-bottom:18px}
 #shortcut-modal .sm-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #shortcut-modal .sm-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#888;cursor:pointer;user-select:none}
@@ -1101,10 +1101,9 @@ function checkSentence(idx){
       document.getElementById('sentences-scroll').scrollTo({top:999999,behavior:'smooth'});
     }
   } else {
-    // Not 100% — re-enable input for another try, keep Edit/Reset visible
+    // Wrong — keep input DISABLED, show Edit button to re-type
+    // Student must press Edit (button or ↑ key) to unlock
     updateScore();
-    inputEl.disabled=false; btn.disabled=false;
-    // Show a hint message
     var accEl=document.getElementById('acc-'+idx);
     if(accEl) accEl.textContent=correct+'/'+origWords.length+' words ('+pct+'%) — fix errors and try again';
   }
@@ -1177,7 +1176,8 @@ function editSentence(idx){
   var editBtn=document.getElementById('edit-btn-'+idx);
   var inputEl=document.getElementById('input-'+idx);
   var block=document.getElementById('block-'+idx);
-  if(!btn||!btn.disabled) return;
+  // Only allow edit if sentence was checked AND had errors (edit button visible)
+  if(!editBtn || editBtn.style.display==='none') return;
   var savedText=inputEl.value;
   var origWords=tokenize(App.sentences[idx]);
   var studWords=tokenize(savedText);
@@ -1189,10 +1189,17 @@ function editSentence(idx){
   var revBtn=document.getElementById('reveal-btn-'+idx); if(revBtn) revBtn.style.display='none';
   var revPanel=document.getElementById('reveal-'+idx); if(revPanel) revPanel.style.display='none';
   block.classList.remove('completed'); block.classList.add('active-block');
+  // If this sentence hadn't advanced currentIdx yet (wrong answer), don't decrement
+  // If it had been completed (correct = currentIdx advanced past it), decrement back
   if(idx===App.currentIdx-1){
     App.currentIdx--; updateProgress();
     document.getElementById('submit-area').classList.remove('visible');
     App.reviewData[idx]=null;
+  } else if(idx===App.currentIdx){
+    // Sentence was wrong — currentIdx never advanced. Just re-enable, no counter change.
+    App.reviewData[idx]=null;
+    updateProgress();
+    document.getElementById('submit-area').classList.remove('visible');
   }
   inputEl.focus(); var len=inputEl.value.length; inputEl.setSelectionRange(len,len);
   inputEl.scrollIntoView({behavior:'smooth',block:'center'});
@@ -1270,7 +1277,7 @@ document.addEventListener('keydown',function(e){
   if(!onDict) return;
 
   var activeEl=document.activeElement;
-  var isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA');
+  var isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')&&!activeEl.disabled;
 
   // ── Shift+Space → Play/Pause audio ──
   // Safe: Shift+Space is not used by macOS/Windows system shortcuts
@@ -1311,19 +1318,16 @@ document.addEventListener('keydown',function(e){
 
   // Speed control removed — use browser/OS media controls instead
 
-  // ── ↑ ArrowUp → Edit the most recently checked sentence ──
-  // If last checked sentence had errors → edit it
-  // Otherwise fall back to the previous completed sentence
+  // ── ↑ ArrowUp → Edit the sentence just checked (if it had errors) ──
   if(e.key==='ArrowUp'&&!isTyping&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){
     e.preventDefault();
-    var editIdx = -1;
+    // Use lastCheckedIdx — edit button is visible only when there were errors
     if(App.lastCheckedIdx >= 0){
-      // Check if that sentence had errors (edit button is visible)
       var eb=document.getElementById('edit-btn-'+App.lastCheckedIdx);
-      if(eb && eb.style.display!=='none') editIdx=App.lastCheckedIdx;
+      if(eb && eb.style.display!=='none'){
+        editSentence(App.lastCheckedIdx);
+      }
     }
-    if(editIdx < 0 && App.currentIdx > 0) editIdx = App.currentIdx - 1;
-    if(editIdx >= 0) editSentence(editIdx);
     return;
   }
 
