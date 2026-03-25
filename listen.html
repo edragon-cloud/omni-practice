@@ -182,8 +182,8 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 #shortcut-modal .sm-table tr{border-bottom:1px solid #f0f0ee}
 #shortcut-modal .sm-table tr:last-child{border-bottom:none}
 #shortcut-modal .sm-table td{padding:8px 4px;font-size:13px}
-#shortcut-modal .sm-table td:first-child{color:#555;width:42%;font-weight:500}
-#shortcut-modal .sm-table td:last-child{color:#888;font-size:11.5px}
+#shortcut-modal .sm-table td:first-child{color:#555;width:55%;font-weight:500}
+#shortcut-modal .sm-table td:last-child{display:none}
 #shortcut-modal .sm-kbd{display:inline-flex;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);font-weight:700;color:#283593;margin:1px}
 #shortcut-modal .sm-tip{background:#f8f7f4;border-left:3px solid var(--teal);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#555;line-height:1.6;margin-bottom:18px}
 #shortcut-modal .sm-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -1009,11 +1009,10 @@ function appendSentenceBlock(idx){
   var hintHtml=(idx===0)?
     '<div class="shortcut-hint">'+
     '<div class="hint-item"><span class="kbd">Enter</span><span>Check</span></div>'+
-    '<div class="hint-item"><span class="kbd">⇧+Enter</span><span>Next sentence</span></div>'+
+    '<div class="hint-item"><span class="kbd">⇧+Enter</span><span>Next</span></div>'+
     '<div class="hint-item"><span class="kbd">⇧+Space</span><span>Play/Pause</span></div>'+
-    '<div class="hint-item"><span class="kbd">Ctrl+[</span><span>−3s</span></div>'+
-    '<div class="hint-item"><span class="kbd">Ctrl+]</span><span>+3s</span></div>'+
-    '<div class="hint-item"><span class="kbd">Alt+[/]</span><span>Speed ±0.25×</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+,</span><span>−3s</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+.</span><span>+3s</span></div>'+
     '<div class="hint-item"><span class="kbd">↑</span><span>Edit last</span></div>'+
     '<div class="hint-item"><span class="kbd">Ctrl+Alt+R</span><span>Reset</span></div>'+
     '</div>':'';
@@ -1069,8 +1068,9 @@ function checkSentence(idx){
   inputEl.disabled=true; btn.disabled=true;
   var editBtn=document.getElementById('edit-btn-'+idx);
   var revealBtn=document.getElementById('reveal-btn-'+idx);
-  if(editBtn) editBtn.style.display='inline-flex';
-  // Show answer only allowed when score < 80% (student is struggling)
+  // Edit: show only when there are errors (any mistake → can re-type)
+  if(editBtn) editBtn.style.display = pct < 100 ? 'inline-flex' : 'none';
+  // Reveal full answer: only when struggling (< 80%)
   if(revealBtn) revealBtn.style.display = pct < 80 ? 'inline-flex' : 'none';
 
   App.reviewData[idx]={typed:inputEl.value,origWords:origWords,studWords:studWords,correct:correct,total:origWords.length};
@@ -1298,27 +1298,16 @@ document.addEventListener('keydown',function(e){
     return;
   }
 
-  // ── Ctrl+[ → −3 seconds ──
-  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key==='['){
+  // ── Ctrl+, → −3 seconds (safe across all browsers/OS) ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key===','){
     e.preventDefault(); var aL=getAudio(); if(aL) aL.currentTime=Math.max(0,aL.currentTime-3); return;
   }
-  // ── Ctrl+] → +3 seconds ──
-  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key===']'){
+  // ── Ctrl+. → +3 seconds ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key==='.'){
     e.preventDefault(); var aR=getAudio(); if(aR) aR.currentTime+=3; return;
   }
 
-  // ── Alt+[ → speed −0.25× ──
-  if(e.altKey&&!e.ctrlKey&&e.key==='['){
-    e.preventDefault(); var aSD=getAudio();
-    if(aSD){aSD.playbackRate=Math.max(0.5,Math.round((aSD.playbackRate-0.25)*4)/4); showSpeedToast(aSD.playbackRate);}
-    return;
-  }
-  // ── Alt+] → speed +0.25× ──
-  if(e.altKey&&!e.ctrlKey&&e.key===']'){
-    e.preventDefault(); var aSU=getAudio();
-    if(aSU){aSU.playbackRate=Math.min(1.5,Math.round((aSU.playbackRate+0.25)*4)/4); showSpeedToast(aSU.playbackRate);}
-    return;
-  }
+  // Speed control removed — use browser/OS media controls instead
 
   // ── ↑ ArrowUp → Edit last sentence (only when NOT typing) ──
   if(e.key==='ArrowUp'&&!isTyping&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){
@@ -1331,19 +1320,7 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-function showSpeedToast(rate){
-  var el=document.getElementById('speed-toast');
-  if(!el){
-    el=document.createElement('div');
-    el.id='speed-toast';
-    el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .3s';
-    document.body.appendChild(el);
-  }
-  el.textContent='Speed: '+(Math.round(rate*100)/100)+'×';
-  el.style.opacity='1';
-  clearTimeout(el._t);
-  el._t=setTimeout(function(){el.style.opacity='0';},1500);
-}
+
 
 // ===== PROGRESS & SCORE =====
 function updateProgress(){
@@ -1561,58 +1538,41 @@ function markdownToHtml(md){return md.replace(/&/g,'&amp;').replace(/</g,'&lt;')
       <div class="sm-header-icon">⌨️</div>
       <div class="sm-header-text">
         <h2>Keyboard Shortcuts</h2>
-        <p>Phím tắt giúp bạn thao tác nhanh hơn khi chép chính tả</p>
+        <p>Keyboard shortcuts for faster dictation practice</p>
       </div>
     </div>
     <div class="sm-body">
       <div class="sm-tip">
-        💡 <strong>Mẹo:</strong> Dùng <strong>Shift+Space</strong> để Play/Pause thay vì dùng chuột — hai tay vẫn trên bàn phím, không cần rời đi.
+        💡 Use <strong>Shift+Space</strong> to Play/Pause — keeps both hands on keyboard, no mouse needed.
       </div>
       <table class="sm-table">
         <tr>
           <td>▶ Play / ⏸ Pause</td>
           <td><span class="sm-kbd">Shift</span><span class="sm-kbd">Space</span></td>
-          <td>Không trùng Spotlight (Mac)</td>
         </tr>
         <tr>
-          <td>✅ Check đáp án</td>
+          <td>✅ Check answer</td>
           <td><span class="sm-kbd">Enter</span></td>
-          <td>Thao tác mặc định</td>
         </tr>
         <tr>
-          <td>⏭ Qua câu tiếp theo</td>
+          <td>⏭ Next sentence</td>
           <td><span class="sm-kbd">Shift</span><span class="sm-kbd">Enter</span></td>
-          <td>Sau khi đã Check xong</td>
         </tr>
         <tr>
-          <td>⏪ Lùi 3 giây</td>
-          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">[</span></td>
-          <td>An toàn, không bôi đen text</td>
+          <td>⏪ Seek −3s</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">,</span></td>
         </tr>
         <tr>
-          <td>⏩ Tiến 3 giây</td>
-          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">]</span></td>
-          <td>Đối xứng với Lùi</td>
+          <td>⏩ Seek +3s</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">.</span></td>
         </tr>
         <tr>
-          <td>🐢 Giảm tốc độ −0.25×</td>
-          <td><span class="sm-kbd">Alt</span><span class="sm-kbd">[</span></td>
-          <td>Nghe rõ linking sounds</td>
+          <td>✏️ Edit last sentence</td>
+          <td><span class="sm-kbd">↑</span> <small style="color:#aaa">(when not typing)</small></td>
         </tr>
         <tr>
-          <td>🐇 Tăng tốc độ +0.25×</td>
-          <td><span class="sm-kbd">Alt</span><span class="sm-kbd">]</span></td>
-          <td>Range: 0.5× → 1.5×</td>
-        </tr>
-        <tr>
-          <td>✏️ Sửa câu vừa làm</td>
-          <td><span class="sm-kbd">↑</span> <small style="color:#aaa">(khi không đang gõ)</small></td>
-          <td>Như Telegram/Discord</td>
-        </tr>
-        <tr>
-          <td>🔄 Reset câu</td>
+          <td>🔄 Reset sentence</td>
           <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">Alt</span><span class="sm-kbd">R</span></td>
-          <td>3 phím — tránh nhấn nhầm</td>
         </tr>
       </table>
       <div class="sm-footer">
