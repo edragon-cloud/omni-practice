@@ -168,6 +168,29 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .sb-controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 .sb-accuracy{font-size:.73rem;color:var(--grey-600);margin-left:auto;font-weight:600}
 .shortcut-hint{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:9px;padding-top:8px;border-top:1px dashed #dce4f5}
+
+/* ── Keyboard Shortcut Welcome Modal ── */
+#shortcut-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+#shortcut-modal .sm-box{background:#fff;border-radius:16px;width:100%;max-width:560px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:smSlideIn .3s ease}
+@keyframes smSlideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#shortcut-modal .sm-header{background:linear-gradient(135deg,#0E0E0C,#1a1a14);padding:22px 28px;display:flex;align-items:center;gap:14px}
+#shortcut-modal .sm-header-icon{font-size:2rem;line-height:1}
+#shortcut-modal .sm-header-text h2{font-family:var(--font-display);font-size:1.15rem;color:#fff;margin-bottom:3px}
+#shortcut-modal .sm-header-text p{font-size:12px;color:rgba(255,255,255,.5);margin:0}
+#shortcut-modal .sm-body{padding:24px 28px}
+#shortcut-modal .sm-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+#shortcut-modal .sm-table tr{border-bottom:1px solid #f0f0ee}
+#shortcut-modal .sm-table tr:last-child{border-bottom:none}
+#shortcut-modal .sm-table td{padding:8px 4px;font-size:13px}
+#shortcut-modal .sm-table td:first-child{color:#555;width:42%;font-weight:500}
+#shortcut-modal .sm-table td:last-child{color:#888;font-size:11.5px}
+#shortcut-modal .sm-kbd{display:inline-flex;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);font-weight:700;color:#283593;margin:1px}
+#shortcut-modal .sm-tip{background:#f8f7f4;border-left:3px solid var(--teal);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#555;line-height:1.6;margin-bottom:18px}
+#shortcut-modal .sm-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#shortcut-modal .sm-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#888;cursor:pointer;user-select:none}
+#shortcut-modal .sm-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--teal)}
+#shortcut-modal .sm-btn{background:linear-gradient(135deg,var(--teal),#0a6357);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-family:var(--font-body);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+#shortcut-modal .sm-btn:hover{opacity:.88}
 .hint-item{display:flex;align-items:center;gap:3px}
 .kbd{display:inline-flex;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 7px;font-size:.7rem;font-family:var(--font-mono);font-weight:700;color:#283593;min-width:34px;text-align:center}
 .hint-item span{font-size:.7rem;color:#9aa}
@@ -501,7 +524,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 
 <script>
 // ===== CONFIG =====
-const API_URL = 'https://script.google.com/macros/s/AKfycbzrQ8pLC3LUlY0_DxlgXqd1uZiO7y_KhNfkXtZ-3_QUazhG4BQPWoyKAzobuDkrg5y-Dg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
 
 // ── GEMINI KEY HELPERS (Listening Lab) ──
 const LIS_GEMINI_KEY = 'hub_gemini_key'; // shared with Hub dashboard
@@ -948,7 +971,31 @@ function goToDictation(){
   appendSentenceBlock(0);
   updateProgress(); updateScore();
   showScreen('screen-dictation');
+  // Show keyboard shortcut guide on first entry
+  setTimeout(function(){showShortcutModal();},300);
   setTimeout(function(){var inp=document.querySelector('.sb-input:not(:disabled)');if(inp) inp.focus();},120);
+  // Auto-save session start → teacher sees "In Progress" immediately
+  api('lis.startSession',{
+    sessionId:      App.sessionId,
+    bookTestPart:   App.bookTestPart,
+    startingTime:   formatDateTime(App.startTime),
+    totalSentences: App.sentences.length
+  }).catch(function(){});
+  // Periodic progress update every 60s
+  if(App._progressTimer) clearInterval(App._progressTimer);
+  App._progressTimer=setInterval(function(){
+    if(App.submitted){clearInterval(App._progressTimer);App._progressTimer=null;return;}
+    recalcScore();
+    var acc=App.totalWords>0?Math.min(100,Math.round(App.correctWords/App.totalWords*100))+'%':'0%';
+    api('lis.updateProgress',{
+      sessionId:      App.sessionId,
+      sentencesDone:  App.currentIdx,
+      totalSentences: App.sentences.length,
+      totalWords:     App.totalWords,
+      correctWords:   App.correctWords,
+      accuracy:       acc
+    }).catch(function(){});
+  },60000);
 }
 
 // ===== SENTENCE BLOCKS =====
@@ -961,12 +1008,14 @@ function appendSentenceBlock(idx){
   var fsz=App.currentFontSize||'100%';
   var hintHtml=(idx===0)?
     '<div class="shortcut-hint">'+
-    '<div class="hint-item"><span class="kbd">Enter</span><span>Check answer</span></div>'+
-    '<div class="hint-item"><span class="kbd">Ctrl</span><span>Resume audio + next</span></div>'+
-    '<div class="hint-item"><span class="kbd">Ctrl+⇧+E</span><span>Edit answer</span></div>'+
-    '<div class="hint-item"><span class="kbd">⇧+Ctrl</span><span>Reset sentence</span></div>'+
-    '<div class="hint-item"><span class="kbd">Alt+←</span><span>−3s</span></div>'+
-    '<div class="hint-item"><span class="kbd">Alt+→</span><span>+3s</span></div>'+
+    '<div class="hint-item"><span class="kbd">Enter</span><span>Check</span></div>'+
+    '<div class="hint-item"><span class="kbd">⇧+Enter</span><span>Next sentence</span></div>'+
+    '<div class="hint-item"><span class="kbd">⇧+Space</span><span>Play/Pause</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+[</span><span>−3s</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+]</span><span>+3s</span></div>'+
+    '<div class="hint-item"><span class="kbd">Alt+[/]</span><span>Speed ±0.25×</span></div>'+
+    '<div class="hint-item"><span class="kbd">↑</span><span>Edit last</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+Alt+R</span><span>Reset</span></div>'+
     '</div>':'';
   block.innerHTML=
     '<div class="sb-label">SENTENCE '+(idx+1)+' / '+App.sentences.length+'</div>'+
@@ -1195,43 +1244,106 @@ window.addEventListener('load',function(){
 });
 
 // ===== KEYBOARD SHORTCUTS =====
+// Final shortcut design (safe across Windows/Mac/Vietnamese IME):
+// ┌─────────────────────┬──────────────────────┐
+// │ Play/Pause          │ Shift+Space           │
+// │ Check answer        │ Enter                 │
+// │ Next sentence       │ Shift+Enter           │
+// │ −3 seconds          │ Ctrl+[  (or Alt+[)    │
+// │ +3 seconds          │ Ctrl+]  (or Alt+])    │
+// │ Edit last sentence  │ ↑ (when not typing)   │
+// │ Speed −0.25×        │ Alt+[                 │
+// │ Speed +0.25×        │ Alt+]                 │
+// │ Reset sentence      │ Ctrl+Alt+R            │
+// └─────────────────────┴──────────────────────┘
 document.addEventListener('keydown',function(e){
-  // Zoom
-  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='+'||e.key==='='||e.key==='NumpadAdd')){e.preventDefault();changeZoom(+1);return;}
-  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='-'||e.key==='NumpadSubtract')){e.preventDefault();changeZoom(-1);return;}
+  // ── Zoom: always intercept (Ctrl+/−) ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='+'||e.key==='='||e.key==='NumpadAdd')){e.preventDefault();changeZoom(+1);return;}
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='-'||e.key==='NumpadSubtract')){e.preventDefault();changeZoom(-1);return;}
+
+  // ── Always block Alt+Arrow browser Back/Forward ──
+  if(e.altKey&&!e.ctrlKey&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();return;}
+
   var onDict=document.getElementById('screen-dictation').classList.contains('active');
   if(!onDict) return;
-  // Ctrl+Shift+E → Edit
-  if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='e'){
-    e.preventDefault(); if(App.currentIdx>0) editSentence(App.currentIdx-1); return;
-  }
-  // Shift+Ctrl → Reset
-  if(e.shiftKey&&(e.ctrlKey||e.metaKey)&&e.key!=='E'&&e.key!=='e'){
-    e.preventDefault(); if(App.currentIdx>0) resetSentence(App.currentIdx-1); return;
-  }
-  // Ctrl/Cmd → Resume audio + next sentence
-  if((e.ctrlKey||e.metaKey)&&!e.shiftKey){
-    if(['c','v','x','a','z','y'].indexOf(e.key.toLowerCase())!==-1) return;
+
+  var activeEl=document.activeElement;
+  var isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA');
+
+  // ── Shift+Space → Play/Pause audio ──
+  // Safe: Shift+Space is not used by macOS/Windows system shortcuts
+  // When isTyping: Shift+Space types a space in some languages → skip only if IME active
+  // We allow it even when typing since audio control is primary use case here
+  if(e.shiftKey&&e.key===' '&&!e.ctrlKey&&!e.altKey){
     e.preventDefault();
-    var a=getAudio(); if(!a||!a.src) return;
-    if(a.paused){
-      a.play().catch(function(){}); setAudioStatus('playing');
-      if(App.pendingNextIdx>=0&&App.pendingNextIdx<App.sentences.length){
-        var newIdx=App.pendingNextIdx; App.pendingNextIdx=-1;
-        appendSentenceBlock(newIdx);
-        setTimeout(function(){
-          var next=document.getElementById('input-'+newIdx);
-          if(next){next.scrollIntoView({behavior:'smooth',block:'center'});next.focus();}
-        },150);
-      }
-    }else{a.pause();setAudioStatus('paused');}
+    var aSP=getAudio(); if(!aSP||!aSP.src) return;
+    if(aSP.paused){aSP.play().catch(function(){}); setAudioStatus('playing');}
+    else{aSP.pause(); setAudioStatus('paused');}
     return;
   }
-  // Alt+← → -3s
-  if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();var a2=getAudio();if(a2) a2.currentTime=Math.max(0,a2.currentTime-3);return;}
-  // Alt+→ → +3s
-  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();var a3=getAudio();if(a3) a3.currentTime+=3;return;}
+
+  // ── Shift+Enter → advance to next sentence (after checking) ──
+  if(e.shiftKey&&e.key==='Enter'&&!e.ctrlKey&&!e.altKey){
+    e.preventDefault();
+    var aNA=getAudio(); if(!aNA||!aNA.src) return;
+    if(aNA.paused){aNA.play().catch(function(){}); setAudioStatus('playing');}
+    if(App.pendingNextIdx>=0&&App.pendingNextIdx<App.sentences.length){
+      var newIdxSE=App.pendingNextIdx; App.pendingNextIdx=-1;
+      appendSentenceBlock(newIdxSE);
+      setTimeout(function(){
+        var nextSE=document.getElementById('input-'+newIdxSE);
+        if(nextSE){nextSE.scrollIntoView({behavior:'smooth',block:'center'});nextSE.focus();}
+      },150);
+    }
+    return;
+  }
+
+  // ── Ctrl+[ → −3 seconds ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key==='['){
+    e.preventDefault(); var aL=getAudio(); if(aL) aL.currentTime=Math.max(0,aL.currentTime-3); return;
+  }
+  // ── Ctrl+] → +3 seconds ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key===']'){
+    e.preventDefault(); var aR=getAudio(); if(aR) aR.currentTime+=3; return;
+  }
+
+  // ── Alt+[ → speed −0.25× ──
+  if(e.altKey&&!e.ctrlKey&&e.key==='['){
+    e.preventDefault(); var aSD=getAudio();
+    if(aSD){aSD.playbackRate=Math.max(0.5,Math.round((aSD.playbackRate-0.25)*4)/4); showSpeedToast(aSD.playbackRate);}
+    return;
+  }
+  // ── Alt+] → speed +0.25× ──
+  if(e.altKey&&!e.ctrlKey&&e.key===']'){
+    e.preventDefault(); var aSU=getAudio();
+    if(aSU){aSU.playbackRate=Math.min(1.5,Math.round((aSU.playbackRate+0.25)*4)/4); showSpeedToast(aSU.playbackRate);}
+    return;
+  }
+
+  // ── ↑ ArrowUp → Edit last sentence (only when NOT typing) ──
+  if(e.key==='ArrowUp'&&!isTyping&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){
+    e.preventDefault(); if(App.currentIdx>0) editSentence(App.currentIdx-1); return;
+  }
+
+  // ── Ctrl+Alt+R → Reset current sentence ──
+  if((e.ctrlKey||e.metaKey)&&e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='r'){
+    e.preventDefault(); if(App.currentIdx>0) resetSentence(App.currentIdx-1); return;
+  }
 });
+
+function showSpeedToast(rate){
+  var el=document.getElementById('speed-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='speed-toast';
+    el.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .3s';
+    document.body.appendChild(el);
+  }
+  el.textContent='Speed: '+(Math.round(rate*100)/100)+'×';
+  el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(function(){el.style.opacity='0';},1500);
+}
 
 // ===== PROGRESS & SCORE =====
 function updateProgress(){
@@ -1272,6 +1384,7 @@ function buildStatsSummary(totalSents,perfectSents,totalWords,correctWords,total
 async function submitResults(){
   if(App.submitted) return;
   App.submitted=true; document.getElementById('btn-submit').disabled=true; audioPause();
+  if(App._progressTimer){clearInterval(App._progressTimer);App._progressTimer=null;}
   var submitTime=new Date();
   var accuracy=App.totalWords>0?Math.min(100,Math.round(App.correctWords/App.totalWords*100)):0;
   var completed=Math.min(App.currentIdx,App.sentences.length);
@@ -1292,7 +1405,7 @@ async function submitResults(){
   var durationMs=submitTime-App.startTime;
   var durationMin=Math.floor(durationMs/60000),durationSec=Math.floor((durationMs%60000)/1000);
   var durationStr=durationMin+'m '+durationSec+'s';
-  var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId};
+  var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,totalSentences:App.sentences.length,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId};
   try{
     var res=await api('lis.saveResult',payload);
     document.getElementById('submit-status').textContent=res&&res.success?'✅ Saved!':'⚠ Save failed.';
@@ -1440,5 +1553,94 @@ function formatDateTime(d){var dd=String(d.getDate()).padStart(2,'0'),mm=String(
 function generateSessionId(){var now=new Date();return now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+String(now.getSeconds()).padStart(2,'0')+'-'+Math.random().toString(36).substr(2,4).toUpperCase();}
 function markdownToHtml(md){return md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g,'').replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>').replace(/^(.)/,'<p>$1').replace(/(.)$/,'$1</p>');}
 </script>
+
+<!-- ══ KEYBOARD SHORTCUT WELCOME MODAL ══ -->
+<div id="shortcut-modal" style="display:none">
+  <div class="sm-box">
+    <div class="sm-header">
+      <div class="sm-header-icon">⌨️</div>
+      <div class="sm-header-text">
+        <h2>Keyboard Shortcuts</h2>
+        <p>Phím tắt giúp bạn thao tác nhanh hơn khi chép chính tả</p>
+      </div>
+    </div>
+    <div class="sm-body">
+      <div class="sm-tip">
+        💡 <strong>Mẹo:</strong> Dùng <strong>Shift+Space</strong> để Play/Pause thay vì dùng chuột — hai tay vẫn trên bàn phím, không cần rời đi.
+      </div>
+      <table class="sm-table">
+        <tr>
+          <td>▶ Play / ⏸ Pause</td>
+          <td><span class="sm-kbd">Shift</span><span class="sm-kbd">Space</span></td>
+          <td>Không trùng Spotlight (Mac)</td>
+        </tr>
+        <tr>
+          <td>✅ Check đáp án</td>
+          <td><span class="sm-kbd">Enter</span></td>
+          <td>Thao tác mặc định</td>
+        </tr>
+        <tr>
+          <td>⏭ Qua câu tiếp theo</td>
+          <td><span class="sm-kbd">Shift</span><span class="sm-kbd">Enter</span></td>
+          <td>Sau khi đã Check xong</td>
+        </tr>
+        <tr>
+          <td>⏪ Lùi 3 giây</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">[</span></td>
+          <td>An toàn, không bôi đen text</td>
+        </tr>
+        <tr>
+          <td>⏩ Tiến 3 giây</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">]</span></td>
+          <td>Đối xứng với Lùi</td>
+        </tr>
+        <tr>
+          <td>🐢 Giảm tốc độ −0.25×</td>
+          <td><span class="sm-kbd">Alt</span><span class="sm-kbd">[</span></td>
+          <td>Nghe rõ linking sounds</td>
+        </tr>
+        <tr>
+          <td>🐇 Tăng tốc độ +0.25×</td>
+          <td><span class="sm-kbd">Alt</span><span class="sm-kbd">]</span></td>
+          <td>Range: 0.5× → 1.5×</td>
+        </tr>
+        <tr>
+          <td>✏️ Sửa câu vừa làm</td>
+          <td><span class="sm-kbd">↑</span> <small style="color:#aaa">(khi không đang gõ)</small></td>
+          <td>Như Telegram/Discord</td>
+        </tr>
+        <tr>
+          <td>🔄 Reset câu</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">Alt</span><span class="sm-kbd">R</span></td>
+          <td>3 phím — tránh nhấn nhầm</td>
+        </tr>
+      </table>
+      <div class="sm-footer">
+        <label class="sm-check">
+          <input type="checkbox" id="sm-dont-show"> Không hiển thị lại
+        </label>
+        <button class="sm-btn" onclick="closeShortcutModal()">Đã hiểu, bắt đầu →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showShortcutModal(){
+  if(localStorage.getItem('lis_skip_shortcuts')==='1') return;
+  document.getElementById('shortcut-modal').style.display='flex';
+}
+function closeShortcutModal(){
+  if(document.getElementById('sm-dont-show').checked){
+    localStorage.setItem('lis_skip_shortcuts','1');
+  }
+  document.getElementById('shortcut-modal').style.display='none';
+}
+// Close on backdrop click
+document.getElementById('shortcut-modal').addEventListener('click',function(e){
+  if(e.target===this) closeShortcutModal();
+});
+</script>
+
 </body>
 </html>

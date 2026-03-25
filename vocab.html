@@ -586,7 +586,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFIG
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const API_URL = 'https://script.google.com/macros/s/AKfycbzrQ8pLC3LUlY0_DxlgXqd1uZiO7y_KhNfkXtZ-3_QUazhG4BQPWoyKAzobuDkrg5y-Dg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STATE
@@ -1282,26 +1282,34 @@ function renderResults() {
       try { vocab = JSON.parse(frAsn.VocabularyJSON||'[]'); } catch(e) {}
       // Save FULL data via POST (no JSONP URL limit)
       // GAS receives passage + vocab + questions → teacher can view detail
+      const frTopic    = frAsn.Title          || 'Free Reading';
+      const frPassage  = frAsn.ReadingPassage || '';
+      const frVocabStr = frAsn.VocabularyJSON || '[]';
+      const frQuizMode = App.quizMode         || 'mixed';
+      const frPretest  = App.usedPretest ? 'Y' : 'N';
+      const frQStr     = JSON.stringify((App.quizWords||[]).map(q => ({
+        word: q.word, type: q.type||'mc', prompt: q.prompt||'', correct: q.correct||''
+      })));
+
+      // Save FULL data via POST — no JSONP URL limit
       apiPost('vocab.saveFreeRead', {
         studentId:      sid,
-        topic:          frAsn.Title || 'Free Reading',
+        topic:          frTopic,
         wordCount:      vocab.length,
         score:          pct,
         wrongWords:     App.quizWrong,
-        quizMode:       App.quizMode || 'mixed',
+        quizMode:       frQuizMode,
         startedAt:      startedAt,
         submittedAt:    now,
-        usedPretest:    App.usedPretest ? 'Y' : 'N',
+        usedPretest:    frPretest,
         correct:        App.quizScore,
         total:          App.quizWords.length,
-        passage:        frAsn.ReadingPassage || '',
-        vocabularyJSON: frAsn.VocabularyJSON || '[]',
-        questionsJSON:  JSON.stringify((App.quizWords||[]).map(q => ({
-          word: q.word, type: q.type||'mc', prompt: q.prompt||'', correct: q.correct||''
-        })))
-      });""
+        passage:        frPassage,
+        vocabularyJSON: frVocabStr,
+        questionsJSON:  frQStr
+      });
 
-      // Save to localStorage for vocab-detail.html
+      // Save to localStorage for vocab-detail.html (instant access, no network)
       try {
         localStorage.setItem('vd_last_fr', JSON.stringify({
           timestamp:   now,
@@ -1310,12 +1318,12 @@ function renderResults() {
           studentName: uname,
           studentId:   sid,
           class:       ucls,
-          topic:       frPayload.topic,
+          topic:       frTopic,
           score:       pct,
-          quizMode:    frPayload.quizMode,
-          usedPretest: frPayload.usedPretest,
+          quizMode:    frQuizMode,
+          usedPretest: frPretest,
           wordCount:   vocab.length,
-          passage:     frPayload.passage,
+          passage:     frPassage,
           vocabulary:  vocab,
           questions:   App.quizWords||[],
           wrongWords:  App.quizWrong
