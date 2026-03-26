@@ -162,7 +162,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .sb-result .w-correct{color:var(--green);font-weight:700}
 .sb-result .w-wrong{color:var(--red);text-decoration:line-through;font-weight:700}
 .sb-result .w-missing{color:#e67e22;font-weight:800;letter-spacing:2px}
-.sb-input{width:100%;padding:9px 13px;border:2px solid #d0d8f0;border-radius:10px;outline:none;transition:border .2s;margin-bottom:10px;background:#f8faff;font-family:var(--font-mono);font-size:.9rem}
+.sb-input{width:100%;padding:10px 14px;border:2px solid #d0d8f0;border-radius:10px;outline:none;transition:border .2s;margin-bottom:10px;background:#f8faff;font-family:var(--font-mono);font-size:.9rem;resize:none;overflow:hidden;line-height:1.6;display:block;box-sizing:border-box;min-height:44px}
 .sb-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(21,101,192,.1)}
 .sb-input:disabled{background:#f2f4f8;color:#888}
 .sb-controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
@@ -236,9 +236,15 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .history-stat .hv{font-size:1.1rem;font-weight:800;color:var(--red)}
 .history-stat .hl{font-size:.66rem;color:var(--grey-400);margin-top:1px}
 /* scrollbar */
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--grey-200);border-radius:3px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.04);border-radius:10px}
+::-webkit-scrollbar-thumb{background:#b0b8cc;border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#8892a8;background-clip:padding-box}
+/* Bigger scrollbar only for sentences-scroll */
+.sentences-scroll::-webkit-scrollbar{width:14px}
+.sentences-scroll::-webkit-scrollbar-track{background:#e8eaf0;border-radius:10px;margin:6px 0}
+.sentences-scroll::-webkit-scrollbar-thumb{background:#9098b0;border-radius:10px;border:3px solid #e8eaf0}
+.sentences-scroll::-webkit-scrollbar-thumb:hover{background:#5c6480}
 .hidden{display:none!important}
 </style>
 </head>
@@ -1020,12 +1026,13 @@ function appendSentenceBlock(idx){
   block.innerHTML=
     '<div class="sb-label">SENTENCE '+(idx+1)+' / '+App.sentences.length+'</div>'+
     '<div class="sb-result" id="result-'+idx+'" style="font-size:'+fsz+'"></div>'+
-    '<input class="sb-input" id="input-'+idx+'" type="text"'+
+    '<textarea class="sb-input" id="input-'+idx+'" rows="1"'+
     ' placeholder="🎧 Listen carefully, then type what you hear…"'+
     ' autocomplete="off" spellcheck="false" style="font-size:'+fsz+'"'+
     ' onkeydown="handleInputKey(event,'+idx+')"'+
+    ' oninput="autoGrow(this)"'+
     ' onpaste="return blockPaste(event)"'+
-    ' ondrop="return false" oncontextmenu="return false">'+
+    ' ondrop="return false" oncontextmenu="return false"></textarea>'+
     '<div class="sb-controls">'+
     '<button class="btn btn-primary btn-sm" id="check-btn-'+idx+'" onclick="checkSentence('+idx+')">'+
     '✅ <strong>Check</strong> <span style="opacity:.55;font-size:.82em">(Enter)</span></button>'+
@@ -1041,6 +1048,10 @@ function appendSentenceBlock(idx){
     hintHtml;
   container.appendChild(block);
   setTimeout(function(){block.scrollIntoView({behavior:'smooth',block:'center'});},80);
+}
+function autoGrow(el){
+  el.style.height='auto';
+  el.style.height=(el.scrollHeight)+'px';
 }
 function handleInputKey(e,idx){
   if(e.key==='Enter'){e.preventDefault();var btn=document.getElementById('check-btn-'+idx);if(btn&&!btn.disabled) checkSentence(idx);}
@@ -1165,7 +1176,7 @@ function resetSentence(idx){
       App.reviewData[idx]=null; App.attemptData[idx]=undefined;
     }
   }
-  inputEl.disabled=false; inputEl.value=''; if(btn) btn.disabled=false;
+  inputEl.disabled=false; inputEl.value=''; autoGrow(inputEl); if(btn) btn.disabled=false;
   ['edit-btn-','reveal-btn-'].forEach(function(p){var e=document.getElementById(p+idx);if(e) e.style.display='none';});
   var rev=document.getElementById('reveal-'+idx); if(rev) rev.style.display='none';
   document.getElementById('result-'+idx).innerHTML=''; document.getElementById('acc-'+idx).textContent='';
@@ -1201,6 +1212,7 @@ function editSentence(idx){
     updateProgress();
     document.getElementById('submit-area').classList.remove('visible');
   }
+  autoGrow(inputEl);
   inputEl.focus(); var len=inputEl.value.length; inputEl.setSelectionRange(len,len);
   inputEl.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -1532,11 +1544,16 @@ function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 function normalize(text){
   return String(text||'')
     .toLowerCase()
-    // Normalize all apostrophe variants → straight apostrophe (keep for contractions)
+    // Normalize apostrophe variants
     .replace(/[\u2019\u2018\u201B\u02BC\u02BB\u0060\uFF07]/g,"'")
-    // Remove punctuation EXCEPT apostrophe: comma, period, !?;:"()[]{}–—/-\_
+    // Remove ellipsis and multiple dots (can't type on keyboard)
+    .replace(/\u2026/g,' ').replace(/\.{2,}/g,' ')
+    // Remove currency & special symbols not on standard keyboards
+    // (£ € $ ¥ ¢ © ® ™ ° # @ & * ~ ^ + = | < > %)
+    .replace(/[\u00A3\u20AC\$\u00A5\u00A2\u00A9\u00AE\u2122\u00B0#@&*~^+=|<>%]/g,'')
+    // Remove common punctuation
     .replace(/[.,!?;:"()\[\]{}\-\u2013\u2014\/\\\_]/g,'')
-    // Remove standalone apostrophes not part of a word (e.g. ' at start/end)
+    // Remove standalone apostrophes
     .replace(/(^|\s)'|'(\s|$)/g,' ')
     // Collapse whitespace
     .replace(/\s+/g,' ').trim();
