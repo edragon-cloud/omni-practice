@@ -1337,19 +1337,20 @@ function bandName(b){if(b>=9)return'Expert User';if(b>=8)return'Very Good User';
 // ── SAVE ──
 async function saveData(result){
   // Keep payload SMALL to fit JSONP URL limit (~6000 chars)
-  // Only send metadata + truncated writing — GAS handles the rest
+  // Send full data via POST (no URL length limit) so GAS can create Google Doc + full feedback
   const mode = {1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing';
   try {
-    await gasGet('saveResult', {
+    await gasPostFetch('saveResult', {
       name:        S.name,
       email:       S.email      || '',
       code:        S.code       || '',
       class:       S.class      || '',
       mode:        mode,
-      question:    (S.question    || '').substring(0, 200),
-      writing:     (S.writingText || '').substring(0, 800),
+      question:    S.question   || '',
+      writing:     S.writingText || '',
       scores:      result.scores  || {},
       overall:     result.overall || '',
+      result:      result,
       startedAt:   S.startedAt   || '',
       submittedAt: new Date().toISOString(),
       sessionToken: S.sessionToken || ''
