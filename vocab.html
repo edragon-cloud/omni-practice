@@ -993,7 +993,7 @@ function launchQuiz(asn, isReview, mode) {
   try { vocab = JSON.parse(asn.VocabularyJSON || '[]'); } catch(e) {}
   if (!vocab.length) { toast('No vocabulary found for this assignment.', 'error'); return; }
 
-  App.quizWords = buildQuestions(vocab, 60, App.quizMode);
+  App.quizWords = buildQuestions(vocab, 60, App.quizMode, App.quizIsReview);
   document.getElementById('quiz-title').textContent = asn.Title;
   openModal('quiz-modal');
   renderQuestion();
@@ -1010,26 +1010,44 @@ function isHighPriorityWord(word) {
   return awlPatterns.test(w) || b2Patterns.test(w) || w.length >= 8;
 }
 
-function buildQuestions(vocab, total, mode) {
+function buildQuestions(vocab, total, mode, isReview) {
   // MC modes: meaning-focused ONLY (no IPA/pronunciation)
   const mcModes = ['word-to-synonym', 'synonym-to-word', 'word-to-vietnamese', 'vietnamese-to-word'];
+  const shuffleArr = arr => [...arr].sort(() => Math.random() - .5);
   const questions = [];
 
-  // ── Identify high-priority words (B2/AWL/IELTS) for repetition ──
-  const highPri = vocab.filter(isHighPriorityWord);
-  const normalW = vocab.filter(w => !isHighPriorityWord(w));
-
-  // ── Build pool: 40 normal + 20 high-priority repeats ──
-  const shuffleArr = arr => [...arr].sort(() => Math.random() - .5);
-  let pool = [];
-
-  // Fill normal words (each appears ~2x)
-  while (pool.length < 40) {
-    pool.push(...shuffleArr(vocab));
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // IN-CLASS REVIEW: mỗi từ chỉ xuất hiện đúng 1 lần
+  // Không lặp từ — bao phủ nhiều từ nhất có thể (tối đa 60)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (isReview) {
+    const pool = shuffleArr(vocab).slice(0, total); // shuffle rồi lấy tối đa 60 từ khác nhau
+    pool.forEach((word, i) => {
+      let q;
+      if (mode === 'fitb') {
+        q = buildFITB(word, vocab);
+      } else if (mode === 'mc') {
+        q = buildMC(word, mcModes[i % mcModes.length], vocab);
+      } else {
+        // mixed: cứ 4 câu thì 1 FITB
+        if (i % 4 === 3) q = buildFITB(word, vocab);
+        else q = buildMC(word, mcModes[i % mcModes.length], vocab);
+      }
+      if (q) questions.push(q);
+    });
+    return questions; // trả về đúng số từ trong danh sách (không bao giờ vượt 60)
   }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ASSIGNMENT: 60 câu có lặp từ (spaced repetition)
+  // 40 câu bình thường + 20 câu lặp từ high-priority
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const highPri = vocab.filter(isHighPriorityWord);
+
+  let pool = [];
+  while (pool.length < 40) pool.push(...shuffleArr(vocab));
   pool = pool.slice(0, 40);
 
-  // Add 20 high-priority repeats (or fallback to normal if not enough)
   const repeatPool = highPri.length >= 5 ? highPri : vocab;
   let repeats = [];
   while (repeats.length < 20) repeats.push(...shuffleArr(repeatPool));
@@ -1042,7 +1060,6 @@ function buildQuestions(vocab, total, mode) {
     } else if (mode === 'mc') {
       q = buildMC(word, mcModes[i % mcModes.length], vocab);
     } else {
-      // mixed: every 4th question is FITB, rest MC (meaning-focused)
       if (i % 4 === 3) q = buildFITB(word, vocab);
       else q = buildMC(word, mcModes[i % mcModes.length], vocab);
     }
