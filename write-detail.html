@@ -689,6 +689,10 @@ function gasGet(action, payload) {
 
   loadLatestFromStorage();
   fetchHistory();
+  // Auto-switch to history tab if opened via #history hash
+  if (window.location.hash === '#history') {
+    setTimeout(() => switchTab('history'), 100);
+  }
 })();
 </script>
 </body>

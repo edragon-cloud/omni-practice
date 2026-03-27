@@ -598,6 +598,7 @@ body{font-family:var(--fn);background:var(--gd);color:var(--txt);min-height:100v
       <div class="resacts">
         <button class="btn g sm" onclick="openWriteDetail()">📄 View Full Report</button>
         <button class="btn g sm" onclick="openModal('modal-email')">📧 Send to Email</button>
+        <button class="btn ol sm" onclick="openWriteHistory()">📋 My History</button>
         <button class="btn ol sm" onclick="showPage('pg-dash')">← New Practice</button>
       </div>
     </div>
@@ -1445,6 +1446,11 @@ function openWriteDetail() {
   window.open('write-detail.html', '_blank');
 }
 
+function openWriteHistory() {
+  // Open write-detail.html on the History tab
+  window.open('write-detail.html#history', '_blank');
+}
+
 // ── SEND EMAIL: fetch POST → GAS doPost → sendResultEmail (creates Doc + emails student) ──
 async function sendEmail(){
   const email = document.getElementById('email-inp').value.trim();
@@ -1454,19 +1460,22 @@ async function sendEmail(){
   try {
     const mode = {1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing';
     const r = S.lastResult || {};
-    // Keep payload small for JSONP — GAS looks up Doc from sheet by student name
-    await gasGet('sendEmail', {
+    // Use POST to send full result — GAS builds full feedback email inline
+    await gasPostFetch('sendEmail', {
       email,
-      name:    S.name,
-      code:    S.code  || '',
-      mode:    mode,
-      overall: r.overall || '',
-      scores:  r.scores  || {},
-      writing: (S.writingText || '').substring(0, 300),
+      name:        S.name,
+      code:        S.code        || '',
+      class:       S.class       || '',
+      mode,
+      overall:     r.overall     || '',
+      scores:      r.scores      || {},
+      result:      r,
+      writing:     S.writingText || '',
+      question:    S.question    || '',
       sessionToken: S.sessionToken || ''
     });
     hideLdg();
-    toast('Results sent to ' + email + '! Check your inbox in ~30 seconds ✅', 'ok');
+    toast('Results sent to ' + email + '! Check your inbox ✅', 'ok');
   } catch(e) {
     hideLdg();
     toast('Failed to send: ' + e.message, 'err');
