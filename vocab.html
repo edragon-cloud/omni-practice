@@ -713,7 +713,7 @@ async function loadStudentData() {
   api('vocab.getSubmissions', {studentId: sid}).then(res => {
     App.submissions = res?.data || []; done.s = true; tryFinish();
   }).catch(() => { done.s = true; tryFinish(); });
-  api('vocab.getReviews', {studentClass: cls}).then(res => {
+  api('vocab.getReviewSessions', {studentClass: cls}).then(res => {
     App.reviews = res?.data || []; done.r = true; tryFinish();
   }).catch(() => { done.r = true; tryFinish(); });
   api('vocab.getReviewSubs', {studentId: sid}).then(res => {
@@ -895,10 +895,23 @@ function startReview(reviewId) {
   if (!r) return;
   const sub = App.reviewSubs.find(s => s.ReviewID === reviewId);
   if (sub) { toast('You already completed this review.', 'error'); return; }
+
+  App.quizIsReview = true;
+  App.quizReviewId = reviewId;
+
   const asn = App.assignments.find(a => a.ID === r.AssignmentID);
-  if (!asn) { toast('Assignment not found.', 'error'); return; }
-  App.quizIsReview = true; App.quizReviewId = reviewId;
-  openPretest(r.AssignmentID, 3, reviewId);
+  if (asn) {
+    // Assignment đã có trong cache (cùng class) → chạy ngay
+    openPretest(r.AssignmentID, 3, reviewId);
+  } else {
+    // Assignment thuộc class khác → fetch trực tiếp theo ID
+    toast('Đang tải bài…', 'info', 2000);
+    api('vocab.getAssignmentById', { assignmentId: r.AssignmentID }).then(res => {
+      if (!res?.data) { toast('Không tải được bài. Liên hệ giáo viên.', 'error'); return; }
+      App.assignments.push(res.data); // cache lại
+      openPretest(r.AssignmentID, 3, reviewId);
+    }).catch(() => toast('Lỗi kết nối. Thử lại.', 'error'));
+  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1013,41 +1026,39 @@ function isHighPriorityWord(word) {
 function buildQuestions(vocab, total, mode, isReview) {
   // MC modes: meaning-focused ONLY (no IPA/pronunciation)
   const mcModes = ['word-to-synonym', 'synonym-to-word', 'word-to-vietnamese', 'vietnamese-to-word'];
-  const shuffleArr = arr => [...arr].sort(() => Math.random() - .5);
   const questions = [];
+  const shuffleArr = arr => [...arr].sort(() => Math.random() - .5);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // IN-CLASS REVIEW: mỗi từ chỉ xuất hiện đúng 1 lần
-  // Không lặp từ — bao phủ nhiều từ nhất có thể (tối đa 60)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ── IN-CLASS REVIEW: mỗi từ xuất hiện đúng 1 lần, không lặp ──
   if (isReview) {
-    const pool = shuffleArr(vocab).slice(0, total); // shuffle rồi lấy tối đa 60 từ khác nhau
+    const pool = shuffleArr(vocab).slice(0, total);
     pool.forEach((word, i) => {
       let q;
-      if (mode === 'fitb') {
-        q = buildFITB(word, vocab);
-      } else if (mode === 'mc') {
-        q = buildMC(word, mcModes[i % mcModes.length], vocab);
-      } else {
-        // mixed: cứ 4 câu thì 1 FITB
+      if (mode === 'fitb') q = buildFITB(word, vocab);
+      else if (mode === 'mc') q = buildMC(word, mcModes[i % mcModes.length], vocab);
+      else {
         if (i % 4 === 3) q = buildFITB(word, vocab);
         else q = buildMC(word, mcModes[i % mcModes.length], vocab);
       }
       if (q) questions.push(q);
     });
-    return questions; // trả về đúng số từ trong danh sách (không bao giờ vượt 60)
+    return questions; // trả về đúng số từ, tối đa 60
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // ASSIGNMENT: 60 câu có lặp từ (spaced repetition)
-  // 40 câu bình thường + 20 câu lặp từ high-priority
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ── ASSIGNMENT: 60 câu có lặp từ high-priority (spaced repetition) ──
   const highPri = vocab.filter(isHighPriorityWord);
+  const normalW = vocab.filter(w => !isHighPriorityWord(w));
 
+  // ── Build pool: 40 normal + 20 high-priority repeats ──
   let pool = [];
-  while (pool.length < 40) pool.push(...shuffleArr(vocab));
+
+  // Fill normal words (each appears ~2x)
+  while (pool.length < 40) {
+    pool.push(...shuffleArr(vocab));
+  }
   pool = pool.slice(0, 40);
 
+  // Add 20 high-priority repeats (or fallback to normal if not enough)
   const repeatPool = highPri.length >= 5 ? highPri : vocab;
   let repeats = [];
   while (repeats.length < 20) repeats.push(...shuffleArr(repeatPool));
@@ -1060,6 +1071,7 @@ function buildQuestions(vocab, total, mode, isReview) {
     } else if (mode === 'mc') {
       q = buildMC(word, mcModes[i % mcModes.length], vocab);
     } else {
+      // mixed: every 4th question is FITB, rest MC (meaning-focused)
       if (i % 4 === 3) q = buildFITB(word, vocab);
       else q = buildMC(word, mcModes[i % mcModes.length], vocab);
     }
