@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Hub</title>
+  <script>
+    // GitHub Pages SPA redirect trick
+    // Stores the path in sessionStorage, then redirects to index.html
+    // index.html will read it and restore the correct page
+    var path = window.location.pathname;
+    var search = window.location.search;
+    var hash = window.location.hash;
+
+    // List of known HTML pages — serve them directly (no redirect needed)
+    var knownPages = [
+      '/vocab.html', '/listen.html', '/listen-detail.html',
+      '/write.html', '/write-detail.html', '/library.html',
+      '/speak.html', '/vocab-detail.html'
+    ];
+
+    // Extract repo name from path for GitHub Pages project sites
+    // e.g. /language-hub/vocab.html → repoBase = '/language-hub'
+    var segments = path.split('/').filter(Boolean);
+    var repoBase = '';
+    if (segments.length > 0 && !segments[0].includes('.html')) {
+      // Check if first segment looks like a repo name (not a known page)
+      var firstSeg = '/' + segments[0];
+      var isPage = knownPages.some(function(p) { return p === firstSeg; });
+      if (!isPage) {
+        repoBase = firstSeg;
+      }
+    }
+
+    // Save intended destination
+    sessionStorage.setItem('ghpages_redirect', JSON.stringify({
+      path: path, search: search, hash: hash
+    }));
+
+    // Redirect to root (index.html handles login/auth)
+    window.location.replace(repoBase + '/' + search + hash);
+  </script>
+</head>
+<body>
+  <p>Đang chuyển hướng...</p>
+</body>
+</html>

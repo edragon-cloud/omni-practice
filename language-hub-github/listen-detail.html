@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Detail — LisDictation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #161b27;
+    --surface2: #1e2535;
+    --border: #2a3347;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,.12);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,.12);
+    --yellow: #f59e0b;
+    --yellow-bg: rgba(245,158,11,.12);
+    --blue: #3b82f6;
+    --blue-bg: rgba(59,130,246,.12);
+    --accent: #6366f1;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-back {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .15s;
+  }
+  .topbar-back:hover { color: var(--text); }
+  .topbar-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: .04em;
+  }
+  .topbar-sep { color: var(--border); }
+  .topbar-sid {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .topbar-spacer { flex: 1; }
+  .topbar-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,.25); }
+  .badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,.25); }
+  .badge-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(59,130,246,.25); }
+
+  /* ── META CARD ── */
+  .meta-section {
+    padding: 20px 24px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .meta-item {}
+  .meta-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-family: var(--mono);
+  }
+  .meta-val {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .meta-val.mono { font-family: var(--mono); font-size: 13px; }
+  .meta-val.big { font-size: 22px; }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    padding: 20px 24px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0 12px;
+  }
+  .section-hdr h2 {
+    font-size: 13px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+  }
+  .section-hdr-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── SENTENCE CARD ── */
+  .sentence-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .sentence-card:hover { border-color: #3a4560; }
+
+  .sentence-card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .sent-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 28px;
+  }
+  .sent-btp {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    flex: 1;
+  }
+  .sent-stats {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .stat-pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .sentence-card-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sent-row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+  .sent-row-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+    padding-top: 2px;
+    line-height: 1.6;
+  }
+  .sent-row-text {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+  .sent-row-text.target { color: var(--text); }
+
+  /* word-level diff tokens */
+  .tok { display: inline; }
+  .tok-ok { color: var(--green); }
+  .tok-miss { 
+    color: var(--red); 
+    text-decoration: underline wavy rgba(239,68,68,.5);
+    background: var(--red-bg);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+  .tok-extra {
+    color: var(--yellow);
+    text-decoration: line-through;
+    background: var(--yellow-bg);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+  .tok-target-miss {
+    color: var(--text-muted);
+    background: rgba(100,116,139,.08);
+    border-radius: 3px;
+    padding: 0 2px;
+    text-decoration: underline dotted;
+  }
+
+  /* ── AI ANALYSIS BLOCK ── */
+  .ai-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 6px;
+  }
+  .ai-block-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-block-label .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .ai-block-text {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .ai-block-text ul { padding-left: 16px; margin-top: 4px; }
+  .ai-block-text li { margin-bottom: 3px; }
+  .ai-block-text .err-type {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(99,102,241,.15);
+    color: var(--accent);
+    margin-right: 4px;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .legend-swatch {
+    width: 28px;
+    height: 16px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+
+  /* ── LOADING / EMPTY STATES ── */
+  .state-box {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .state-box .icon { font-size: 36px; margin-bottom: 12px; }
+  .state-box .msg { font-size: 14px; }
+  .state-box .sub { font-size: 12px; margin-top: 6px; color: var(--border); }
+
+  .spinner {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ATTEMPT TABS ── */
+  .attempt-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .atab {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .atab.active {
+    background: var(--blue-bg);
+    border-color: rgba(59,130,246,.4);
+    color: var(--blue);
+  }
+
+  /* ── SUMMARY BAR ── */
+  .summary-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .sum-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .sum-val {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .sum-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-family: var(--mono);
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all .2s;
+    z-index: 999;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: none; }
+
+  /* ── NO SESSION DATA notice ── */
+  .notice {
+    background: rgba(245,158,11,.07);
+    border: 1px solid rgba(245,158,11,.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--yellow);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .notice strong { font-weight: 600; }
+
+  .btn-ai {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--blue-bg);
+    border: 1px solid rgba(59,130,246,.3);
+    color: var(--blue);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: var(--mono);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-ai:hover { background: rgba(59,130,246,.2); }
+  .btn-ai:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="javascript:history.back()" class="topbar-back">← Back</a>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-title">🎧 LisDictation</span>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-title">Session Detail</span>
+  <span class="topbar-sid" id="topbar-sid"></span>
+  <div class="topbar-spacer"></div>
+  <span class="topbar-badge badge-blue" id="topbar-acc">—</span>
+</div>
+
+<div class="meta-section">
+  <div class="meta-grid" id="meta-grid">
+    <div class="state-box" style="grid-column:1/-1;padding:20px">
+      <span class="spinner"></span> Loading session…
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="main-content">
+    <div class="state-box">
+      <span class="spinner"></span> Fetching data…
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const API_URL  = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+const SHEET_ID = '1-IZYqPUniw1i9BuB0LeMIMYsOH5UJMeIEJflxCDKjnI';
+
+// ═══════════════════════════════════════════════
+// URL PARAMS
+// ═══════════════════════════════════════════════
+const urlParams     = new URLSearchParams(location.search);
+const TARGET_SID    = urlParams.get('sessionId')    || '';
+const TEACHER_TOKEN = urlParams.get('teacherToken') || sessionStorage.getItem('teacherToken') || '';
+
+// ═══════════════════════════════════════════════
+// GAS JSONP helper
+// ═══════════════════════════════════════════════
+function gasCall(action, payload, token) {
+  return new Promise((resolve, reject) => {
+    const cb = 'gd_cb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+    const params = 'callback=' + encodeURIComponent(cb)
+      + '&action=' + encodeURIComponent(action)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload||{}))
+      + '&teacherToken=' + encodeURIComponent(token||'');
+    const s = document.createElement('script');
+    s.src = API_URL + '?' + params;
+    const t = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 20000);
+    window[cb] = r => { cleanup(); resolve(r); };
+    function cleanup() { clearTimeout(t); delete window[cb]; s.parentNode && s.parentNode.removeChild(s); }
+    s.onerror = () => { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(s);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════
+// APOSTROPHE + UNICODE NORMALIZATION
+// Fixes: he's (U+2019) ≠ he's (U+0027) false mismatch
+// ═══════════════════════════════════════════════
+function normApostrophe(s) {
+  return String(s||'')
+    .replace(/[\u2019\u2018\u0060\u00B4\uFF07]/g, "'")    // curly/smart apostrophes → '
+    .replace(/[\u201C\u201D\u201E\u00AB\u00BB\uFF02]/g, '"'); // curly quotes → "
+}
+
+// ═══════════════════════════════════════════════
+// DATE / TIME HELPERS
+// ═══════════════════════════════════════════════
+function parseLisDate(str) {
+  if (!str) return null;
+  // Format from GAS: DD-MM-YYYY @ HH:MM
+  const m = String(str).match(/(\d{1,2})-(\d{2})-(\d{4})\s*@\s*(\d{2}):(\d{2})/);
+  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`);
+  // gviz Date() format from Sheets
+  const gv = String(str).match(/Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+)(?:,(\d+))?)?\)/);
+  if (gv) return new Date(+gv[1], +gv[2], +gv[3], +(gv[4]||0), +(gv[5]||0), +(gv[6]||0));
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return '—';
+  const tot = Math.floor(ms / 1000);
+  const h = Math.floor(tot / 3600);
+  const m = Math.floor((tot % 3600) / 60);
+  const s = tot % 60;
+  const mm = String(m).padStart(2,'0');
+  const ss = String(s).padStart(2,'0');
+  return h > 0 ? `${String(h).padStart(2,'0')}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+function fmtTime(str) {
+  const d = parseLisDate(str);
+  if (!d) return str || '—';
+  return d.toLocaleString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function markdownToHtml(md) {
+  return md
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code style="font-family:var(--mono);background:rgba(99,102,241,.12);padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
+    .replace(/^(\d+)\.\s(.+)$/gm,'<strong>$1.</strong> $2')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+// ═══════════════════════════════════════════════
+// WORD-DIFF ENGINE (LCS-based)
+// ═══════════════════════════════════════════════
+function tokenize(str) {
+  return normApostrophe(String(str||''))
+    .toLowerCase()
+    .replace(/[^\w\s'-]/g,'')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+function lcsMatrix(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length:m+1}, () => new Int16Array(n+1));
+  for (let i=1;i<=m;i++) for (let j=1;j<=n;j++)
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
+  return dp;
+}
+function buildDiff(target, student) {
+  const toks = tokenize(target), stoks = tokenize(student);
+  if (!stoks.length) return toks.map(w => ({type:'del', tWord:w}));
+  const dp = lcsMatrix(toks, stoks);
+  const ops = [];
+  let i = toks.length, j = stoks.length;
+  while (i>0||j>0) {
+    if (i>0&&j>0&&toks[i-1]===stoks[j-1]) { ops.unshift({type:'match',tWord:toks[i-1],sWord:stoks[j-1]}); i--;j--; }
+    else if (j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])) { ops.unshift({type:'ins',sWord:stoks[j-1]}); j--; }
+    else { ops.unshift({type:'del',tWord:toks[i-1]}); i--; }
+  }
+  return ops;
+}
+function renderDiff(target, student) {
+  const targetWords = tokenize(target);
+  if (!student||!student.trim()) {
+    return {
+      studentHtml: '<span style="color:var(--text-muted);font-style:italic">(no answer)</span>',
+      targetHtml: targetWords.map(w=>`<span class="tok tok-target-miss">${escHtml(w)} </span>`).join(''),
+      correct:0, total:targetWords.length,
+      errors: targetWords.map(w=>({type:'missing',word:w}))
+    };
+  }
+  const ops = buildDiff(target, student);
+  let studentHtml='', targetHtml='', correct=0, total=0;
+  const errors=[];
+  ops.forEach(op=>{
+    if (op.type==='match') {
+      studentHtml+=`<span class="tok tok-ok">${escHtml(op.sWord)} </span>`;
+      targetHtml +=`<span class="tok">${escHtml(op.tWord)} </span>`;
+      correct++;total++;
+    } else if (op.type==='del') {
+      studentHtml+=`<span class="tok tok-miss">[${escHtml(op.tWord)}] </span>`;
+      targetHtml +=`<span class="tok tok-target-miss">${escHtml(op.tWord)} </span>`;
+      errors.push({type:'missing',word:op.tWord}); total++;
+    } else {
+      studentHtml+=`<span class="tok tok-extra">${escHtml(op.sWord)} </span>`;
+      errors.push({type:'extra',word:op.sWord});
+    }
+  });
+  return {studentHtml, targetHtml, correct, total, errors};
+}
+function classifyErrors(errors) {
+  if (!errors.length) return [];
+  const missing = errors.filter(e=>e.type==='missing').map(e=>`"${e.word}"`);
+  const extra   = errors.filter(e=>e.type==='extra').map(e=>`"${e.word}"`);
+  const items=[];
+  if (missing.length) items.push(`<li><span class="err-type">Missing</span>${missing.join(', ')}</li>`);
+  if (extra.length)   items.push(`<li><span class="err-type">Extra</span>${extra.join(', ')}</li>`);
+  return items;
+}
+
+// ═══════════════════════════════════════════════
+// AI ANALYSIS via Anthropic API
+// ═══════════════════════════════════════════════
+async function analyzeWithAI(target, student, attemptNo) {
+  const prompt = `You are an English listening dictation teacher.
+
+TARGET: "${target}"
+STUDENT (attempt ${attemptNo}): "${student||'(blank)'}"
+
+Give a concise analysis:
+**ERROR TYPES:** list each type (spelling, missing word, extra word, homophone, etc.)
+**ROOT CAUSE:** Why did the student likely make this error? (1 sentence)
+**TIP:** One specific actionable tip.
+
+Under 80 words. Respond in English.`;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:200,
+        messages:[{role:'user',content:prompt}] })
+    });
+    const data = await resp.json();
+    return data.content?.find(c=>c.type==='text')?.text || null;
+  } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════════════
+// RENDER META CARD
+// ═══════════════════════════════════════════════
+function renderMeta(session) {
+  const t1 = parseLisDate(session.StartingTime), t2 = parseLisDate(session.SubmittingTime);
+  const dur    = (t1&&t2) ? fmtDuration(t2-t1) : '—';
+  const rawAcc = String(session.Accuracy||'').replace('%','').trim();
+  const acc    = parseInt(rawAcc)||0;
+  const accCls = acc>=80?'badge-green':acc>=60?'badge-yellow':'badge-red';
+
+  document.getElementById('topbar-sid').textContent = session.SessionID || session.sessionId || TARGET_SID;
+  const topAcc = document.getElementById('topbar-acc');
+  topAcc.textContent  = rawAcc ? rawAcc+'%' : '—';
+  topAcc.className    = 'topbar-badge '+accCls;
+
+  const fields = [
+    {label:'Student',         val: session.FullName||'—'},
+    {label:'Student ID',      val: session.StudentID||session.studentId||'—', cls:'mono'},
+    {label:'Class',           val: session.Class||session.class||'—'},
+    {label:'Book–Test–Part',  val: session.BookTestPart||'—'},
+    {label:'Start Time',      val: fmtTime(session.StartingTime), cls:'mono'},
+    {label:'Submit Time',     val: fmtTime(session.SubmittingTime), cls:'mono'},
+    {label:'Duration (MM:SS)',val: dur, cls:'mono'},
+    {label:'Sentences Done',  val: session.SentencesDone??'—'},
+    {label:'Total Words',     val: session.TotalWords??session.totalWords??'—'},
+    {label:'Correct Words',   val: session.CorrectWords??session.correctWords??'—'},
+    {label:'Accuracy',        val: rawAcc?rawAcc+'%':'—',
+      style: acc>=80?'color:var(--green);font-size:22px':acc>=60?'color:var(--yellow);font-size:22px':'color:var(--red);font-size:22px'},
+  ];
+
+  document.getElementById('meta-grid').innerHTML = fields.map(f=>
+    `<div class="meta-item">
+      <div class="meta-label">${f.label}</div>
+      <div class="meta-val ${f.cls||''}" style="${f.style||''}">${escHtml(String(f.val))}</div>
+    </div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER SENTENCE CARDS
+// ═══════════════════════════════════════════════
+function renderSentenceCards(attempts) {
+  const container = document.getElementById('main-content');
+
+  if (!attempts || !attempts.length) {
+    container.innerHTML = `
+      <div class="notice">
+        <strong>⚠ Không tìm thấy dữ liệu câu cho session này.</strong><br>
+        Sheet <code>Lis_Attempts</code> chưa có dòng nào khớp với Session ID này.<br>
+        Session ID: <code style="font-size:11px">${escHtml(TARGET_SID)}</code><br><br>
+        <strong>Debug:</strong> Mở DevTools → Console xem log chi tiết.
+      </div>`;
+    return;
+  }
+
+  // ── Apostrophe-normalize ALL text from sheet ──
+  function normRow(a) {
+    const r = Object.assign({}, a);
+    ['targetText','TargetText','a1Text','A1Text','a2Text','A2Text'].forEach(k => {
+      if (r[k]) r[k] = normApostrophe(r[k]);
+    });
+    return r;
+  }
+
+  // ── Group by sentenceNo: each sentNo has {target, a1, a2} ──
+  const byNo = {};
+  attempts.forEach(raw => {
+    const a  = normRow(raw);
+    const n  = parseInt(a.sentenceNo||a.SentenceNo||a.SentNo||0);
+    if (!n) return;
+    if (!byNo[n]) byNo[n] = {target:'', a1:null, a2:null};
+
+    const target = a.targetText||a.TargetText||'';
+    if (target) byNo[n].target = target;
+
+    const aNo  = parseInt(a.attemptNo||a.AttemptNo||1);
+    const a1t  = a.a1Text||a.A1Text||'';
+    const a2t  = a.a2Text||a.A2Text||'';
+    const a1c  = parseInt(a.a1Correct||a.A1Correct||0);
+    const a1to = parseInt(a.a1Total||a.A1Total||0);
+    const a2c  = parseInt(a.a2Correct||a.A2Correct||0);
+    const a2to = parseInt(a.a2Total||a.A2Total||0);
+
+    if (aNo===1 && a1t) byNo[n].a1 = {text:a1t, correct:a1c, total:a1to};
+    if (aNo===2 && a2t) byNo[n].a2 = {text:a2t, correct:a2c, total:a2to};
+    // Fallback: some GAS versions store attempt 2 in same row as attempt 1
+    if (aNo===1 && a2t && !byNo[n].a2) byNo[n].a2 = {text:a2t, correct:a2c, total:a2to};
+  });
+
+  const sentNos = Object.keys(byNo).map(Number).sort((a,b)=>a-b);
+  if (!sentNos.length) {
+    container.innerHTML = `<div class="notice"><strong>⚠ Rows found but could not parse sentence numbers.</strong></div>`;
+    return;
+  }
+
+  // ── Summary ──
+  let totalSents=sentNos.length, perfectSents=0, hadErrors=0;
+  sentNos.forEach(n => {
+    const best = byNo[n].a2||byNo[n].a1;
+    if (!best) return;
+    const d = renderDiff(byNo[n].target, best.text);
+    if (d.total>0&&d.correct===d.total) perfectSents++; else hadErrors++;
+  });
+
+  // ── Store for CSV export ──
+  window._exportData = sentNos.map(n => {
+    const s  = byNo[n];
+    const d1 = s.a1 ? renderDiff(s.target, s.a1.text) : null;
+    const d2 = s.a2 ? renderDiff(s.target, s.a2.text) : null;
+    return {
+      sentNo:    n,
+      target:    s.target,
+      wordCount: tokenize(s.target).length,
+      a1Text:    s.a1?.text||'',
+      a1Score:   d1?`${d1.correct}/${d1.total}`:'',
+      a1Missing: d1?d1.errors.filter(e=>e.type==='missing').map(e=>e.word).join('; '):'',
+      a1Extra:   d1?d1.errors.filter(e=>e.type==='extra').map(e=>e.word).join('; '):'',
+      a2Text:    s.a2?.text||'',
+      a2Score:   d2?`${d2.correct}/${d2.total}`:'',
+      a2Missing: d2?d2.errors.filter(e=>e.type==='missing').map(e=>e.word).join('; '):'',
+      a2Extra:   d2?d2.errors.filter(e=>e.type==='extra').map(e=>e.word).join('; '):'',
+    };
+  });
+
+  // ── Attempt count per sentence (for summary info) ──
+  sentNos.forEach(n => {
+    const s = byNo[n];
+    s.attemptCount = (s.a1?1:0) + (s.a2?1:0);
+  });
+
+  const summaryBar = `
+    <div class="summary-bar">
+      <div class="sum-card"><div class="sum-val" style="color:var(--text)">${totalSents}</div><div class="sum-label">Total Sentences</div></div>
+      <div class="sum-card"><div class="sum-val" style="color:var(--green)">${perfectSents}</div><div class="sum-label">100% Correct</div></div>
+      <div class="sum-card"><div class="sum-val" style="color:var(--red)">${hadErrors}</div><div class="sum-label">Had Errors</div></div>
+    </div>`;
+
+  const exportBtn = `
+    <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn-ai" onclick="exportCSV()"
+        style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:var(--green)">
+        📊 Export CSV → Google Sheets
+      </button>
+      <span style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">
+        ${sentNos.length} sentences · download CSV rồi File → Import vào Google Sheets
+      </span>
+    </div>`;
+
+  const legend = `
+    <div class="legend">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-right:4px">Legend:</span>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--green-bg);color:var(--green)">ok</span> Correct</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--red-bg);color:var(--red)">[x]</span> Missing/wrong</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--yellow-bg);color:var(--yellow)">ext</span> Extra typed</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:rgba(100,116,139,.08);color:var(--text-muted)">—</span> Expected</div>
+    </div>`;
+
+  // ── Render one attempt block ──
+  function renderAttemptBlock(sentNo, aNo, target, attemptData) {
+    if (!attemptData) {
+      return `<div style="color:var(--text-muted);font-size:12px;font-style:italic;padding:6px 0">— Not attempted —</div>`;
+    }
+    const diff  = renderDiff(target, attemptData.text);
+    const pct   = diff.total>0 ? Math.round(diff.correct/diff.total*100) : 0;
+    const pcls  = pct>=80?'badge-green':pct>=60?'badge-yellow':'badge-red';
+    const typed = tokenize(attemptData.text).length;
+    const errItems = classifyErrors(diff.errors);
+
+    const errorHtml = diff.errors.length===0
+      ? `<div style="color:var(--green);font-size:12px;padding:4px 0">✓ Perfect — no errors</div>`
+      : `<div class="ai-block"><div class="ai-block-label">Error Summary</div>
+          <div class="ai-block-text"><ul>${errItems.join('')}</ul></div></div>`;
+
+    // Encode target/student for onclick safely
+    const tEnc = escHtml(target);
+    const sEnc = escHtml(attemptData.text);
+
+    return `
+      <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="stat-pill ${pcls}">${pct}% (${diff.correct}/${diff.total} words)</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Student typed ${typed} words</span>
+      </div>
+      <div class="sent-row">
+        <div class="sent-row-label">Target</div>
+        <div class="sent-row-text target">${diff.targetHtml}</div>
+      </div>
+      <div class="sent-row">
+        <div class="sent-row-label">Student</div>
+        <div class="sent-row-text">${diff.studentHtml}</div>
+      </div>
+      ${errorHtml}
+      <div style="margin-top:8px">
+        <button class="btn-ai" id="ai-btn-${sentNo}-${aNo}"
+          onclick="runAIAnalysis(${sentNo},${aNo},this)">✨ AI Analysis</button>
+        <div id="ai-result-${sentNo}-${aNo}" class="ai-block" style="display:none;margin-top:8px"></div>
+      </div>`;
+  }
+
+  // ── Build sentence cards ──
+  const cards = sentNos.map(n => {
+    const s      = byNo[n];
+    const target = s.target;
+    const wc     = tokenize(target).length;
+    const d1     = s.a1 ? renderDiff(target, s.a1.text) : null;
+    const a1Pct  = d1&&d1.total>0 ? Math.round(d1.correct/d1.total*100) : 0;
+    const a1Cls  = a1Pct>=80?'badge-green':a1Pct>=60?'badge-yellow':'badge-red';
+    const hasA2  = !!s.a2;
+
+    const a2Html = hasA2 ? `
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">
+          Attempt 2 ${s.a2?'('+tokenize(s.a2.text).length+' words typed)':''}
+        </div>
+        ${renderAttemptBlock(n, 2, target, s.a2)}
+      </div>` : '';
+
+    return `
+      <div class="sentence-card" id="sent-card-${n}">
+        <div class="sentence-card-head">
+          <span class="sent-num">#${n}</span>
+          <span class="sent-btp" style="font-size:12px;color:var(--text-dim)">${wc} words</span>
+          <div class="sent-stats">
+            ${s.a1?`<span class="stat-pill ${a1Cls}">${a1Pct}% Att.1</span>`:'<span class="stat-pill badge-blue">No attempt</span>'}
+            ${hasA2?'<span class="stat-pill badge-blue">2 attempts</span>':''}
+          </div>
+        </div>
+        <div class="sentence-card-body">
+          <!-- ORIGIN SENTENCE -->
+          <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:5px">
+              Origin Sentence · ${wc} words
+            </div>
+            <div style="font-size:14px;line-height:1.65;color:var(--text);font-family:var(--mono)">${escHtml(target)}</div>
+          </div>
+          <!-- ATTEMPT 1 -->
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">
+            Attempt 1 ${s.a1?'('+tokenize(s.a1.text).length+' words typed)':''}
+          </div>
+          ${renderAttemptBlock(n, 1, target, s.a1)}
+          ${a2Html}
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = summaryBar + exportBtn + legend + `
+    <div class="section-hdr">
+      <h2>Sentence-by-Sentence Breakdown</h2>
+      <div class="section-hdr-line"></div>
+    </div>` + cards;
+}
+
+// ═══════════════════════════════════════════════
+// AI ANALYSIS BUTTON HANDLER
+// ═══════════════════════════════════════════════
+// Store target/student data in JS map to avoid HTML attribute encoding issues
+const _aiData = {};
+
+async function runAIAnalysis(sentNo, aNo, btn) {
+  const key       = `${sentNo}-${aNo}`;
+  const ad        = _aiData[key];
+  const resultEl  = document.getElementById(`ai-result-${sentNo}-${aNo}`);
+  if (!btn||!resultEl) return;
+  // Read data from DOM if not in map
+  const target  = ad?.target  || btn.closest('.sentence-card-body')?.querySelector('[style*="Origin Sentence"]')?.nextElementSibling?.textContent || '';
+  const student = ad?.student || '';
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:1.5px"></span> Analyzing…';
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `<div class="ai-block-label"><div class="dot"></div> AI is analyzing…</div>`;
+
+  const text = await analyzeWithAI(ad?.target||'', ad?.student||'', aNo);
+  if (text) {
+    resultEl.innerHTML = `
+      <div class="ai-block-label">✨ AI Analysis (Attempt ${aNo})</div>
+      <div class="ai-block-text">${markdownToHtml(text)}</div>`;
+    btn.style.display = 'none';
+  } else {
+    resultEl.innerHTML = `<div style="color:var(--red);font-size:12px">⚠ AI analysis failed.</div>`;
+    btn.disabled = false;
+    btn.innerHTML = '✨ AI Analysis';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════
+function exportCSV() {
+  const data = window._exportData;
+  if (!data||!data.length) { toast('No data to export'); return; }
+  const headers = [
+    'Sentence No','Origin Sentence','Word Count',
+    'Attempt 1 (student typed)','Att.1 Score','Att.1 Missing','Att.1 Extra',
+    'Attempt 2 (student typed)','Att.2 Score','Att.2 Missing','Att.2 Extra'
+  ];
+  const rows = [headers.join(',')];
+  data.forEach(r => {
+    rows.push([
+      r.sentNo,
+      `"${r.target.replace(/"/g,'""')}"`,
+      r.wordCount,
+      `"${r.a1Text.replace(/"/g,'""')}"`,
+      r.a1Score,
+      `"${r.a1Missing.replace(/"/g,'""')}"`,
+      `"${r.a1Extra.replace(/"/g,'""')}"`,
+      `"${r.a2Text.replace(/"/g,'""')}"`,
+      r.a2Score,
+      `"${r.a2Missing.replace(/"/g,'""')}"`,
+      `"${r.a2Extra.replace(/"/g,'""')}"`
+    ].join(','));
+  });
+  const csv  = '\uFEFF' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `dictation_${TARGET_SID||'session'}.csv`;
+  a.click();
+  toast('CSV downloaded! File → Import vào Google Sheets');
+}
+
+// ═══════════════════════════════════════════════
+// MAIN INIT
+// ═══════════════════════════════════════════════
+(async function init() {
+  if (!TARGET_SID) {
+    document.getElementById('meta-grid').innerHTML =
+      `<div style="grid-column:1/-1;padding:20px;color:var(--red)">⚠ No sessionId in URL.</div>`;
+    document.getElementById('main-content').innerHTML = '';
+    return;
+  }
+  document.getElementById('topbar-sid').textContent = TARGET_SID;
+
+  // ── Step 1: Load session meta from Lis_Results (direct Sheets fetch — no GAS token needed) ──
+  let sessionMeta = null;
+  try {
+    const LIS_RESULTS_SHEET = 'Lis_Results';
+    const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(LIS_RESULTS_SHEET)}`;
+    const resp = await fetch(url);
+    const raw  = await resp.text();
+    const json = JSON.parse(raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
+    const cols = json.table.cols.map(c => (c.label||c.id||'').trim());
+    const rows = (json.table.rows||[]).map(r =>
+      Object.fromEntries(cols.map((c,i) => [c, r.c?.[i]?.v ?? '']))
+    );
+    console.log('Lis_Results columns:', cols);
+    sessionMeta = rows.find(r => {
+      const sid = String(r.SessionID||r.sessionId||r['Session ID']||'').trim();
+      return sid === TARGET_SID.trim();
+    }) || null;
+    console.log('Session meta:', sessionMeta);
+  } catch(e) { console.warn('Lis_Results fetch failed:', e); }
+
+  // Fallback: try GAS if we have a teacher token
+  if (!sessionMeta && TEACHER_TOKEN) {
+    try {
+      const res = await gasCall('teacher.lis.getResults', {}, TEACHER_TOKEN);
+      if (res?.success && res.rows) {
+        sessionMeta = res.rows.find(r =>
+          String(r.SessionID||r.sessionId||'').trim() === TARGET_SID.trim()
+        ) || null;
+      }
+    } catch(e) { console.warn('GAS fallback failed:', e); }
+  }
+
+  if (sessionMeta) {
+    renderMeta(sessionMeta);
+  } else {
+    document.getElementById('meta-grid').innerHTML =
+      `<div style="grid-column:1/-1;padding:16px;color:var(--yellow);font-size:13px">
+        ⚠ Session metadata not found. Session ID: <span style="font-family:var(--mono)">${escHtml(TARGET_SID)}</span>
+      </div>`;
+  }
+
+  // ── Step 2: Load Lis_Attempts from Sheets (direct fetch) ──
+  let attempts = null;
+  try {
+    const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('Lis_Attempts')}`;
+    const resp = await fetch(url);
+    const raw  = await resp.text();
+    console.log('Fetching Lis_Attempts from:', url);
+    const json = JSON.parse(raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
+    const cols = json.table.cols.map(c => (c.label||c.id||'').trim());
+    console.log('Sheet columns detected:', cols);
+    const allRows = (json.table.rows||[]).map(r =>
+      Object.fromEntries(cols.map((c,i) => [c, r.c?.[i]?.v ?? '']))
+    );
+    console.log('Total rows in sheet:', allRows.length);
+    const filtered = allRows.filter(r => {
+      const sid = String(r.sessionId||r.SessionId||r.SessionID||r['Session ID']||'').trim();
+      return sid === TARGET_SID.trim();
+    });
+    console.log(`Rows for session ${TARGET_SID}:`, filtered.length, filtered);
+    attempts = filtered.length ? filtered : null;
+  } catch(e) {
+    console.error('Lis_Attempts fetch error:', e);
+    document.getElementById('main-content').innerHTML = `
+      <div class="notice">
+        <strong>⚠ Không thể đọc sheet Lis_Attempts.</strong><br>
+        Lỗi: ${escHtml(String(e))}<br>
+        Kiểm tra: Master Sheet có public viewer không?
+      </div>`;
+    return;
+  }
+
+  // ── Store AI data before rendering (for onclick handlers) ──
+  // Populated in renderSentenceCards after diff is computed
+  renderSentenceCards(attempts);
+})();
+</script>
+</body>
+</html>

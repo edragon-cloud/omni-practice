@@ -1,0 +1,2823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   IELTS HUB — DESIGN SYSTEM (VocabMaster Theme)
+═══════════════════════════════════════════════════ */
+:root {
+  --red: #C8102E; --red-dark: #9B0B22; --red-light: #F5E6E9; --red-mid: #E8304A;
+  --white: #FFFFFF; --off-white: #FAFAF8; --grey-100: #F4F4F2; --grey-200: #E8E8E4;
+  --grey-400: #BBBBB4; --grey-600: #77776E; --grey-800: #3A3A35; --black: #1A1A16;
+  --gold: #C9A84C; --green: #1A7A4A; --green-light: #E6F4ED;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08); --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.14); --shadow-red: 0 4px 20px rgba(200,16,46,.2);
+  --radius: 12px; --radius-lg: 20px; --transition: .2s cubic-bezier(.4,0,.2,1);
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--off-white);color:var(--black);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* ── LOADING ── */
+#loading-screen{position:fixed;inset:0;background:var(--black);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease}
+#loading-screen.fade-out{opacity:0;pointer-events:none}
+.loading-logo{font-family:var(--font-display);font-size:2.4rem;color:var(--white);letter-spacing:-.02em}
+.loading-logo span{color:var(--red-mid)}
+.loading-sub{color:rgba(255,255,255,.4);font-size:13px;margin-top:8px;letter-spacing:.1em}
+.loading-bar{width:200px;height:2px;background:rgba(255,255,255,.15);border-radius:1px;margin-top:24px;overflow:hidden}
+.loading-bar-fill{height:100%;width:0%;background:var(--red-mid);border-radius:1px;animation:loadBar 1.4s ease forwards .3s}
+@keyframes loadBar{to{width:100%}}
+
+/* ── PAGES ── */
+.page{display:none;min-height:100vh}
+.page.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--black);color:var(--white);padding:14px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;max-width:320px}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--gold)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+.modal{background:var(--white);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-title{font-family:var(--font-display);font-size:1.5rem;color:var(--black)}
+.modal-close{width:36px;height:36px;border:none;background:var(--grey-100);border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:var(--transition);color:var(--grey-600)}
+.modal-close:hover{background:var(--red-light);color:var(--red)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;transition:var(--transition);white-space:nowrap;text-decoration:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--red);color:var(--white)}
+.btn-primary:hover:not(:disabled){background:var(--red-dark);box-shadow:var(--shadow-red);transform:translateY(-1px)}
+.btn-secondary{background:var(--grey-100);color:var(--grey-800)}
+.btn-secondary:hover:not(:disabled){background:var(--grey-200)}
+.btn-outline{background:transparent;border:1.5px solid var(--grey-200);color:var(--grey-800)}
+.btn-outline:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.btn-sm{padding:8px 16px;font-size:13px}
+.btn-lg{padding:16px 32px;font-size:16px;border-radius:var(--radius-lg)}
+.btn-full{width:100%}
+.btn-gold{background:var(--gold);color:var(--white)}
+.btn-green{background:var(--green);color:var(--white)}
+.btn-black{background:var(--black);color:var(--white)}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:20px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--grey-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.form-input,.form-select,.form-textarea{width:100%;padding:12px 16px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:15px;color:var(--black);background:var(--white);transition:var(--transition);outline:none}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(200,16,46,.08)}
+.form-textarea{resize:vertical;min-height:100px}
+.form-hint{font-size:12px;color:var(--grey-600);margin-top:6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.form-row{grid-template-columns:1fr}}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--grey-200)}
+.card-title{font-family:var(--font-display);font-size:1.1rem;color:var(--black);margin-bottom:16px}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:600}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-grey{background:var(--grey-100);color:var(--grey-600)}
+.badge-gold{background:#FFF8E6;color:var(--gold)}
+
+/* ── PROGRESS ── */
+.progress-wrap{background:var(--grey-100);border-radius:100px;overflow:hidden;height:8px}
+.progress-bar{height:100%;border-radius:100px;background:var(--red);transition:width .5s ease}
+.progress-bar.green{background:var(--green)}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--grey-200)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead{background:var(--grey-100)}
+th{padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:var(--grey-600);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:12px 16px;border-top:1px solid var(--grey-100);color:var(--grey-800)}
+tr:hover td{background:var(--grey-100)}
+
+/* ── UTILS ── */
+.divider{height:1px;background:var(--grey-200);margin:24px 0}
+.divider-text{text-align:center;position:relative;color:var(--grey-400);font-size:13px;margin:20px 0}
+.divider-text::before,.divider-text::after{content:'';position:absolute;top:50%;width:calc(50% - 30px);height:1px;background:var(--grey-200)}
+.divider-text::before{left:0} .divider-text::after{right:0}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--grey-200);border-radius:3px}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+.text-center{text-align:center} .hidden{display:none!important}
+.flex{display:flex} .flex-center{display:flex;align-items:center;justify-content:center}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.gap-2{gap:8px} .gap-3{gap:12px} .gap-4{gap:16px}
+.mt-2{margin-top:8px} .mt-4{margin-top:16px} .mt-6{margin-top:24px}
+.mb-2{margin-bottom:8px} .mb-4{margin-bottom:16px}
+.spinner{width:20px;height:20px;border:2px solid var(--grey-200);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════
+   PAGE: AUTH (Login / Register)
+══════════════════════════════════════ */
+.auth-layout{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:768px){.auth-layout{grid-template-columns:1fr} .auth-hero{display:none}}
+.auth-hero{background:var(--black);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:60px}
+.auth-hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(200,16,46,.15) 0%,transparent 60%),linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.8) 100%)}
+.auth-hero-pattern{position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(0deg,var(--white) 0,var(--white) 1px,transparent 1px,transparent 40px),repeating-linear-gradient(90deg,var(--white) 0,var(--white) 1px,transparent 1px,transparent 40px)}
+.auth-hero-accent{position:absolute;top:10%;right:-60px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(200,16,46,.3),transparent 70%)}
+.auth-hero-content{position:relative;z-index:1}
+.hero-brand{font-family:var(--font-display);font-size:3rem;color:var(--white);line-height:1.1;margin-bottom:8px}
+.hero-brand em{color:var(--red-mid);font-style:normal}
+.hero-tagline{color:rgba(255,255,255,.5);font-size:14px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px}
+.hero-stats{display:flex;gap:32px}
+.hero-stat-num{font-family:var(--font-display);font-size:1.8rem;color:var(--white);line-height:1}
+.hero-stat-label{font-size:12px;color:rgba(255,255,255,.4);margin-top:4px}
+.auth-form-panel{background:var(--off-white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 40px}
+@media(max-width:480px){.auth-form-panel{padding:40px 24px}}
+.auth-form-wrap{width:100%;max-width:420px}
+.auth-welcome{font-family:var(--font-display);font-size:1.8rem;color:var(--black);margin-bottom:6px}
+.auth-subtitle{font-size:14px;color:var(--grey-600);margin-bottom:36px}
+.auth-tabs{display:flex;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:28px;gap:4px}
+.auth-tab-btn{flex:1;padding:10px;border:none;background:transparent;border-radius:calc(var(--radius) - 2px);font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--grey-600);cursor:pointer;transition:var(--transition)}
+.auth-tab-btn.active{background:var(--white);color:var(--red);box-shadow:var(--shadow-sm)}
+.auth-tab-content{display:none}
+.auth-tab-content.active{display:block;animation:fadeIn .2s ease}
+
+/* App checkboxes on register */
+.app-access-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.app-checkbox{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--grey-200);border-radius:var(--radius);cursor:pointer;transition:var(--transition)}
+.app-checkbox:hover{border-color:var(--red-mid)}
+.app-checkbox input[type=checkbox]{display:none}
+.app-checkbox.checked{border-color:var(--red);background:var(--red-light)}
+.app-checkbox-icon{font-size:18px}
+.app-checkbox-label{font-size:13px;font-weight:600;color:var(--grey-800)}
+
+/* Teacher portal btn */
+.teacher-portal-btn{display:flex;align-items:center;gap:10px;width:100%;padding:14px 18px;background:var(--black);color:var(--white);border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;transition:var(--transition);margin-top:16px;text-align:left}
+.teacher-portal-btn:hover{background:var(--grey-800)}
+.tpb-icon{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+/* ══════════════════════════════════════
+   PAGE: STUDENT DASHBOARD
+══════════════════════════════════════ */
+.student-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+@media(max-width:900px){.student-layout{grid-template-columns:1fr} .student-sidebar{display:none}}
+.student-sidebar{background:var(--black);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-brand{padding:28px 24px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-brand-name{font-family:var(--font-display);font-size:1.3rem;color:var(--white)}
+.sidebar-brand-name em{color:var(--red-mid);font-style:normal}
+.sidebar-brand-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.08em;margin-top:2px}
+.sidebar-user{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-avatar{width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--white);margin-bottom:10px}
+.sidebar-name{color:var(--white);font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-class{color:rgba(255,255,255,.4);font-size:12px;margin-top:2px}
+.sidebar-nav{padding:16px 12px;flex:1}
+.nav-section-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.25);padding:0 12px;margin-bottom:8px;margin-top:16px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:rgba(255,255,255,.55);font-size:14px;font-weight:500;cursor:pointer;transition:var(--transition);margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.06);color:var(--white)}
+.nav-item.active{background:rgba(200,16,46,.2);color:var(--red-mid)}
+.nav-item .nav-icon{width:20px;text-align:center;font-size:16px}
+.nav-badge{margin-left:auto;background:var(--red);color:var(--white);font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px}
+
+/* APP CARDS — dimmed if not activated */
+.app-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:24px}
+.app-card{background:var(--white);border:1.5px solid var(--grey-200);border-radius:var(--radius-lg);padding:24px;text-align:center;cursor:pointer;transition:var(--transition);position:relative;overflow:hidden}
+.app-card:hover:not(.locked){border-color:var(--red);box-shadow:var(--shadow-red);transform:translateY(-2px)}
+.app-card.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
+.app-card-icon{font-size:36px;margin-bottom:12px}
+.app-card-name{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--black);margin-bottom:4px}
+.app-card-desc{font-size:12px;color:var(--grey-600)}
+.app-card-badge{position:absolute;top:12px;right:12px}
+.locked-overlay{position:absolute;top:8px;left:8px;font-size:18px;opacity:.6}
+
+/* STUDENT MAIN */
+.student-main{background:var(--off-white);overflow-y:auto}
+.student-topbar{background:var(--white);border-bottom:1px solid var(--grey-200);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-title{font-family:var(--font-display);font-size:1.1rem;color:var(--black)}
+.student-content{padding:32px;max-width:1000px}
+@media(max-width:600px){.student-content{padding:20px}}
+.student-section{display:none}
+.student-section.active{display:block;animation:fadeIn .3s ease}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--white);border-radius:var(--radius-lg);padding:20px;border:1px solid var(--grey-200);position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:var(--red-light);border-radius:0 0 0 80px;opacity:.5}
+.stat-card.green::after{background:var(--green-light)}
+.stat-num{font-family:var(--font-display);font-size:2rem;color:var(--black);line-height:1;margin-bottom:6px}
+.stat-label{font-size:13px;color:var(--grey-600)}
+.stat-icon{position:absolute;top:16px;right:16px;font-size:20px;opacity:.4;z-index:1}
+
+/* ══════════════════════════════════════
+   PAGE: TEACHER DASHBOARD
+══════════════════════════════════════ */
+.teacher-layout{min-height:100vh;display:flex;flex-direction:column}
+.teacher-nav{background:var(--black);height:64px;display:flex;align-items:center;padding:0 32px;gap:0;position:sticky;top:0;z-index:200}
+.teacher-brand{font-family:var(--font-display);color:var(--white);font-size:1.1rem;margin-right:40px;white-space:nowrap}
+.teacher-brand em{color:var(--red-mid);font-style:normal}
+.teacher-nav-tabs{display:flex;gap:4px;flex:1;overflow-x:auto}
+.teacher-tab{padding:8px 16px;border:none;background:transparent;color:rgba(255,255,255,.5);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;transition:var(--transition);white-space:nowrap}
+.teacher-tab:hover{background:rgba(255,255,255,.08);color:var(--white)}
+.teacher-tab.active{background:rgba(200,16,46,.25);color:var(--red-mid);font-weight:600}
+.teacher-logout{background:rgba(255,255,255,.08);border:none;border-radius:8px;padding:8px 16px;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:var(--font-body);transition:var(--transition);margin-left:auto;white-space:nowrap}
+.teacher-logout:hover{color:var(--white);background:rgba(255,255,255,.12)}
+.teacher-main{flex:1;padding:32px;max-width:1200px;width:100%;margin:0 auto}
+.teacher-section{display:none}
+.teacher-section.active{display:block;animation:fadeIn .3s ease}
+.section-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.section-header h1{font-family:var(--font-display);font-size:1.6rem;color:var(--black)}
+.section-header p{font-size:14px;color:var(--grey-600);margin-top:4px}
+
+/* TEACHER USERS TABLE */
+.user-status-active{color:var(--green);font-weight:600;font-size:12px}
+.user-status-pending{color:var(--gold);font-weight:600;font-size:12px}
+.app-access-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--grey-100);border-radius:100px;font-size:11px;font-weight:600;color:var(--grey-600);margin:2px}
+.app-access-chip.active{background:var(--green-light);color:var(--green)}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.settings-grid{grid-template-columns:1fr}}
+.api-key-row{display:flex;gap:12px;align-items:flex-end;margin-bottom:16px}
+.api-key-row .form-group{flex:1;margin:0}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="loading-logo">Language <span>Hub</span></div>
+  <div class="loading-sub">YOUR ENGLISH PRACTICE COMPANION</div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- ══════════════════════════════════════
+     PAGE: AUTH
+══════════════════════════════════════ -->
+<div id="page-auth" class="page">
+<div class="auth-layout">
+  <div class="auth-hero">
+    <div class="auth-hero-bg"></div>
+    <div class="auth-hero-pattern"></div>
+    <div class="auth-hero-accent"></div>
+    <div class="auth-hero-content">
+      <div class="hero-brand">Language <em>Hub</em></div>
+      <div class="hero-tagline">ENGLISH PRACTICE &amp; BEYOND</div>
+      <div class="hero-stats">
+        <div><div class="hero-stat-num">4</div><div class="hero-stat-label">Apps</div></div>
+        <div><div class="hero-stat-num">AI</div><div class="hero-stat-label">Powered</div></div>
+        <div><div class="hero-stat-num">∞</div><div class="hero-stat-label">Practice</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="auth-form-panel">
+    <div class="auth-form-wrap">
+      <div class="auth-welcome" id="auth-welcome">Welcome back</div>
+      <div class="auth-subtitle" id="auth-subtitle">Sign in to continue learning</div>
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab-btn" onclick="switchAuthTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="auth-tab-login" class="auth-tab-content active">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="login-email" class="form-input" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="login-password" class="form-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div style="text-align:right;margin-bottom:20px">
+          <a href="#" style="font-size:13px;color:var(--red);text-decoration:none" onclick="openModal('forgot-modal')">Forgot password?</a>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()" id="login-btn">Sign In</button>
+        <div class="divider-text" style="margin:20px 0">or</div>
+        <button class="teacher-portal-btn" onclick="openModal('teacher-login-modal')">
+          <div class="tpb-icon">🎓</div>
+          <div style="flex:1"><div>Teacher Portal</div><div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400">Access with teacher password</div></div>
+          <span style="color:rgba(255,255,255,.4)">→</span>
+        </button>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="auth-tab-register" class="auth-tab-content">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="Nguyen Van A"></div>
+          <div class="form-group"><label class="form-label">Class</label><input type="text" id="reg-class" class="form-input" placeholder="IELTS 42"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Student ID</label><input type="text" id="reg-id" class="form-input" placeholder="2200123"></div>
+          <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="reg-dob" class="form-input"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email Address</label><input type="email" id="reg-email" class="form-input" placeholder="student@dnu.edu.vn"></div>
+        <div class="form-group"><label class="form-label">Password</label><input type="password" id="reg-password" class="form-input" placeholder="Min. 8 characters"></div>
+        <div class="form-group">
+          <label class="form-label">Subscription Package</label>
+          <select id="reg-package" class="form-select">
+            <option value="1">1 Month</option>
+            <option value="2">2 Months</option>
+            <option value="3">3 Months</option>
+            <option value="6">6 Months</option>
+            <option value="12" selected>12 Months</option>
+            <option value="14">14 Months (Academic Year)</option>
+          </select>
+          <div class="form-hint">⏰ Account auto-deactivates after expiry. Email reminders sent 7 days before & on expiry date.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apps to Register (select all that apply)</label>
+          <div class="app-access-grid" id="app-checkboxes">
+            <div class="app-checkbox checked" data-app="vocab" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">📚</div><div class="app-checkbox-label">VocabMaster</div><input type="checkbox" checked></div>
+            <div class="app-checkbox checked" data-app="write" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">✍️</div><div class="app-checkbox-label">ArticuWrite</div><input type="checkbox" checked></div>
+            <div class="app-checkbox checked" data-app="listen" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">🎧</div><div class="app-checkbox-label">LisDictation</div><input type="checkbox" checked></div>
+            <div class="app-checkbox checked" data-app="speak" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">🎙️</div><div class="app-checkbox-label">Fluentalk</div><input type="checkbox" checked></div>
+          </div>
+          <div class="form-hint">Chưa kích hoạt app nào thì sẽ bị mờ sau khi đăng nhập</div>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" onclick="doRegister()" id="register-btn">Create Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: STUDENT DASHBOARD
+══════════════════════════════════════ -->
+<div id="page-student" class="page">
+<div class="student-layout">
+  <aside class="student-sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">Language <em>Hub</em></div>
+      <div class="sidebar-brand-sub">ALL-IN-ONE SYSTEM</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="s-avatar">?</div>
+      <div class="sidebar-name" id="s-name">Loading...</div>
+      <div class="sidebar-class" id="s-class">—</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <button class="nav-item active" onclick="showStudentSection('home')" id="nav-home">
+        <span class="nav-icon">🏠</span> Dashboard
+      </button>
+      <div class="nav-section-label">Applications</div>
+      <button class="nav-item" onclick="openApp('vocab')" id="nav-vocab" data-app="vocab">
+        <span class="nav-icon">📚</span> VocabMaster
+        <span class="nav-badge hidden" id="badge-vocab">0</span>
+      </button>
+      <button class="nav-item" onclick="openApp('write')" id="nav-write" data-app="write">
+        <span class="nav-icon">✍️</span> ArticuWrite
+      </button>
+      <button class="nav-item" onclick="openApp('listen')" id="nav-listen" data-app="listen">
+        <span class="nav-icon">🎧</span> LisDictation
+      </button>
+      <button class="nav-item" onclick="openApp('speak')" id="nav-speak" data-app="speak">
+        <span class="nav-icon">🎙️</span> Fluentalk
+      </button>
+    </nav>
+    <div style="padding:16px 12px;border-top:1px solid rgba(255,255,255,.06)">
+      <button class="nav-item" onclick="doLogout()" style="color:rgba(255,255,255,.4)">
+        <span class="nav-icon">🚪</span> Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <main class="student-main">
+    <div class="student-topbar">
+      <div class="topbar-title" id="student-section-title">Dashboard</div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div id="topbar-date" style="font-size:13px;color:var(--grey-600)"></div>
+      </div>
+    </div>
+    <div class="student-content">
+
+      <!-- HOME SECTION -->
+      <div id="section-home" class="student-section active">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-num" id="st-total">—</div><div class="stat-label">Total Sessions</div></div>
+          <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-num" id="st-done">—</div><div class="stat-label">Completed</div></div>
+          <div class="stat-card"><div class="stat-icon">🧠</div><div class="stat-num" id="st-words">—</div><div class="stat-label">Words Mastered</div></div>
+          <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-num" id="st-band">—</div><div class="stat-label">Avg Band</div></div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-title">Your Applications</div>
+          <div class="app-cards-grid" id="app-cards-grid">
+            <div class="app-card" id="appcard-vocab" data-app="vocab" onclick="openApp('vocab')">
+              <div class="locked-overlay hidden" id="lock-vocab">🔒</div>
+              <div class="app-card-icon">📚</div>
+              <div class="app-card-name">VocabMaster</div>
+              <div class="app-card-desc">Vocabulary quizzes & assignments</div>
+              <div class="app-card-badge"><span class="badge badge-gold">VOCAB</span></div>
+            </div>
+            <div class="app-card" id="appcard-write" data-app="write" onclick="openApp('write')">
+              <div class="locked-overlay hidden" id="lock-write">🔒</div>
+              <div class="app-card-icon">✍️</div>
+              <div class="app-card-name">ArticuWrite</div>
+              <div class="app-card-desc">AI-powered IELTS writing feedback</div>
+              <div class="app-card-badge"><span class="badge badge-red">WRITE</span></div>
+            </div>
+            <div class="app-card" id="appcard-listen" data-app="listen" onclick="openApp('listen')">
+              <div class="locked-overlay hidden" id="lock-listen">🔒</div>
+              <div class="app-card-icon">🎧</div>
+              <div class="app-card-name">LisDictation</div>
+              <div class="app-card-desc">Listening & dictation practice</div>
+              <div class="app-card-badge"><span class="badge badge-grey">LISTEN</span></div>
+            </div>
+            <div class="app-card" id="appcard-speak" data-app="speak" onclick="openApp('speak')">
+              <div class="locked-overlay hidden" id="lock-speak">🔒</div>
+              <div class="app-card-icon">🎙️</div>
+              <div class="app-card-name">Fluentalk</div>
+              <div class="app-card-desc">AI speaking coach & CEFR test</div>
+              <div class="app-card-badge"><span class="badge badge-green">SPEAK</span></div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--grey-400);margin-top:16px;text-align:center">🔒 Dimmed apps are not yet activated. Contact your teacher.</p>
+        </div>
+      </div>
+
+    </div><!-- student-content -->
+  </main>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: TEACHER DASHBOARD
+══════════════════════════════════════ -->
+<div id="page-teacher" class="page">
+<div class="teacher-layout">
+  <nav class="teacher-nav">
+    <div class="teacher-brand">Language <em>Hub</em></div>
+    <div class="teacher-nav-tabs">
+      <button class="teacher-tab active" onclick="showTeacherTab('overview')" id="ttab-overview">🏠 Overview</button>
+      <button class="teacher-tab" onclick="showTeacherTab('students')" id="ttab-students">👥 Students</button>
+      <button class="teacher-tab" onclick="showTeacherTab('vocab')" id="ttab-vocab">📚 VocabMaster</button>
+      <button class="teacher-tab" onclick="showTeacherTab('write')" id="ttab-write">✍️ ArticuWrite</button>
+      <button class="teacher-tab" onclick="showTeacherTab('listen')" id="ttab-listen">🎧 LisDictation</button>
+      <button class="teacher-tab" onclick="showTeacherTab('speak')" id="ttab-speak">🎙️ Fluentalk</button>
+      <button class="teacher-tab" onclick="showTeacherTab('settings')" id="ttab-settings">⚙️ Settings</button>
+    </div>
+    <button class="teacher-logout" onclick="teacherLogout()">Sign Out</button>
+  </nav>
+  <div class="teacher-main">
+
+    <!-- ── OVERVIEW TAB ── -->
+    <div id="tsec-overview" class="teacher-section active">
+      <div class="section-header">
+        <div><h1>Overview</h1><p>Summary of all users, packages & activity</p></div>
+        <button class="btn btn-secondary btn-sm" onclick="loadTeacherData()">🔄 Refresh</button>
+      </div>
+      <!-- Summary stats -->
+      <div class="stats-grid" style="margin-bottom:24px">
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-num" id="ov-total-users">—</div><div class="stat-label">Total Students</div></div>
+        <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-num" id="ov-active-users">—</div><div class="stat-label">Active Accounts</div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-num" id="ov-pending-users">—</div><div class="stat-label">Pending Activation</div></div>
+        <div class="stat-card"><div class="stat-icon">🏫</div><div class="stat-num" id="ov-total-classes">—</div><div class="stat-label">Classes</div></div>
+      </div>
+      <!-- Expiry alerts -->
+      <div class="card" style="margin-bottom:20px;border-left:4px solid var(--gold)">
+        <div class="card-title" style="color:var(--gold)">⚠️ Expiring Soon (≤ 14 days)</div>
+        <div id="ov-expiry-list"><div style="color:var(--grey-400);font-size:14px">Loading...</div></div>
+      </div>
+      <!-- All users table -->
+      <div class="card">
+        <div class="card-title">📋 All Students — Package & Expiry</div>
+        <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <input type="text" class="form-input" id="ov-search" placeholder="Search name / class / email..." style="max-width:280px" oninput="filterOverviewTable(this.value)">
+          <select id="ov-status-filter" class="form-select" style="width:140px" onchange="filterOverviewTable(document.getElementById('ov-search').value)">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table id="ov-users-table">
+            <thead><tr>
+              <th>Student ID</th><th>Full Name</th><th>Class</th><th>Email</th>
+              <th>Status</th><th>Package</th><th>Apps</th>
+              <th>Expiry Date</th><th>Days Left</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="ov-users-tbody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STUDENTS / ACTIVATION TAB ── -->
+    <div id="tsec-students" class="teacher-section">
+      <div class="section-header">
+        <div><h1>Students — Activation & Access</h1><p>Activate pending registrations, edit app access & packages</p></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="loadTeacherData()">🔄 Refresh</button>
+        </div>
+      </div>
+      <!-- Pending registrations alert -->
+      <div id="pending-alert" style="display:none;background:var(--red-light);border:1.5px solid var(--red);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <strong style="color:var(--red)">🔔 <span id="pending-count">0</span> pending registration(s)</strong>
+          <div style="font-size:13px;color:var(--grey-600);margin-top:2px">New students waiting for activation. An email has been sent to you.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="activateAllPending()">✅ Activate All</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Student ID</th><th>Full Name</th><th>Class</th><th>Email</th>
+            <th>Registered</th><th>Status</th><th>Package</th><th>Expiry</th><th>Apps</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="students-activation-tbody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── VOCAB TAB ── -->
+    <div id="tsec-vocab" class="teacher-section">
+      <div class="section-header">
+        <div><h1>VocabMaster — Class Management</h1><p>Create assignments, schedule in-class reviews &amp; track student performance</p></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <select id="vocab-class-filter" class="form-input" style="width:150px;font-size:13px" onchange="renderVocabClassTables()"><option value="">All Classes</option></select>
+          <button class="btn btn-secondary btn-sm" onclick="loadTeacherData()">🔄 Refresh</button>
+          <button class="btn btn-primary btn-sm" id="btn-vocab-new-action" onclick="openVocabAssignmentForm()">+ New Assignment</button>
+        </div>
+      </div>
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:20px">
+        <button class="vocab-subtab active" id="vstab-assignments" onclick="showVocabSubtab('assignments')" style="flex:1;padding:8px;border:none;background:#fff;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;box-shadow:var(--shadow-sm)">📚 Assignments</button>
+        <button class="vocab-subtab" id="vstab-asn-log" onclick="showVocabSubtab('asn-log');renderAsnSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Asn Log</button>
+        <button class="vocab-subtab" id="vstab-inclass" onclick="showVocabSubtab('inclass')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">🔄 In-Class</button>
+        <button class="vocab-subtab" id="vstab-inclass-log" onclick="showVocabSubtab('inclass-log');renderInclassSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Review Log</button>
+        <button class="vocab-subtab" id="vstab-freeread" onclick="showVocabSubtab('freeread');loadFreeReadResults()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📖 Free Reading</button>
+      </div>
+
+      <!-- Assignments sub-section -->
+      <div id="vsec-assignments">
+        <div id="vocab-class-tables">
+          <div style="text-align:center;padding:60px;color:var(--grey-400)">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Assignment Submission Log -->
+      <div id="vsec-asn-log" style="display:none">
+        <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📋 Assignment Submission Log</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Lịch sử từng lần làm bài của tất cả sinh viên</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="renderAsnSubmissionLog(true)">🔄 Refresh</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="min-width:900px;width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th>#</th>
+              <th onclick="_sortAsnLog('StudentID')" style="cursor:pointer">Student ID ↕</th>
+              <th onclick="_sortAsnLog('FullName')"   style="cursor:pointer">Name ↕</th>
+              <th onclick="_sortAsnLog('Class')"      style="cursor:pointer">Class ↕</th>
+              <th>Assignment</th>
+              <th>Attempt</th>
+              <th>Start</th>
+              <th>Submit</th>
+              <th style="text-align:center">Studied Vocab</th>
+              <th style="text-align:center">Correct / Total</th>
+              <th>Wrong Words</th>
+            </tr></thead>
+            <tbody id="asn-log-tbody"><tr><td colspan="11" style="text-align:center;padding:40px;color:var(--grey-400)">Click "Asn Log" to load.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- In-Class Submission Log -->
+      <div id="vsec-inclass-log" style="display:none">
+        <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📋 In-Class Review Log</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Kết quả khảo bài tại lớp của sinh viên (1 lần / bài)</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="renderInclassSubmissionLog(true)">🔄 Refresh</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="min-width:860px;width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th>#</th>
+              <th onclick="_sortRevLog('StudentID')" style="cursor:pointer">Student ID ↕</th>
+              <th onclick="_sortRevLog('FullName')"   style="cursor:pointer">Name ↕</th>
+              <th onclick="_sortRevLog('Class')"      style="cursor:pointer">Class ↕</th>
+              <th>Review Session</th>
+              <th>Start</th>
+              <th>Submit</th>
+              <th style="text-align:center">Correct / Total</th>
+              <th>Wrong Words</th>
+            </tr></thead>
+            <tbody id="inclass-log-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Click "Review Log" to load.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- In-Class Review sub-section -->
+      <div id="vsec-inclass" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">🔄 In-Class Review Sessions</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Khảo bài tại lớp — 3 phút đọc bài, sau đó làm quiz. Chỉ 1 lần làm.</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openInClassReviewForm()">+ Schedule Review</button>
+        </div>
+        <div id="inclass-review-list">
+          <div style="text-align:center;padding:60px;color:var(--grey-400)">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Free Reading sub-section -->
+      <div id="vsec-freeread" style="display:none">
+        <div style="margin-bottom:16px">
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📖 Free Reading Sessions</div>
+          <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Sinh viên tự chọn bài đọc, tự thêm từ vựng và làm quiz. Kết quả ghi nhận ở đây.</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date &amp; Time</th><th>Student</th><th>Class</th><th>Topic</th><th>Words</th><th>Score</th><th>Mode</th><th></th></tr></thead>
+            <tbody id="freeread-results-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- WRITE TAB -->
+    <div id="tsec-write" class="teacher-section">
+      <div class="section-header">
+        <div><h1>ArticuWrite — Results</h1><p>Student writing submissions & access code management</p></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="loadWriteResults()">🔄 Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('write-code-modal')">+ Issue Code</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <table style="min-width:1100px">
+          <thead><tr>
+            <th>#</th>
+            <th>Start</th>
+            <th>Submit</th>
+            <th onclick="_writeSortBy('duration')" style="cursor:pointer" title="Sort by duration">Duration ↕</th>
+            <th onclick="_writeSortBy('name')" style="cursor:pointer">Student ↕</th>
+            <th onclick="_writeSortBy('class')" style="cursor:pointer">Class ↕</th>
+            <th>Mode</th>
+            <th>TR</th><th>CC</th><th>LR</th><th>GRA</th>
+            <th onclick="_writeSortBy('band')" style="cursor:pointer">Band ↕</th>
+            <th style="max-width:160px">Question</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="write-results-tbody"><tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LISTEN TAB -->
+    <div id="tsec-listen" class="teacher-section">
+      <div class="section-header">
+        <div><h1>LisDictation — Results</h1><p>Listening sessions & error analysis</p></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="loadListenResults()">🔄 Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="regenerateErrorFlat()">⚙️ Regenerate Error Flat</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Start Time</th>
+            <th>Student ID</th>
+            <th>Student</th>
+            <th onclick="sortListenByClass()" style="cursor:pointer;user-select:none" title="Click to sort by class">Class <span id="listen-class-sort-icon">⇅</span></th>
+            <th>Submitting Time</th>
+            <th>Duration</th>
+            <th>Book–Test–Part</th>
+            <th style="text-align:center">Sentences Done</th>
+            <th style="text-align:center">Total Words</th>
+            <th style="text-align:center">Correct Words</th>
+            <th style="text-align:center">Accuracy</th>
+            <th style="text-align:center">Detail</th>
+          </tr></thead>
+          <tbody id="listen-results-tbody"><tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SPEAK TAB -->
+    <div id="tsec-speak" class="teacher-section">
+      <div class="section-header">
+        <div><h1>Fluentalk — Speaking Results</h1><p>IELTS & CEFR speaking session data</p></div>
+        <button class="btn btn-secondary btn-sm" onclick="loadSpeakResults()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Student</th><th>Mode</th><th>Questions</th><th>Avg Band</th></tr></thead>
+          <tbody id="speak-results-tbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tsec-settings" class="teacher-section">
+      <div class="section-header"><div><h1>Settings</h1><p>API keys & teacher password</p></div></div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-title">🤖 AI API Keys</div>
+          <p style="font-size:13px;color:var(--grey-600);margin-bottom:16px">Stored securely in GAS PropertiesService — never exposed to students.</p>
+          <div class="api-key-row"><div class="form-group"><label class="form-label">OpenAI API Key</label><input type="password" id="key-openai" class="form-input" placeholder="sk-..."></div><button class="btn btn-secondary btn-sm" onclick="saveApiKey('openaiKey','key-openai')">Save</button></div>
+          <div class="api-key-row"><div class="form-group"><label class="form-label">Grok API Key</label><input type="password" id="key-grok" class="form-input" placeholder="xai-..."></div><button class="btn btn-secondary btn-sm" onclick="saveApiKey('grokKey','key-grok')">Save</button></div>
+          <div class="api-key-row"><div class="form-group"><label class="form-label">Gemini API Key</label><input type="password" id="key-gemini" class="form-input" placeholder="AIza..."></div><button class="btn btn-secondary btn-sm" onclick="saveApiKey('geminiKey','key-gemini')">Save</button></div>
+          <div class="form-group" style="max-width:280px;margin-top:8px">
+            <label class="form-label">Active AI Provider</label>
+            <select id="ai-provider-select" class="form-select"><option value="openai">OpenAI GPT-4o-mini</option><option value="grok">xAI Grok-3-Fast</option><option value="gemini">Google Gemini</option></select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveProviderSetting()">Save Provider</button>
+          <div id="settings-api-status" style="font-size:13px;margin-top:12px;color:var(--grey-600)"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔐 Teacher Password</div>
+          <div class="form-group"><label class="form-label">Current Password</label><input type="password" id="cur-pass" class="form-input" placeholder="Current password"></div>
+          <div class="form-group"><label class="form-label">New Password</label><input type="password" id="new-pass" class="form-input" placeholder="New password (min 6 chars)"></div>
+          <button class="btn btn-primary btn-sm" onclick="changeTeacherPassword()">Update Password</button>
+          <div id="settings-pw-status" style="font-size:13px;margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- FORGOT PASSWORD -->
+<div id="forgot-modal" class="modal-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title" id="forgot-title">Reset Password</div>
+      <button class="modal-close" onclick="closeModal('forgot-modal')">✕</button>
+    </div>
+    <div id="forgot-step-1">
+      <p style="color:var(--grey-600);font-size:14px;margin-bottom:20px">Enter your email to receive a reset code.</p>
+      <div class="form-group"><label class="form-label">Email Address</label><input type="email" id="forgot-email" class="form-input" placeholder="you@example.com"></div>
+      <button class="btn btn-primary btn-full" onclick="sendResetCode()" id="send-code-btn">Send Code</button>
+    </div>
+    <div id="forgot-step-2" style="display:none">
+      <div class="form-group"><label class="form-label">6-Digit Code</label><input type="text" id="forgot-code" class="form-input" placeholder="000000" maxlength="6" style="font-family:var(--font-mono);font-size:1.4rem;text-align:center;letter-spacing:.2em"></div>
+      <button class="btn btn-primary btn-full" onclick="verifyCode()" id="verify-code-btn">Verify Code</button>
+    </div>
+    <div id="forgot-step-3" style="display:none">
+      <div class="form-group"><label class="form-label">New Password</label><input type="password" id="forgot-new-pass" class="form-input" placeholder="Min. 8 characters"></div>
+      <div class="form-group"><label class="form-label">Confirm Password</label><input type="password" id="forgot-confirm-pass" class="form-input" placeholder="Repeat new password"></div>
+      <button class="btn btn-primary btn-full" onclick="doResetPassword()" id="reset-pass-btn">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER LOGIN -->
+<div id="teacher-login-modal" class="modal-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">Teacher Portal</div>
+      <button class="modal-close" onclick="closeModal('teacher-login-modal')">✕</button>
+    </div>
+    <p style="color:var(--grey-600);font-size:14px;margin-bottom:20px">Enter teacher password to access the dashboard.</p>
+    <div class="form-group"><label class="form-label">Teacher Password</label><input type="password" id="teacher-password-input" class="form-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')doTeacherLogin()"></div>
+    <button class="btn btn-primary btn-full" onclick="doTeacherLogin()" id="teacher-login-btn">Access Dashboard</button>
+  </div>
+</div>
+
+<!-- USER EDIT MODAL -->
+<div id="user-edit-modal" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Edit User Access</div>
+      <button class="modal-close" onclick="closeModal('user-edit-modal')">✕</button>
+    </div>
+    <div id="user-edit-body"></div>
+  </div>
+</div>
+
+<!-- WRITE CODE ISSUE MODAL -->
+<div id="write-code-modal" class="modal-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Issue ArticuWrite Code</div>
+      <button class="modal-close" onclick="closeModal('write-code-modal')">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Student Name</label><input type="text" id="wc-name" class="form-input" placeholder="Nguyen Van A"></div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" id="wc-email" class="form-input" placeholder="student@email.com"></div>
+    <div class="form-group">
+      <label class="form-label">Package</label>
+      <select id="wc-package" class="form-select"><option value="1 tháng">1 Month</option><option value="3 tháng">3 Months</option><option value="12 tháng">12 Months</option></select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="issueWriteCode()">Issue Code & Send Email</button>
+  </div>
+</div>
+
+<!-- VOCAB ASSIGNMENT MODAL -->
+<div id="vocab-assignment-modal" class="modal-overlay">
+  <div class="modal" style="max-width:960px;width:95vw">
+    <div class="modal-header">
+      <div class="modal-title" id="vocab-modal-title">📚 Create New Assignment</div>
+      <button class="modal-close" onclick="closeModal('vocab-assignment-modal')">✕</button>
+    </div>
+    <input type="hidden" id="va-edit-id">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Assignment Title</label><input type="text" id="va-title" class="form-input" placeholder="Unit 5: Environment Vocabulary"></div>
+      <div class="form-group">
+        <label class="form-label">Assigned Classes</label>
+        <input type="text" id="va-classes" class="form-input" placeholder="IELTS 42, IELTS 43 or ALL">
+        <div class="form-hint">Separate multiple classes with commas, or type ALL</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start Date</label><input type="date" id="va-start" class="form-input"></div>
+      <div class="form-group"><label class="form-label">Deadline</label><input type="date" id="va-deadline" class="form-input"></div>
+    </div>
+    <div class="form-group"><label class="form-label">📖 Reading Passage</label><textarea id="va-passage" class="form-textarea" rows="4" placeholder="Paste the reading passage here. Students read this before the quiz..."></textarea></div>
+    <div class="form-group">
+      <label class="form-label">📝 Target Vocabulary List <span style="font-weight:400;color:var(--grey-600)">(one word per line, or word = definition)</span></label>
+      <textarea id="va-vocab" class="form-textarea" rows="5" placeholder="environment&#10;sustainable = able to be maintained long-term&#10;biodiversity&#10;conservation"></textarea>
+    </div>
+    <div style="background:var(--black);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div style="color:var(--white);font-weight:600;margin-bottom:8px;font-size:14px">🤖 AI Vocabulary Analysis</div>
+      <p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:10px">AI sẽ điền IPA & Vietnamese cho tất cả từ. Dùng Gemini key (miễn phí) để xử lý đủ 100+ từ.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input type="password" id="va-gemini-key" class="form-input" placeholder="Gemini key: AIza... (aistudio.google.com)"
+          style="flex:1;font-size:12px;padding:6px 10px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:white"
+          oninput="vaSetGeminiKey(this.value)">
+        <button class="btn btn-sm" onclick="vaCheckKey()"
+          style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2);white-space:nowrap">
+          ✓ Verify
+        </button>
+      </div>
+      <div id="va-key-status" style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="va-ai-chips">
+        <button class="btn btn-sm" onclick="selectVAModel(this,'gemini')" data-model="gemini" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.2)">Gemini</button>
+        <button class="btn btn-sm" onclick="selectVAModel(this,'openai')" data-model="openai" style="background:var(--red);color:white">GPT-4o</button>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="runVAAnalysis()" id="va-ai-btn">✨ Analyze Vocabulary</button>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="flex-between mb-4">
+        <div class="card-title" style="margin-bottom:0">📚 Vocabulary Table</div>
+        <button class="btn btn-outline btn-sm" onclick="addVARow()">+ Add Row</button>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto">
+        <table style="min-width:860px;width:100%">
+          <thead><tr>
+            <th style="min-width:160px">Word</th>
+            <th style="min-width:140px">IPA</th>
+            <th style="min-width:280px">Synonyms / Definition</th>
+            <th style="min-width:160px">Vietnamese</th>
+            <th style="width:40px"></th>
+          </tr></thead>
+          <tbody id="va-vocab-tbody"><tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:16px">Use AI Analysis or add rows manually.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('vocab-assignment-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVAAssignment()" id="va-save-btn">💾 Save Assignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- IN-CLASS REVIEW MODAL -->
+<div id="inclass-review-modal" class="modal-overlay">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="icr-modal-title">🔄 Schedule In-Class Review</div>
+      <button class="modal-close" onclick="closeModal('inclass-review-modal')">✕</button>
+    </div>
+    <input type="hidden" id="icr-edit-id">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Review Title</label><input type="text" id="icr-title" class="form-input" placeholder="Unit 5 — In-Class Review"></div>
+      <div class="form-group">
+        <label class="form-label">Assigned Classes</label>
+        <input type="text" id="icr-classes" class="form-input" placeholder="IELTS 42, IELTS 43 or ALL">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Linked Assignment</label>
+      <select id="icr-assignment" class="form-select"><option value="">— Select assignment —</option></select>
+      <div class="form-hint">Sinh viên đọc bài &amp; ôn vocab từ assignment này. Reading time: <strong>3 minutes</strong>.</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Start Date &amp; Time</label>
+        <input type="datetime-local" id="icr-start" class="form-input">
+        <div class="form-hint">Nút Start bị khóa cho đến giờ này</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <select id="icr-duration" class="form-select">
+          <option value="10">10 minutes</option>
+          <option value="15" selected>15 minutes</option>
+          <option value="20">20 minutes</option>
+          <option value="30">30 minutes</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:var(--grey-100);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--grey-600)">
+      ℹ️ <strong>Khác với Assignment:</strong> Reading time chỉ <strong>3 phút</strong> · Chỉ làm <strong>1 lần</strong> · Điểm ghi vào thẻ <strong>In-Class Review</strong> riêng.
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('inclass-review-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInClassReview()" id="icr-save-btn">💾 Save Review</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVATE USER MODAL -->
+<div id="activate-user-modal" class="modal-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Activate Student Account</div>
+      <button class="modal-close" onclick="closeModal('activate-user-modal')">✕</button>
+    </div>
+    <div id="activate-user-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+
+// ═══════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════
+const App = {
+  user: null,
+  sessionToken: null,
+  teacherToken: null,
+  teacherData: { students:[], vocabSubs:[], assignments:[], reviewSessions:[], reviewSubs:[], punishments:[], writeSubs:[], lisSubs:[], speakSubs:[] }
+};
+
+// Normalize student object — GAS returns PascalCase keys, handle both
+function norm(s) {
+  return {
+    studentId:    String(s.StudentID    || s.studentId    || ''),
+    fullName:     String(s.FullName     || s.fullName     || ''),
+    class:        String(s.Class        || s.class        || ''),
+    email:        String(s.Email        || s.email        || ''),
+    status:       String(s.Status       || s.status       || 'Pending'),
+    appAccess:    String(s.AppAccess    || s.appAccess    || ''),
+    expiryDate:   String(s.ExpiryDate   || s.expiryDate   || ''),
+    packageMonths:parseInt(s.PackageMonths || s.packageMonths || 0) || 0,
+    registeredAt: String(s.RegisteredAt || s.registeredAt || ''),
+    _raw: s
+  };
+}
+
+// Safe student store — avoids JSON-in-onclick escaping issues
+var _studentStore = {};
+function storeStudent(s) {
+  const key = 'stu_' + (s.studentId || s.StudentID || Math.random().toString(36).slice(2));
+  _studentStore[key] = s._raw || s;
+  return key;
+}
+function openActivateModalByKey(key) {
+  const raw = _studentStore[key];
+  if (raw) openActivateModal(raw);
+}
+
+// ═══════════════════════════════════════════════════
+// API HELPER — JSONP (bypasses CORS for GAS)
+// ═══════════════════════════════════════════════════
+function api(action, payload, options) {
+  payload = payload || {};
+  options = options || {};
+  return new Promise(function(resolve, reject) {
+    var cb = 'gasCallback_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+    var params = 'callback=' + encodeURIComponent(cb)
+      + '&action=' + encodeURIComponent(action)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload))
+      + '&sessionToken=' + encodeURIComponent(options.sessionToken || App.sessionToken || '')
+      + '&teacherToken=' + encodeURIComponent(App.teacherToken || '');
+    var script = document.createElement('script');
+    script.src = API_URL + '?' + params;
+    var timer = setTimeout(function() { cleanup(); reject(new Error('Timeout')); }, 30000);
+    window[cb] = function(result) { cleanup(); resolve(result); };
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cb];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    script.onerror = function() { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(script);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// API POST — for large payloads that exceed JSONP URL limit (~8KB)
+// Uses fetch() POST to GAS doPost — no CORS restriction on GAS side
+// BUT: GAS doesn't return Access-Control-Allow-Origin → browser blocks response
+// Workaround: send with no-cors (fire-and-forget) then verify via JSONP reload
+// ═══════════════════════════════════════════════════
+async function apiPost(action, payload) {
+  const body = JSON.stringify({
+    action:       action,
+    payload:      payload || {},
+    teacherToken: App.teacherToken || '',
+    sessionToken: App.sessionToken || ''
+  });
+  // Try fetch POST first (works if GAS has CORS or same-origin)
+  try {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: body
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return data;
+    }
+  } catch(e) {
+    // CORS block — fallback: send no-cors (fire and forget) then poll
+    console.warn('POST fetch blocked, using no-cors fire-and-forget:', e.message);
+  }
+  // Fire-and-forget with no-cors — GAS will process but we can't read response
+  fetch(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: body
+  }).catch(() => {});
+  // Wait for GAS to process, then verify via JSONP
+  await new Promise(r => setTimeout(r, 3000));
+  return { success: true, _noCorsFallback: true };
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function toast(msg, type='info', dur=3500) {
+  const icons = { success:'✓', error:'✕', info:'ℹ' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+
+// ═══════════════════════════════════════════════════
+// AUTH TABS
+// ═══════════════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('auth-tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('auth-tab-register').classList.toggle('active', tab==='register');
+  document.getElementById('auth-welcome').textContent = tab==='login' ? 'Welcome back' : 'Create account';
+  document.getElementById('auth-subtitle').textContent = tab==='login' ? 'Sign in to continue learning' : 'Join Language Hub today';
+}
+function toggleAppCheck(el) {
+  el.classList.toggle('checked');
+  el.querySelector('input[type=checkbox]').checked = el.classList.contains('checked');
+}
+
+// ═══════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { toast('Please enter email and password.', 'error'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  const res = await api('auth.login', { email, password });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (res.success) {
+    App.user = res.user;
+    App.sessionToken = res.sessionToken;
+    toast('Welcome back, ' + res.user.fullName + '! 👋', 'success');
+    initStudentDashboard();
+    showPage('page-student');
+  } else {
+    toast(res.error || 'Login failed.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// STUDENT DASHBOARD FUNCTIONS
+// ═══════════════════════════════════════════════════
+function initStudentDashboard() {
+  var u = App.user;
+  if (!u) return;
+  var name = u.fullName || u.FullName || '';
+  var cls  = u.class   || u.Class   || '';
+  var sid  = u.studentId || u.StudentID || '';
+  var el;
+  el = document.getElementById('s-name');    if(el) el.textContent = name;
+  el = document.getElementById('s-class');   if(el) el.textContent = cls + ' · ' + sid;
+  el = document.getElementById('s-avatar');  if(el) el.textContent = name.charAt(0).toUpperCase();
+  el = document.getElementById('topbar-date'); if(el) el.textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+  var access = u.appAccess || [];
+  ['vocab','write','listen','speak'].forEach(function(app) {
+    var hasAccess = access.includes(app);
+    var card = document.getElementById('appcard-' + app);
+    var lock = document.getElementById('lock-' + app);
+    var nav  = document.getElementById('nav-'   + app);
+    if (!hasAccess) {
+      if (card) card.classList.add('locked');
+      if (lock) lock.classList.remove('hidden');
+      if (nav)  { nav.style.opacity='0.35'; nav.style.pointerEvents='none'; }
+    } else {
+      if (card) card.classList.remove('locked');
+      if (lock) lock.classList.add('hidden');
+      if (nav)  { nav.style.opacity=''; nav.style.pointerEvents=''; }
+    }
+  });
+}
+
+function showStudentSection(name) {
+  document.querySelectorAll('.student-section').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var sec = document.getElementById('section-' + name);
+  var nav = document.getElementById('nav-' + name);
+  if (sec) sec.classList.add('active');
+  if (nav) nav.classList.add('active');
+  var titles = {home:'Dashboard',vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk'};
+  var t = document.getElementById('student-section-title');
+  if (t) t.textContent = titles[name] || name;
+}
+
+function openApp(app) {
+  var access = (App.user && App.user.appAccess) || [];
+  if (!access.includes(app)) {
+    toast('This app is not activated. Contact your teacher.', 'error');
+    return;
+  }
+  sessionStorage.setItem('ielts_hub_token', App.sessionToken);
+  sessionStorage.setItem('ielts_hub_user', JSON.stringify(App.user));
+  // Also persist to localStorage so write-detail.html can read it when opened from email links
+  localStorage.setItem('ielts_hub_token', App.sessionToken);
+  localStorage.setItem('ielts_hub_user', JSON.stringify(App.user));
+  var urls = {vocab:'./vocab.html',write:'./write.html',listen:'./listen.html',speak:'./speak.html'};
+  window.location.href = urls[app] || './';
+}
+
+function doLogout() {
+  App.user = null; App.sessionToken = null;
+  sessionStorage.removeItem('ielts_hub_token');
+  sessionStorage.removeItem('ielts_hub_user');
+  localStorage.removeItem('ielts_hub_token');
+  localStorage.removeItem('ielts_hub_user');
+  showPage('page-auth');
+  toast('Signed out.', 'info');
+}
+
+// ═══════════════════════════════════════════════════
+// REGISTER
+// ═══════════════════════════════════════════════════
+async function doRegister() {
+  const data = {
+    fullName:     document.getElementById('reg-name').value.trim(),
+    class:        document.getElementById('reg-class').value.trim(),
+    studentId:    document.getElementById('reg-id').value.trim(),
+    dob:          document.getElementById('reg-dob').value,
+    email:        document.getElementById('reg-email').value.trim(),
+    password:     document.getElementById('reg-password').value,
+    packageMonths: parseInt(document.getElementById('reg-package').value) || 12,
+    appAccess:    Array.from(document.querySelectorAll('.app-checkbox.checked')).map(el => el.dataset.app)
+  };
+  for (const [k,v] of Object.entries(data)) {
+    if (k !== 'appAccess' && !v) { toast('Please fill in all fields.', 'error'); return; }
+  }
+  if (data.password.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
+  const btn = document.getElementById('register-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  const res = await api('auth.register', data);
+  btn.disabled = false; btn.textContent = 'Create Account';
+  if (res.success) {
+    toast('Account created! Waiting for teacher activation.', 'success');
+    switchAuthTab('login');
+    document.getElementById('login-email').value = data.email;
+  } else {
+    toast(res.error || 'Registration failed.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// FORGOT PASSWORD
+// ═══════════════════════════════════════════════════
+async function sendResetCode() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { toast('Enter your email.', 'error'); return; }
+  const btn = document.getElementById('send-code-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  const res = await api('auth.forgotPassword', { email });
+  btn.disabled = false; btn.textContent = 'Send Code';
+  if (res.success) {
+    document.getElementById('forgot-step-1').style.display = 'none';
+    document.getElementById('forgot-step-2').style.display = 'block';
+    document.getElementById('forgot-title').textContent = 'Enter Code';
+    if (!res.emailSent && res.code) {
+      toast('Code: ' + res.code, 'info', 20000);
+      document.getElementById('forgot-code').value = res.code;
+    } else { toast('Reset code sent!', 'success'); }
+  } else { toast(res.error || 'Error.', 'error'); }
+}
+async function verifyCode() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const code = document.getElementById('forgot-code').value.trim();
+  if (code.length !== 6) { toast('Enter 6-digit code.', 'error'); return; }
+  const btn = document.getElementById('verify-code-btn');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+  const res = await api('auth.verifyCode', { email, code });
+  btn.disabled = false; btn.textContent = 'Verify Code';
+  if (res && res.success) {
+    document.getElementById('forgot-step-2').style.display = 'none';
+    document.getElementById('forgot-step-3').style.display = 'block';
+    document.getElementById('forgot-title').textContent = 'New Password';
+    toast('Code verified!', 'success');
+  } else { toast((res&&res.error)||'Invalid code.', 'error'); }
+}
+async function doResetPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const code  = document.getElementById('forgot-code').value.trim();
+  const np = document.getElementById('forgot-new-pass').value;
+  const cp = document.getElementById('forgot-confirm-pass').value;
+  if (np.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
+  if (np !== cp) { toast('Passwords do not match.', 'error'); return; }
+  const btn = document.getElementById('reset-pass-btn');
+  btn.disabled = true; btn.textContent = 'Updating...';
+  const res = await api('auth.resetPassword', { email, code, newPassword: np });
+  btn.disabled = false; btn.textContent = 'Update Password';
+  if (res && res.success) { closeModal('forgot-modal'); toast('Password updated! Sign in.', 'success'); document.getElementById('login-email').value = email; switchAuthTab('login'); }
+  else { toast((res&&res.error)||'Update failed.', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════
+// TEACHER LOGIN
+// ═══════════════════════════════════════════════════
+async function doTeacherLogin() {
+  const pw = document.getElementById('teacher-password-input').value;
+  if (!pw) { toast('Enter teacher password.', 'error'); return; }
+  const btn = document.getElementById('teacher-login-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  const res = await api('auth.teacherLogin', { password: pw });
+  btn.disabled = false; btn.textContent = 'Access Dashboard';
+  if (res.success) {
+    App.teacherToken = res.teacherToken;
+    closeModal('teacher-login-modal');
+    toast('Welcome to Teacher Dashboard!', 'success');
+    showPage('page-teacher');
+    loadTeacherData();
+  } else { toast('Incorrect password.', 'error'); }
+}
+function teacherLogout() {
+  App.teacherToken = null;
+  showPage('page-auth');
+  toast('Signed out.', 'info');
+}
+
+// ═══════════════════════════════════════════════════
+// TEACHER DATA LOADING
+// ═══════════════════════════════════════════════════
+async function loadTeacherData() {
+  const [statsRes, usersRes, settingsRes] = await Promise.all([
+    api('teacher.getClassStats'),
+    api('teacher.getStudents'),
+    api('teacher.getSettings')
+  ]);
+  if (statsRes.success) Object.assign(App.teacherData, statsRes);
+  // Ensure reviewSessions, reviewSubs, punishments are populated from statsRes
+  if (statsRes.assignments)    App.teacherData.assignments    = statsRes.assignments    || [];
+  if (statsRes.reviewSessions) App.teacherData.reviewSessions = statsRes.reviewSessions || [];
+  if (statsRes.reviewSubs)     App.teacherData.reviewSubs     = statsRes.reviewSubs     || [];
+  if (statsRes.frResults)      App.teacherData.frResults      = statsRes.frResults      || [];
+  if (statsRes.punishments)    App.teacherData.punishments    = statsRes.punishments    || [];
+  if (usersRes.success)  App.teacherData.students = usersRes.data || usersRes.students || [];
+  if (settingsRes.success) {
+    if (settingsRes.hasOpenai) document.getElementById('key-openai').placeholder = '••••• (saved)';
+    if (settingsRes.hasGrok)   document.getElementById('key-grok').placeholder   = '••••• (saved)';
+    if (settingsRes.hasGemini) document.getElementById('key-gemini').placeholder = '••••• (saved)';
+    const sel = document.getElementById('ai-provider-select');
+    if (sel && settingsRes.aiProvider) sel.value = settingsRes.aiProvider;
+  }
+  renderOverviewTab();
+  renderStudentsActivationTab();
+  renderVocabClassTables();
+
+  // Populate class filter
+  const classes = [...new Set((App.teacherData.students||[]).map(s => norm(s).class).filter(Boolean))].sort();
+  const sel = document.getElementById('vocab-class-filter');
+  if (sel) sel.innerHTML = '<option value="">All Classes</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function showTeacherTab(tab) {
+  document.querySelectorAll('.teacher-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.teacher-section').forEach(s => s.classList.remove('active'));
+  const tabEl = document.getElementById('ttab-' + tab);
+  const secEl = document.getElementById('tsec-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  if (secEl) secEl.classList.add('active');
+  if (tab === 'write')    loadWriteResults();
+  if (tab === 'listen')   loadListenResults();
+  if (tab === 'speak')    loadSpeakResults();
+  if (tab === 'settings') loadSettings();
+}
+
+// ═══════════════════════════════════════════════════
+// OVERVIEW TAB
+// ═══════════════════════════════════════════════════
+function renderOverviewTab() {
+  const students = (App.teacherData.students || []).map(norm);
+  const now = new Date();
+
+  document.getElementById('ov-total-users').textContent   = students.length;
+  document.getElementById('ov-active-users').textContent  = students.filter(s => s.status === 'Active').length;
+  document.getElementById('ov-pending-users').textContent = students.filter(s => s.status === 'Pending').length;
+  const classes = new Set(students.map(s => s.class).filter(Boolean));
+  document.getElementById('ov-total-classes').textContent = classes.size;
+
+  // Expiry warnings
+  const expiring = students.filter(s => {
+    if (!s.expiryDate || s.status !== 'Active') return false;
+    const exp = new Date(s.expiryDate);
+    const days = Math.round((exp - now) / 86400000);
+    return days <= 14 && days >= 0;
+  }).sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+
+  const expiryEl = document.getElementById('ov-expiry-list');
+  if (!expiring.length) {
+    expiryEl.innerHTML = '<span style="color:var(--green);font-size:14px">✅ No accounts expiring in the next 14 days.</span>';
+  } else {
+    expiryEl.innerHTML = expiring.map(s => {
+      const days = Math.round((new Date(s.expiryDate) - now) / 86400000);
+      const color = days <= 3 ? 'var(--red)' : days <= 7 ? 'var(--gold)' : 'var(--grey-600)';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--grey-100)">'
+        + '<span style="font-weight:600">' + s.fullName + '</span>'
+        + '<span class="badge badge-grey">' + s.class + '</span>'
+        + '<span style="color:' + color + ';font-weight:700;font-size:13px">' + (days === 0 ? 'Expires TODAY' : days + ' days left') + '</span>'
+        + '<span style="font-size:12px;color:var(--grey-600)">' + fmtDate(new Date(s.expiryDate)) + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  renderOverviewTable(students);
+}
+
+var _ovAllStudents = [];
+function renderOverviewTable(students) {
+  _ovAllStudents = students;
+  filterOverviewTable('');
+}
+function filterOverviewTable(search) {
+  const statusFilter = (document.getElementById('ov-status-filter')||{}).value || '';
+  const now = new Date();
+  let filtered = _ovAllStudents;
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter(s => [s.fullName, s.class, s.email, s.studentId].some(v => v.toLowerCase().includes(q)));
+  }
+  if (statusFilter) filtered = filtered.filter(s => s.status === statusFilter);
+
+  const tbody = document.getElementById('ov-users-tbody');
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--grey-400)">No students found.</td></tr>'; return; }
+
+  const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️' };
+  tbody.innerHTML = filtered.map(s => {
+    const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
+    const appChips = apps.map(a => '<span title="' + a + '" style="font-size:16px">' + (appIcons[a]||a) + '</span>').join('');
+
+    let daysLeft = '—', daysColor = 'var(--grey-600)', expiryStr = '—';
+    if (s.expiryDate) {
+      const exp = new Date(s.expiryDate);
+      if (!isNaN(exp)) {
+        expiryStr = fmtDate(exp);
+        const d = Math.round((exp - now) / 86400000);
+        daysLeft = d < 0 ? 'Expired' : d + 'd';
+        daysColor = d < 0 ? 'var(--red)' : d <= 7 ? 'var(--gold)' : d <= 30 ? 'var(--grey-600)' : 'var(--green)';
+      }
+    }
+    const statusColor = s.status==='Active' ? 'var(--green)' : s.status==='Pending' ? 'var(--gold)' : 'var(--red)';
+    const pkg = s.packageMonths ? s.packageMonths + ' month' + (s.packageMonths>1?'s':'') : '—';
+    const skey = storeStudent(s);
+
+    return '<tr>'
+      + '<td><strong>' + s.studentId + '</strong></td>'
+      + '<td>' + s.fullName + '</td>'
+      + '<td><span class="badge badge-grey">' + s.class + '</span></td>'
+      + '<td style="font-size:12px;color:var(--grey-600)">' + s.email + '</td>'
+      + '<td><span style="font-weight:600;font-size:13px;color:' + statusColor + '">' + s.status + '</span></td>'
+      + '<td style="font-size:13px">' + pkg + '</td>'
+      + '<td>' + appChips + '</td>'
+      + '<td style="font-size:13px">' + expiryStr + '</td>'
+      + '<td style="font-weight:700;font-size:13px;color:' + daysColor + '">' + daysLeft + '</td>'
+      + '<td><button class="btn btn-outline btn-sm activate-btn" data-key="' + skey + '">Edit</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// STUDENTS ACTIVATION TAB
+// ═══════════════════════════════════════════════════
+function renderStudentsActivationTab() {
+  const students = (App.teacherData.students || []).map(norm);
+  const pending = students.filter(s => s.status === 'Pending');
+
+  const alertEl = document.getElementById('pending-alert');
+  if (alertEl) {
+    alertEl.style.display = pending.length > 0 ? 'flex' : 'none';
+    if (pending.length > 0) document.getElementById('pending-count').textContent = pending.length;
+  }
+
+  const tbody = document.getElementById('students-activation-tbody');
+  if (!tbody) return;
+  if (!students.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">No students registered yet.</td></tr>'; return; }
+
+  const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️' };
+  tbody.innerHTML = students.map(s => {
+    const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
+    const appChips = ['vocab','write','listen','speak'].map(a =>
+      '<span style="font-size:16px;opacity:' + (apps.includes(a)?'1':'0.2') + '" title="' + a + '">' + appIcons[a] + '</span>'
+    ).join('');
+    const statusColor = s.status==='Active'?'var(--green)':s.status==='Pending'?'var(--gold)':'var(--red)';
+    const pkg = s.packageMonths ? s.packageMonths + ' mo' : '—';
+    let expiryStr = '—';
+    if (s.expiryDate) { const d=new Date(s.expiryDate); if(!isNaN(d)) expiryStr=fmtDate(d); }
+    let regDate = '—';
+    if (s.registeredAt) { const d=new Date(s.registeredAt); if(!isNaN(d)) regDate=fmtDate(d); }
+    const skey2 = storeStudent(s);
+    const actionBtn = s.status === 'Pending'
+      ? '<button class="btn btn-green btn-sm activate-btn" data-key="' + skey2 + '">✅ Activate</button>'
+      : '<button class="btn btn-outline btn-sm activate-btn" data-key="' + skey2 + '">Edit</button>';
+
+    return '<tr style="' + (s.status==='Pending'?'background:#FFFBF0':'') + '">'
+      + '<td><strong>' + s.studentId + '</strong></td>'
+      + '<td>' + s.fullName + '</td>'
+      + '<td><span class="badge badge-grey">' + s.class + '</span></td>'
+      + '<td style="font-size:12px">' + s.email + '</td>'
+      + '<td style="font-size:12px;color:var(--grey-600)">' + regDate + '</td>'
+      + '<td><span style="font-weight:600;font-size:13px;color:' + statusColor + '">' + s.status + '</span></td>'
+      + '<td style="font-size:13px">' + pkg + '</td>'
+      + '<td style="font-size:13px">' + expiryStr + '</td>'
+      + '<td>' + appChips + '</td>'
+      + '<td>' + actionBtn + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ── Activate modal ──
+function openActivateModal(student) {
+  const s = norm(student);
+  const apps = ['vocab','write','listen','speak'];
+  const current = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
+  const isPending = s.status === 'Pending';
+  // Auto-calculate expiry: if no expiry set, compute from package
+  let expiryVal = '';
+  if (s.expiryDate) {
+    const d = new Date(s.expiryDate);
+    if (!isNaN(d)) expiryVal = d.toISOString().split('T')[0];
+  }
+  if (!expiryVal && s.packageMonths) {
+    const exp = new Date();
+    exp.setMonth(exp.getMonth() + s.packageMonths);
+    expiryVal = exp.toISOString().split('T')[0];
+  }
+  const pkg = s.packageMonths || 12;
+
+  document.getElementById('activate-user-body').innerHTML = `
+    <div style="background:var(--grey-100);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px">
+      <div style="font-weight:700;font-size:1rem">${s.fullName}</div>
+      <div style="font-size:13px;color:var(--grey-600);margin-top:2px">${s.email} · Class: ${s.class||'—'}</div>
+      <div style="font-size:13px;color:var(--grey-600)">Student ID: ${s.studentId}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Account Status</label>
+      <select id="act-status" class="form-select">
+        <option value="Active" ${s.status==='Active'?'selected':''}>✅ Active</option>
+        <option value="Pending" ${s.status==='Pending'?'selected':''}>⏳ Pending</option>
+        <option value="Inactive" ${s.status==='Inactive'?'selected':''}>🚫 Inactive</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Package (months)</label>
+        <select id="act-pkg" class="form-select">
+          ${[1,2,3,6,12,14].map(m=>`<option value="${m}" ${pkg==m?'selected':''}>${m} month${m>1?'s':''}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expiry Date (auto-calculated)</label>
+        <input type="date" id="act-expiry" class="form-input" value="${expiryVal}">
+        <div class="form-hint">Or set manually</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">App Access</label>
+      <div class="app-access-grid">
+        ${apps.map(a => `
+          <div class="app-checkbox ${current.includes(a)?'checked':''}" data-app="${a}" onclick="this.classList.toggle('checked')">
+            <div class="app-checkbox-icon">${{vocab:'📚',write:'✍️',listen:'🎧',speak:'🎙️'}[a]}</div>
+            <div class="app-checkbox-label">${{vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk'}[a]}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary btn-full" onclick="saveActivation('${s.studentId}', ${isPending})">
+        ${isPending ? '✅ Activate & Send Email' : '💾 Save Changes'}
+      </button>
+      <button class="btn btn-secondary" onclick="closeModal('activate-user-modal')">Cancel</button>
+    </div>
+  `;
+
+  // Auto-update expiry when package changes
+  document.getElementById('act-pkg').addEventListener('change', function() {
+    const months = parseInt(this.value);
+    const exp = new Date();
+    exp.setMonth(exp.getMonth() + months);
+    document.getElementById('act-expiry').value = exp.toISOString().split('T')[0];
+  });
+
+  openModal('activate-user-modal');
+}
+
+async function saveActivation(studentId, sendEmail) {
+  const status    = document.getElementById('act-status').value;
+  const pkg       = parseInt(document.getElementById('act-pkg').value) || 12;
+  const expiry    = document.getElementById('act-expiry').value;
+  const appAccess = Array.from(document.querySelectorAll('#activate-user-body .app-checkbox.checked')).map(el => el.dataset.app);
+
+  const btn = document.querySelector('#activate-user-body .btn-primary');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  const res = await api('teacher.activateUser', {
+    studentId, status, appAccess,
+    packageMonths: pkg,
+    expiryDate: expiry,
+    sendEmail: sendEmail && status === 'Active'
+  });
+
+  btn.disabled = false;
+  if (res.success) {
+    toast(sendEmail && status === 'Active' ? '✅ Activated! Email sent to student.' : '✅ Saved!', 'success');
+    closeModal('activate-user-modal');
+    loadTeacherData();
+  } else {
+    toast(res.error || 'Save failed.', 'error');
+    btn.textContent = sendEmail ? '✅ Activate & Send Email' : '💾 Save Changes';
+  }
+}
+
+async function activateAllPending() {
+  if (!confirm('Activate ALL pending students and send them activation emails?')) return;
+  const pending = (App.teacherData.students||[]).map(norm).filter(s => s.status === 'Pending');
+  if (!pending.length) { toast('No pending students.', 'info'); return; }
+  let ok = 0, fail = 0;
+  for (const s of pending) {
+    const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
+    // Auto-calculate expiry
+    const pkg = s.packageMonths || 12;
+    const exp = new Date(); exp.setMonth(exp.getMonth() + pkg);
+    const res = await api('teacher.activateUser', {
+      studentId: s.studentId,
+      status: 'Active',
+      appAccess: apps.length ? apps : ['vocab','write','listen','speak'],
+      packageMonths: pkg,
+      expiryDate: exp.toISOString().split('T')[0],
+      sendEmail: true
+    });
+    if (res.success) ok++; else fail++;
+  }
+  toast(`✅ Activated ${ok} student(s)${fail?', '+fail+' failed':''}`, ok > 0 ? 'success' : 'error');
+  loadTeacherData();
+}
+
+// ── USERS TABLE (Settings tab) ──
+function renderUsersTable(filter) {
+  filter = filter || '';
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  const students = (App.teacherData.students||[]).filter(s =>
+    !filter || [s.StudentID, s.FullName, s.Class, s.Email].some(v => String(v||'').toLowerCase().includes(filter.toLowerCase()))
+  );
+  if (!students.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--grey-400)">No students found.</td></tr>'; return; }
+  tbody.innerHTML = students.map(raw => {
+    const s = norm(raw);
+    const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
+    const appChips = ['vocab','write','listen','speak'].map(a =>
+      '<span class="app-access-chip ' + (apps.includes(a)?'active':'') + '">' + a + '</span>'
+    ).join('');
+    const statusCls = s.status==='Active' ? 'user-status-active' : 'user-status-pending';
+    const skey3 = storeStudent(s);
+    return '<tr>'
+      + '<td><strong>' + s.studentId + '</strong></td><td>' + s.fullName + '</td>'
+      + '<td><span class="badge badge-grey">' + s.class + '</span></td>'
+      + '<td style="font-size:12px;color:var(--grey-600)">' + s.email + '</td>'
+      + '<td><span class="' + statusCls + '">' + s.status + '</span></td>'
+      + '<td>' + appChips + '</td>'
+      + '<td><button class="btn btn-outline btn-sm activate-btn" data-key="' + skey3 + '">Edit</button></td>'
+      + '</tr>';
+  }).join('');
+}
+function filterUsers(val) { renderUsersTable(val); }
+
+// ── VOCAB CLASS TABLES ──
+var _vocabSortField = null;  // 'class' | 'name' | 'studentId' | null
+var _vocabSortAsc   = true;
+
+function sortVocabBy(field) {
+  if (_vocabSortField === field) {
+    if (_vocabSortAsc) _vocabSortAsc = false;
+    else { _vocabSortField = null; _vocabSortAsc = true; }
+  } else {
+    _vocabSortField = field; _vocabSortAsc = true;
+  }
+  renderVocabClassTables();
+}
+
+function vocabSortIcon(field) {
+  if (_vocabSortField !== field) return '<span style="color:var(--grey-400);font-size:10px"> ⇅</span>';
+  return _vocabSortAsc
+    ? '<span style="color:var(--red);font-size:10px"> ▲</span>'
+    : '<span style="color:var(--red);font-size:10px"> ▼</span>';
+}
+
+function renderVocabClassTables() {
+  const wrap = document.getElementById('vocab-class-tables');
+  if (!wrap) return;
+  const filterClass = (document.getElementById('vocab-class-filter')||{}).value || '';
+  const data = App.teacherData;
+  if (!data.assignments || !data.assignments.length) {
+    wrap.innerHTML = '<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-weight:600;margin-bottom:6px">No assignments yet</div><p style="color:var(--grey-600);font-size:14px">Click "+ New Assignment" to create your first vocabulary assignment.</p></div>';
+    return;
+  }
+  const submMap = {}, revSubMap = {}, punMap = {};
+  (data.submissions||[]).forEach(s => { const sid=String(s.StudentID); if(!submMap[sid])submMap[sid]={}; submMap[sid][s.AssignmentID]=s; });
+  (data.reviewSubs||[]).forEach(r => { const sid=String(r.StudentID); if(!revSubMap[sid])revSubMap[sid]={}; revSubMap[sid][r.ReviewID]=r; });
+  (data.punishments||[]).forEach(p => { const sid=String(p.StudentID); if(!punMap[sid])punMap[sid]=[]; punMap[sid].push(p); });
+
+  wrap.innerHTML = (data.assignments||[]).map((asn) => {
+    let students = (data.students || []).map(norm);
+    if (filterClass) students = students.filter(s => s.class === filterClass);
+    // Apply sort
+    if (_vocabSortField) {
+      students = students.slice().sort((a, b) => {
+        const va = String(a[_vocabSortField]||'').toLowerCase();
+        const vb = String(b[_vocabSortField]||'').toLowerCase();
+        return _vocabSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+    }
+    const rows = students.map(st => {
+      const sid = st.studentId;
+      const sub = (submMap[sid]||{})[asn.ID];
+      const attempts = sub ? (parseInt(sub.AttemptCount)||1) : 0;
+      const revSessions = (data.reviewSessions||[]).filter(r => r.AssignmentID === asn.ID);
+      let wrongWords = [], revDone = false;
+      revSessions.forEach(rev => {
+        const rs = (revSubMap[sid]||{})[rev.ID];
+        if (rs) { revDone=true; try{JSON.parse(rs.WrongWords||'[]').forEach(w=>wrongWords.push(w));}catch(e){} }
+      });
+      wrongWords = [...new Set(wrongWords)];
+      const punRows = punMap[sid]||[];
+      let copyDone = wrongWords.filter(w => { const pr=punRows.find(p=>p.Word===w); return pr&&pr.CompletedAt; }).length;
+      let copyStatus = wrongWords.length===0
+        ? (revDone ? '<span style="color:var(--green);font-size:12px;font-weight:600">✓ No errors</span>' : '—')
+        : copyDone===wrongWords.length
+          ? `<span style="color:var(--green);font-size:12px;font-weight:600">✅ ${copyDone}/${wrongWords.length}</span>`
+          : `<span style="color:var(--gold);font-size:12px;font-weight:600">⏳ ${copyDone}/${wrongWords.length}</span>`;
+      // Teacher check: find if any punishment row has TeacherChecked + CheckedAt
+      const checkedPuns = punRows.filter(p => p.TeacherChecked === '✓' || p.TeacherChecked === true);
+      const checkedAt   = checkedPuns.length > 0
+        ? (checkedPuns[0].CheckedAt || checkedPuns[0].CompletedAt || '')
+        : '';
+      const allChecked  = wrongWords.length > 0 && checkedPuns.length >= wrongWords.length;
+      const isChecked   = allChecked || (checkedPuns.length > 0);
+      const asnIdSafe   = asn.ID.replace(/'/g,"\\'");
+      const sidSafe     = st.studentId.replace(/'/g,"\\'");
+      const teacherCheckCell = wrongWords.length === 0 ? '<span style="color:var(--grey-400);font-size:12px">—</span>'
+        : `<div style="display:flex;align-items:center;gap:6px;justify-content:center">
+             <input type="checkbox" ${isChecked?'checked':''} onchange="teacherCheckPunishment('${asnIdSafe}','${sidSafe}',this.checked,this)"
+               title="Mark as checked" style="width:16px;height:16px;cursor:pointer">
+             <span style="font-size:11px;color:var(--grey-500)" id="chk-date-${asnIdSafe}-${sidSafe}">${checkedAt ? fmtDate(new Date(checkedAt)) : ''}</span>
+             ${isChecked?`<span style="font-size:10px;color:var(--green)">✓</span>`:''}
+           </div>`;
+      return '<tr>'
+        + '<td><strong>' + st.studentId + '</strong></td>'
+        + '<td>' + st.fullName + '</td>'
+        + '<td><span class="badge badge-grey">' + st.class + '</span></td>'
+        + '<td style="text-align:center">' + (attempts>0?'<strong style="color:var(--green)">'+attempts+'×</strong>':'<span style="color:var(--grey-400)">—</span>') + '</td>'
+        + '<td style="text-align:center">' + (wrongWords.length>0?'<span style="color:var(--red);font-weight:700;cursor:pointer" title="'+wrongWords.join(', ')+'">'+wrongWords.length+' ▾</span>':'<span style="color:var(--green)">0</span>') + '</td>'
+        + '<td style="text-align:center">' + copyStatus + '</td>'
+        + '<td style="text-align:center">' + teacherCheckCell + '</td>'
+        + '</tr>';
+    }).join('');
+    const deadline = asn.Deadline ? fmtDate(new Date(asn.Deadline)) : '—';
+    return `<div class="card" style="margin-bottom:20px">
+      <div class="flex-between mb-4">
+        <div>
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📖 ${asn.Title}</div>
+          <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Deadline: ${deadline} · Classes: ${asn.AssignedClasses||'—'}</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="editVocabAssignment('${asn.ID}')">✏️ Edit</button>
+        <button class="btn btn-sm" onclick="deleteVocabAssignment('${asn.ID}','${asn.Title.replace(/'/g,"\\'")}')"
+          style="background:var(--red-light);color:var(--red);border:1px solid var(--red-light);margin-left:6px">🗑 Delete</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th onclick="sortVocabBy('studentId')" style="cursor:pointer;user-select:none">Student ID${vocabSortIcon('studentId')}</th>
+          <th onclick="sortVocabBy('fullName')" style="cursor:pointer;user-select:none">Full Name${vocabSortIcon('fullName')}</th>
+          <th onclick="sortVocabBy('class')" style="cursor:pointer;user-select:none">Class${vocabSortIcon('class')}</th>
+          <th style="text-align:center">Vocab Quiz</th>
+          <th style="text-align:center">In-Class Review</th>
+          <th style="text-align:center">Copying Words</th>
+          <th style="text-align:center">Teacher Check ✓</th>
+        </tr></thead>
+        <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--grey-400);padding:20px">No students in this class.</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+}
+
+// ── TEACHER CHECK PUNISHMENT ──
+async function teacherCheckPunishment(asnId, studentId, checked, checkbox) {
+  try {
+    const dateSpanId = 'chk-date-' + asnId + '-' + studentId;
+    const dateSpan = document.getElementById(dateSpanId);
+    const checkedAt = checked ? new Date().toISOString() : '';
+    const res = await api('teacher.vocab.checkPunishment', {
+      studentId,
+      assignmentId: asnId,
+      checked,
+      checkedAt
+    });
+    if (res.success) {
+      if (dateSpan) dateSpan.textContent = checked ? fmtDate(new Date()) : '';
+      toast(checked ? '✓ Marked as checked' : 'Unchecked', 'success');
+    } else {
+      checkbox.checked = !checked; // revert
+      toast(res.error || 'Failed to save', 'error');
+    }
+  } catch(e) {
+    checkbox.checked = !checked;
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── VOCAB SUBTABS ──
+function showVocabSubtab(tab) {
+  ['assignments','asn-log','inclass','inclass-log','freeread'].forEach(function(t) {
+    var sec = document.getElementById('vsec-' + t);
+    var btn = document.getElementById('vstab-' + t);
+    if (sec) sec.style.display = t === tab ? 'block' : 'none';
+    if (btn) {
+      btn.style.background    = t === tab ? '#fff' : 'transparent';
+      btn.style.color         = t === tab ? 'var(--red)' : 'var(--grey-600)';
+      btn.style.boxShadow     = t === tab ? 'var(--shadow-sm)' : 'none';
+    }
+  });
+  var actionBtn = document.getElementById('btn-vocab-new-action');
+  if (actionBtn) {
+    if (tab === 'assignments') { actionBtn.textContent = '+ New Assignment'; actionBtn.onclick = function(){ openVocabAssignmentForm(); }; actionBtn.style.display='inline-flex'; }
+    else if (tab === 'inclass') { actionBtn.textContent = '+ Schedule Review'; actionBtn.onclick = function(){ openInClassReviewForm(); }; actionBtn.style.display='inline-flex'; }
+    else { actionBtn.style.display = 'none'; }
+  }
+  if (tab === 'inclass')   loadInClassReviewList();
+  if (tab === 'freeread')  loadFreeReadResults();
+}
+
+// ── IN-CLASS REVIEW ──
+function openInClassReviewForm(editId) {
+  document.getElementById('icr-modal-title').textContent = editId ? '✏️ Edit Review' : '🔄 Schedule In-Class Review';
+  document.getElementById('icr-edit-id').value = editId || '';
+  document.getElementById('icr-title').value   = '';
+  document.getElementById('icr-classes').value = '';
+  document.getElementById('icr-start').value   = '';
+  document.getElementById('icr-duration').value = '15';
+  // Populate assignment dropdown
+  var sel = document.getElementById('icr-assignment');
+  sel.innerHTML = '<option value="">— Select assignment —</option>'
+    + (App.teacherData.assignments||[]).map(function(a) {
+        return '<option value="' + a.ID + '">' + a.Title + '</option>';
+      }).join('');
+  if (editId) {
+    var rev = (App.teacherData.reviewSessions||[]).find(function(r){ return r.ID === editId; });
+    if (rev) {
+      document.getElementById('icr-title').value      = rev.Title || '';
+      document.getElementById('icr-classes').value    = rev.AssignedClasses || '';
+      document.getElementById('icr-assignment').value = rev.AssignmentID || '';
+      document.getElementById('icr-duration').value   = rev.DurationMinutes || '15';
+      if (rev.StartTime) document.getElementById('icr-start').value = new Date(rev.StartTime).toISOString().slice(0,16);
+    }
+  }
+  openModal('inclass-review-modal');
+}
+
+async function saveInClassReview() {
+  var title      = document.getElementById('icr-title').value.trim();
+  var classes    = document.getElementById('icr-classes').value.trim();
+  var asnId      = document.getElementById('icr-assignment').value;
+  var startTime  = document.getElementById('icr-start').value;
+  var duration   = document.getElementById('icr-duration').value;
+  var editId     = document.getElementById('icr-edit-id').value;
+  if (!title)    { toast('Enter review title.', 'error'); return; }
+  if (!classes)  { toast('Enter assigned classes.', 'error'); return; }
+  if (!asnId)    { toast('Select a linked assignment.', 'error'); return; }
+  if (!startTime){ toast('Set start date & time.', 'error'); return; }
+  var btn = document.getElementById('icr-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var payload = { title, assignedClasses: classes, assignmentId: asnId, startTime: new Date(startTime).toISOString(), durationMinutes: parseInt(duration)||15 };
+  if (editId) payload.id = editId;
+  var action = editId ? 'teacher.vocab.updateReview' : 'teacher.vocab.createReview';
+  try {
+    var res = await api(action, payload);
+    btn.disabled = false; btn.textContent = '💾 Save Review';
+    if (res.success) {
+      toast(editId ? 'Review updated!' : 'Review scheduled!', 'success');
+      closeModal('inclass-review-modal');
+      loadTeacherData();
+      setTimeout(function(){ loadInClassReviewList(); }, 800);
+    } else { toast(res.error||'Save failed.', 'error'); }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '💾 Save Review';
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+async function loadInClassReviewList() {
+  var el = document.getElementById('inclass-review-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--grey-400)"><div style="display:inline-block;width:18px;height:18px;border:2px solid var(--grey-200);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite"></div> Loading…</div>';
+  var reviews   = App.teacherData.reviewSessions || [];
+  var reviewSubs= App.teacherData.reviewSubs     || [];
+  var students  = (App.teacherData.students||[]).map(function(s){ return norm(s); });
+  if (!reviews.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No review sessions yet. Click <strong>+ Schedule Review</strong> to create one.</div>';
+    return;
+  }
+  var now = new Date();
+  el.innerHTML = reviews.map(function(r) {
+    var asn = (App.teacherData.assignments||[]).find(function(a){ return a.ID === r.AssignmentID; });
+    var startTime = r.StartTime ? new Date(r.StartTime) : null;
+    var isLive    = startTime && now >= startTime;
+    var statusBadge = isLive
+      ? '<span class="badge badge-red">🔴 Live</span>'
+      : '<span class="badge badge-gold">⏰ Scheduled</span>';
+    var startStr  = startTime ? fmtDateTime(startTime) : 'N/A';
+    // Get submissions for this review
+    var subs = reviewSubs.filter(function(s){ return s.ReviewID === r.ID; });
+    // Build per-class rows
+    var assignedClasses = (r.AssignedClasses||'').split(',').map(function(c){ return c.trim(); }).filter(Boolean);
+    var classStudents   = assignedClasses[0]==='ALL' ? students
+      : students.filter(function(s){ return assignedClasses.some(function(c){ return s.class.toLowerCase()===c.toLowerCase(); }); });
+    var done   = subs.length;
+    var total  = classStudents.length;
+    var avgScore = done > 0 ? Math.round(subs.reduce(function(acc, s){ return acc + (parseInt(s.Score)||0); }, 0) / done) : null;
+    var rows = classStudents.map(function(st) {
+      var sub = subs.find(function(s){ return s.StudentID === st.studentId || s.studentId === st.studentId; });
+      var sc  = sub ? parseInt(sub.Score)||0 : null;
+      var scHtml = sc !== null
+        ? '<span style="font-weight:700;color:' + (sc>=80?'var(--green)':sc>=60?'var(--gold)':'var(--red)') + '">' + sc + '%</span>'
+        : '<span style="color:var(--grey-400)">—</span>';
+      var wrongWords = [];
+      if (sub) { try { wrongWords = JSON.parse(sub.WrongWords||'[]'); } catch(e) {} }
+      return '<tr>'
+        + '<td><strong>' + st.studentId + '</strong></td>'
+        + '<td>' + st.fullName + '</td>'
+        + '<td><span class="badge badge-grey">' + st.class + '</span></td>'
+        + '<td style="text-align:center">' + scHtml + '</td>'
+        + '<td style="text-align:center;font-size:12px;color:var(--grey-600)">'
+          + (sub ? (sub.SubmittedAt ? fmtDateTime(new Date(sub.SubmittedAt)) : '—') : '—') + '</td>'
+        + '<td style="font-size:12px;color:var(--red)">'
+          + (wrongWords.length > 0 ? wrongWords.slice(0,4).join(', ') + (wrongWords.length>4?'…':'') : '<span style="color:var(--green)">✓</span>') + '</td>'
+        + '</tr>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:18px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
+      + '<div>'
+      + '<div style="font-family:var(--font-display);font-size:.95rem;font-weight:700">' + r.Title + ' ' + statusBadge + '</div>'
+      + '<div style="font-size:12px;color:var(--grey-600);margin-top:3px">'
+      + '📚 ' + (asn?asn.Title:'N/A') + ' &nbsp;·&nbsp; 🕐 ' + startStr
+      + ' &nbsp;·&nbsp; ⏱ ' + (r.DurationMinutes||15) + ' min'
+      + (avgScore!==null ? ' &nbsp;·&nbsp; Avg: <strong>' + avgScore + '%</strong>' : '')
+      + ' &nbsp;·&nbsp; <strong>' + done + '</strong>/' + total + ' done'
+      + '</div></div>'
+      + '<div style="display:flex;gap:8px">'
+      + '<button class="btn btn-outline btn-sm" onclick="openInClassReviewForm(\'' + r.ID + '\')">✏️ Edit</button>'
+      + '</div></div>'
+      + '<div class="table-wrap"><table>'
+      + '<thead><tr><th>Student ID</th><th>Full Name</th><th>Class</th><th style="text-align:center">Score</th><th>Submitted At</th><th>Wrong Words</th></tr></thead>'
+      + '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:var(--grey-400);padding:16px">No students assigned.</td></tr>') + '</tbody>'
+      + '</table></div></div>';
+  }).join('');
+}
+
+// ── FREE READING RESULTS ──
+// ══════════════════════════════
+// ASSIGNMENT SUBMISSION LOG
+// ══════════════════════════════
+var _asnLogRows = [], _asnLogSort = {field:'', asc:true};
+
+function _sortAsnLog(field) {
+  if (_asnLogSort.field === field) _asnLogSort.asc = !_asnLogSort.asc;
+  else { _asnLogSort.field = field; _asnLogSort.asc = true; }
+  _renderAsnLogTable(_asnLogRows);
+}
+
+function _renderAsnLogTable(rows) {
+  const tbody = document.getElementById('asn-log-tbody');
+  if (!tbody) return;
+  // Build assignment title map
+  const asnMap = {};
+  (App.teacherData.assignments||[]).forEach(a => { asnMap[a.ID] = a.Title||a.ID; });
+  // Sort
+  let sorted = [...rows];
+  if (_asnLogSort.field) {
+    sorted.sort((a,b) => {
+      const va = String(a[_asnLogSort.field]||'').toLowerCase();
+      const vb = String(b[_asnLogSort.field]||'').toLowerCase();
+      return _asnLogSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--grey-400)">No submissions yet.</td></tr>'; return; }
+  const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
+  tbody.innerHTML = sorted.map((r,i) => {
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+    const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
+    return '<tr>'
+      + `<td style="${th};color:var(--grey-400)">${sorted.length-i}</td>`
+      + `<td style="${th};font-family:var(--font-mono);font-size:11px">${r.StudentID||'—'}</td>`
+      + `<td style="${th}"><strong>${r.FullName||'—'}</strong></td>`
+      + `<td style="${th}"><span class="badge badge-grey">${r.Class||'—'}</span></td>`
+      + `<td style="${th};font-size:12px">${asnMap[r.AssignmentID]||r.AssignmentID||'—'}</td>`
+      + `<td style="${th};text-align:center;font-weight:700">${r.AttemptCount||1}</td>`
+      + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.LastAttempt)}</td>`
+      + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt||r.LastAttempt)}</td>`
+      + `<td style="${th};text-align:center">${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--grey-400)">—</span>'}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+      + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
+      + '</tr>';
+  }).join('');
+}
+
+async function renderAsnSubmissionLog(force) {
+  _asnLogRows = (App.teacherData.submissions||[]).slice().reverse();
+  if (!_asnLogRows.length || force) {
+    // Reload from stats if needed
+    const res = await api('teacher.getClassStats');
+    if (res.success) { App.teacherData.submissions = res.submissions||[]; _asnLogRows = (res.submissions||[]).slice().reverse(); }
+  }
+  _renderAsnLogTable(_asnLogRows);
+}
+
+// ══════════════════════════════
+// IN-CLASS SUBMISSION LOG
+// ══════════════════════════════
+var _revLogRows = [], _revLogSort = {field:'', asc:true};
+
+function _sortRevLog(field) {
+  if (_revLogSort.field === field) _revLogSort.asc = !_revLogSort.asc;
+  else { _revLogSort.field = field; _revLogSort.asc = true; }
+  _renderRevLogTable(_revLogRows);
+}
+
+function _renderRevLogTable(rows) {
+  const tbody = document.getElementById('inclass-log-tbody');
+  if (!tbody) return;
+  const revMap = {};
+  (App.teacherData.reviewSessions||[]).forEach(r => { revMap[r.ID] = r.Title||r.ID; });
+  let sorted = [...rows];
+  if (_revLogSort.field) {
+    sorted.sort((a,b) => {
+      const va = String(a[_revLogSort.field]||'').toLowerCase();
+      const vb = String(b[_revLogSort.field]||'').toLowerCase();
+      return _revLogSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">No in-class submissions yet.</td></tr>'; return; }
+  const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
+  const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
+  tbody.innerHTML = sorted.map((r,i) => {
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+    return '<tr>'
+      + `<td style="${th};color:var(--grey-400)">${sorted.length-i}</td>`
+      + `<td style="${th};font-family:var(--font-mono);font-size:11px">${r.StudentID||'—'}</td>`
+      + `<td style="${th}"><strong>${r.FullName||'—'}</strong></td>`
+      + `<td style="${th}"><span class="badge badge-grey">${r.Class||'—'}</span></td>`
+      + `<td style="${th};font-size:12px">${revMap[r.ReviewID]||r.ReviewID||'—'}</td>`
+      + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.SubmittedAt)}</td>`
+      + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt)}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+      + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
+      + '</tr>';
+  }).join('');
+}
+
+async function renderInclassSubmissionLog(force) {
+  _revLogRows = (App.teacherData.reviewSubs||[]).slice().reverse();
+  if (!_revLogRows.length || force) {
+    const res = await api('teacher.getClassStats');
+    if (res.success) { App.teacherData.reviewSubs = res.reviewSubs||[]; _revLogRows = (res.reviewSubs||[]).slice().reverse(); }
+  }
+  _renderRevLogTable(_revLogRows);
+}
+
+async function loadFreeReadResults() {
+  var tbody = document.getElementById('freeread-results-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  try {
+    // Use cached data from teacherGetClassStats, or fetch separately
+    var rows = (App.teacherData.frResults||[]).slice();
+    if (!rows.length) {
+      var res = await api('teacher.vocab.getFreeReadResults');
+      if (res && res.success) { rows = (res.rows||[]).slice(); App.teacherData.frResults = rows; }
+    }
+    rows = rows.slice().reverse(); // newest first
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">No free reading sessions yet.</td></tr>'; return; }
+    tbody.innerHTML = rows.map(function(r, i) {
+      var sc = parseInt(r.Score)||0;
+      var scColor = sc>=80?'var(--green)':sc>=60?'var(--gold)':'var(--red)';
+      var rowEnc = encodeURIComponent(JSON.stringify({
+        timestamp:   r.Timestamp||'',
+        studentName: r.FullName||r.StudentName||'',
+        studentId:   r.StudentID||'',
+        class:       r.Class||'',
+        topic:       r.Topic||'Free Reading',
+        score:       sc,
+        quizMode:    r.QuizMode||'mixed',
+        wordCount:   r.WordCount||0,
+        passage:     r.ReadingPassage||'',
+        vocabulary:  (function(){ try{ return JSON.parse(r.VocabularyJSON||'[]'); }catch(e){ return []; } })(),
+        questions:   (function(){ try{ return JSON.parse(r.QuestionsJSON||'[]'); }catch(e){ return []; } })(),
+        wrongWords:  (function(){ try{ return JSON.parse(r.WrongWords||'[]'); }catch(e){ return []; } })()
+      }));
+      return '<tr>'
+        + '<td>' + (rows.length - i) + '</td>'
+        + '<td style="font-size:12px">' + (r.Timestamp ? fmtDateTime(new Date(r.Timestamp)) : '—') + '</td>'
+        + '<td><strong>' + (r.FullName||r.StudentName||'') + '</strong></td>'
+        + '<td><span class="badge badge-grey">' + (r.Class||'—') + '</span></td>'
+        + '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">' + (r.Topic||'Free Reading') + '</td>'
+        + '<td style="text-align:center">' + (r.WordCount||'—') + '</td>'
+        + '<td><strong style="color:' + scColor + '">' + sc + '%</strong></td>'
+        + '<td style="font-size:11px;color:var(--grey-600)">' + (r.QuizMode||'mixed') + '</td>'
+        + '<td><a href="vocab-detail.html?row=' + rowEnc + '" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px">👁 View</a></td>'
+        + '</tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--red)">Error: ' + e.message + '</td></tr>';
+  }
+}
+
+// ── DATE FORMATTER  DD-MM-YYYY @ HH:MM ──
+function fmtDateTime(d) {
+  if (!d || isNaN(d)) return '—';
+  var dd   = String(d.getDate()).padStart(2,'0');
+  var mm   = String(d.getMonth()+1).padStart(2,'0');
+  var yyyy = d.getFullYear();
+  var hh   = String(d.getHours()).padStart(2,'0');
+  var min  = String(d.getMinutes()).padStart(2,'0');
+  return dd + '-' + mm + '-' + yyyy + ' @ ' + hh + ':' + min;
+}
+function fmtDate(d) {
+  if (!d || isNaN(d)) return '—';
+  var dd   = String(d.getDate()).padStart(2,'0');
+  var mm   = String(d.getMonth()+1).padStart(2,'0');
+  var yyyy = d.getFullYear();
+  return dd + '-' + mm + '-' + yyyy;
+}
+
+// ── VOCAB AI: Gemini direct call (browser → Gemini, no GAS hop) ──
+function getVAGeminiKey() {
+  // Try multiple key sources: vocab app key, hub shared key, write app key
+  return localStorage.getItem('vocab_gemini_key')
+      || localStorage.getItem('hub_gemini_key')
+      || localStorage.getItem('write_gemini_key')
+      || '';
+}
+
+async function callGeminiVA(prompt, maxTokens) {
+  const key = getVAGeminiKey();
+  if (!key) throw new Error('NO_KEY');
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  let lastErr = null;
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: maxTokens || 8192, temperature: 0.1 }
+          })
+        }
+      );
+      if (res.status === 429) {
+        await new Promise(r => setTimeout(r, 3000));
+        lastErr = new Error('Rate limit on ' + model);
+        continue;
+      }
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        lastErr = new Error((e.error?.message) || 'HTTP ' + res.status);
+        continue;
+      }
+      const d = await res.json();
+      const text = d.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) { lastErr = new Error('Empty response from ' + model); continue; }
+      return text.trim();
+    } catch(e) { lastErr = e; continue; }
+  }
+  throw lastErr || new Error('All Gemini models failed');
+}
+
+// ── VOCAB AI: Gemini key management ──
+function vaSetGeminiKey(val) {
+  const v = val.trim();
+  if (v) localStorage.setItem('vocab_gemini_key', v);
+  document.getElementById('va-key-status').textContent =
+    v ? (v.startsWith('AIza') ? '✅ Key set — Gemini direct call active' : '⚠ Key should start with AIza') : '';
+}
+function vaCheckKey() {
+  const k = getVAGeminiKey();
+  const statusEl = document.getElementById('va-key-status');
+  if (!k) { statusEl.textContent = '❌ No key. Enter your key above.'; return; }
+  statusEl.textContent = '⏳ Verifying…';
+  fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${k}`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({contents:[{role:'user',parts:[{text:'Say "ok"'}]}]})
+  }).then(r => {
+    statusEl.textContent = r.ok ? '✅ Key valid! Gemini direct active.' : '❌ Key invalid (HTTP ' + r.status + ')';
+  }).catch(() => { statusEl.textContent = '❌ Network error verifying key'; });
+}
+function vaPrefillKey() {
+  const k = getVAGeminiKey();
+  const inp = document.getElementById('va-gemini-key');
+  if (inp && k) {
+    inp.placeholder = '••••• (key saved)';
+    document.getElementById('va-key-status').textContent = '✅ Gemini key active — will process ALL words';
+  }
+}
+
+// ── VOCAB ASSIGNMENT FORM ──
+var vaEditingVocab = [];
+var vaSelectedModel = 'openai';
+
+function openVocabAssignmentForm() {
+  document.getElementById('vocab-modal-title').textContent = '📚 Create New Assignment';
+  document.getElementById('va-edit-id').value = '';
+  document.getElementById('va-title').value = '';
+  document.getElementById('va-classes').value = '';
+  document.getElementById('va-start').value = new Date().toISOString().split('T')[0];
+  document.getElementById('va-deadline').value = '';
+  document.getElementById('va-passage').value = '';
+  document.getElementById('va-vocab').value = '';
+  vaEditingVocab = [];
+  renderVAVocabTable();
+  vaPrefillKey();
+  openModal('vocab-assignment-modal');
+}
+
+function editVocabAssignment(id) {
+  const asn = (App.teacherData.assignments||[]).find(a => a.ID === id);
+  if (!asn) return;
+  document.getElementById('vocab-modal-title').textContent = '✏️ Edit Assignment';
+  document.getElementById('va-edit-id').value = id;
+  document.getElementById('va-title').value = asn.Title || '';
+  document.getElementById('va-classes').value = asn.AssignedClasses || '';
+  document.getElementById('va-start').value = asn.StartDate ? new Date(asn.StartDate).toISOString().split('T')[0] : '';
+  document.getElementById('va-deadline').value = asn.Deadline ? new Date(asn.Deadline).toISOString().split('T')[0] : '';
+  document.getElementById('va-passage').value = asn.ReadingPassage || '';
+  try { vaEditingVocab = JSON.parse(asn.VocabularyJSON||'[]'); } catch(e) { vaEditingVocab = []; }
+  document.getElementById('va-vocab').value = vaEditingVocab.map(v=>v.original||v).join('\n');
+  renderVAVocabTable();
+  vaPrefillKey();
+  openModal('vocab-assignment-modal');
+}
+
+async function deleteVocabAssignment(id, title) {
+  if (!confirm(`Xoá bài tập "${title}"?\n\nHành động này không thể hoàn tác. Điểm số sinh viên đã nộp sẽ không bị xoá.`)) return;
+  try {
+    const res = await api('teacher.vocab.deleteAssignment', { id });
+    if (res.success) {
+      toast('Đã xoá bài tập "' + title + '"', 'success');
+      loadTeacherData();
+    } else {
+      toast(res.error || 'Xoá thất bại.', 'error');
+    }
+  } catch(e) {
+    toast('Lỗi: ' + e.message, 'error');
+  }
+}
+
+function renderVAVocabTable() {
+  const tbody = document.getElementById('va-vocab-tbody');
+  if (!vaEditingVocab.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:16px">Use AI Analysis or add rows manually.</td></tr>'; return; }
+  tbody.innerHTML = vaEditingVocab.map((v,i) => `<tr>
+    <td><input type="text" value="${(v.original||'').replace(/"/g,'&quot;')}" placeholder="Word" class="form-input" style="padding:6px 10px;width:100%;min-width:140px" oninput="vaEditingVocab[${i}].original=this.value"></td>
+    <td><input type="text" value="${(v.ipa||'').replace(/"/g,'&quot;')}" placeholder="/wɜːrd/" class="form-input" style="padding:6px 10px;font-family:var(--font-mono);width:100%;min-width:120px" oninput="vaEditingVocab[${i}].ipa=this.value"></td>
+    <td><input type="text" value="${(v.synonyms||'').replace(/"/g,'&quot;')}" placeholder="definition or synonyms" class="form-input" style="padding:6px 10px;width:100%;min-width:240px" oninput="vaEditingVocab[${i}].synonyms=this.value"></td>
+    <td><input type="text" value="${(v.vietnamese||'').replace(/"/g,'&quot;')}" placeholder="Vietnamese" class="form-input" style="padding:6px 10px;width:100%;min-width:140px" oninput="vaEditingVocab[${i}].vietnamese=this.value"></td>
+    <td><button onclick="vaEditingVocab.splice(${i},1);renderVAVocabTable()" style="background:var(--red-light);color:var(--red);border:none;border-radius:6px;padding:4px 8px;cursor:pointer">✕</button></td>
+  </tr>`).join('');
+}
+
+function addVARow() { vaEditingVocab.push({original:'',ipa:'',synonyms:'',vietnamese:''}); renderVAVocabTable(); }
+
+function selectVAModel(btn, model) {
+  vaSelectedModel = model;
+  document.querySelectorAll('#va-ai-chips .btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,.1)'; b.style.color = 'rgba(255,255,255,.7)';
+  });
+  btn.style.background = 'var(--red)'; btn.style.color = 'white';
+}
+
+async function runVAAnalysis() {
+  const rawVocab = document.getElementById('va-vocab').value.trim();
+  const passage  = document.getElementById('va-passage').value.trim();
+  if (!rawVocab && !passage) { toast('Enter vocabulary list or reading passage first.', 'error'); return; }
+  const btn = document.getElementById('va-ai-btn');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+
+  try {
+    if (rawVocab) {
+      // ── Step 1: Parse client-side ─────────────────────────────────
+      const lines = rawVocab.split('\n').map(l => l.trim()).filter(Boolean);
+      const parsed = [];
+      for (const line of lines) {
+        let clean = line.replace(/^\d+[\.\)\s]+/, '').trim();
+        if (!clean) continue;
+        let word = '', syn = '';
+        const eqIdx  = clean.indexOf('=');
+        const colIdx = clean.indexOf(':');
+        let splitIdx = -1;
+        if (eqIdx >= 0 && (colIdx < 0 || eqIdx <= colIdx)) splitIdx = eqIdx;
+        else if (colIdx >= 0 && colIdx < 40) splitIdx = colIdx;
+        if (splitIdx >= 0) {
+          word = clean.slice(0, splitIdx).trim();
+          syn  = clean.slice(splitIdx + 1).trim();
+        } else { word = clean.trim(); }
+        if (word) parsed.push({ original: word, ipa: '', synonyms: syn, vietnamese: '' });
+      }
+      if (!parsed.length) { toast('No words found. Check format (word= definition).', 'error'); return; }
+
+      // ── Step 2: Show immediately ──────────────────────────────────
+      vaEditingVocab = parsed;
+      renderVAVocabTable();
+      toast('Parsed ' + parsed.length + ' words. Đang gọi AI cho IPA + Vietnamese…', 'info');
+
+      // ── Step 3: AI enrichment ─────────────────────────────────────────
+      // Gửi passage (context) + toàn bộ từ gốc trong 1 call duy nhất
+      // Format: __PASSAGE__[bài đọc]\n__WORDS__\n[từ gốc]
+      const wordLines = parsed.map(w => w.original).join('\n');
+      const passageCtx = passage ? passage.slice(0, 400) : '';
+      const aiText = passageCtx
+        ? `__PASSAGE__${passageCtx}\n__WORDS__\n${wordLines}`
+        : `__TARGETWORDS__${wordLines}`;
+      const testEncoded = encodeURIComponent(JSON.stringify({ text: aiText }));
+      const SAFE_URL = 1600;
+
+      const mergeAI = (data, offset) => {
+        if (!Array.isArray(data)) return;
+        data.forEach((aiWord, j) => {
+          const idx = offset + j;
+          if (!vaEditingVocab[idx]) return;
+          if (aiWord.ipa)        vaEditingVocab[idx].ipa        = aiWord.ipa;
+          if (aiWord.vietnamese) vaEditingVocab[idx].vietnamese = aiWord.vietnamese;
+          if (aiWord.synonyms)   vaEditingVocab[idx].synonyms   = vaEditingVocab[idx].synonyms || aiWord.synonyms;
+        });
+        renderVAVocabTable();
+      };
+
+      // ── AI enrichment: prefer Gemini direct (browser→Gemini, unlimited) ──
+      // Falls back to GAS (OpenAI) if no Gemini key available
+      const BATCH_SIZE = 20;
+      const totalBatches = Math.ceil(parsed.length / BATCH_SIZE);
+      const hasGeminiKey = !!getVAGeminiKey();
+
+      if (totalBatches > 1) {
+        toast(`Processing ${parsed.length} words in ${totalBatches} batches…`, 'info');
+      }
+
+      try {
+        for (let b = 0; b < totalBatches; b++) {
+          const slice     = parsed.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+          const bWords    = slice.map(w => w.original);
+          const offset    = b * BATCH_SIZE;
+          const batchLabel = `${offset+1}–${offset+bWords.length} / ${parsed.length}`;
+          btn.textContent = `⏳ AI IPA+VI ${batchLabel}…`;
+
+          try {
+            if (hasGeminiKey) {
+              // ── Gemini direct: fast, no URL limit, processes ALL words ──
+              const prompt = `You are a vocabulary dictionary. Return ONLY a valid JSON array, no markdown.
+For EVERY word in the list below (${bWords.length} words total), return exactly one object:
+- "word": the word/phrase exactly as given
+- "ipa": British English IPA (e.g. /ˈwɜːd/)
+- "vietnamese": concise Vietnamese translation (1-5 words)
+
+CRITICAL: Include ALL ${bWords.length} words. Do not skip any.
+
+Word list:
+${bWords.join('\n')}
+
+Return ONLY the JSON array.`;
+              const raw   = await callGeminiVA(prompt, 4096);
+              const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+              const si = clean.indexOf('['), ei = clean.lastIndexOf(']') + 1;
+              if (si >= 0) mergeAI(JSON.parse(clean.substring(si, ei)), offset);
+            } else {
+              // ── Fallback: GAS → OpenAI ──
+              const txt = `__TARGETWORDS__${bWords.join('\n')}`;
+              const res = await apiPost('teacher.vocab.analyzeVocab', { text: txt, model: vaSelectedModel });
+              if (res?.success && res.data?.length) mergeAI(res.data, offset);
+            }
+          } catch(batchErr) {
+            console.warn(`Batch ${b+1} failed:`, batchErr.message);
+            if (batchErr.message === 'NO_KEY') {
+              // No Gemini key — show prompt and continue with GAS fallback
+              toast('💡 Thêm Gemini Key vào VocabMaster để AI chạy nhanh hơn', 'info');
+            }
+          }
+          if (b < totalBatches - 1) await new Promise(r => setTimeout(r, 400));
+        }
+        toast('Done! ' + parsed.length + ' entries ready. ✅', 'success');
+      } catch(aiErr) {
+        toast('AI enrichment done (some words may be blank).', 'info');
+      }
+
+    } else {
+      // ── Passage only: extract vocab from passage ──────────────────
+      let vaData = null;
+      try {
+        if (getVAGeminiKey()) {
+          const prompt = `Extract 20-80 key IELTS vocabulary words from this passage.
+For each word return: original, ipa (British), synonyms (1-2 short), vietnamese (1-5 words).
+Return ONLY a JSON array: [{"original":"word","ipa":"/wɜːd/","synonyms":"term","vietnamese":"từ"}]
+
+Passage:
+${passage.slice(0, 8000)}`;
+          const raw   = await callGeminiVA(prompt, 8192);
+          const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+          const si = clean.indexOf('['), ei = clean.lastIndexOf(']') + 1;
+          if (si >= 0) vaData = JSON.parse(clean.substring(si, ei));
+        } else {
+          const res = await apiPost('teacher.vocab.analyzeVocab', {
+            text: passage.slice(0, 1000), model: vaSelectedModel
+          });
+          if (res?.success) vaData = res.data;
+        }
+      } catch(e) { console.warn('Passage analysis error:', e); }
+
+      if (vaData?.length) {
+        vaEditingVocab = vaData;
+        renderVAVocabTable();
+        toast('Generated ' + vaData.length + ' vocabulary entries! ✅', 'success');
+      } else { toast('AI returned no data. Try again.', 'error'); }
+    }
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ Analyze Vocabulary';
+  }
+}
+
+async function saveVAAssignment() {
+  const title   = document.getElementById('va-title').value.trim();
+  const classes = document.getElementById('va-classes').value.trim();
+  const editId  = document.getElementById('va-edit-id').value;
+  if (!title)   { toast('Assignment title is required.', 'error'); return; }
+  if (!classes) { toast('Please specify assigned classes.', 'error'); return; }
+
+  const vocab      = vaEditingVocab.filter(v => v.original && v.original.trim());
+  const rawPassage = document.getElementById('va-passage').value.trim();
+  const btn        = document.getElementById('va-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    const action = editId
+      ? 'teacher.vocab.updateAssignment'
+      : 'teacher.vocab.createAssignment';
+
+    // ── STEP 1: Save metadata + passage via JSONP (safe size) ──
+    // Passage is sent here; vocab sent separately in chunks below
+    const metaPayload = {
+      title,
+      assignedClasses: classes,
+      startDate: document.getElementById('va-start').value,
+      deadline:  document.getElementById('va-deadline').value,
+    };
+    if (editId) metaPayload.id = editId;
+
+    // Passage: include if has content; if editing+empty → skip (don't overwrite)
+    if (rawPassage) metaPayload.readingPassage = rawPassage.substring(0, 5000);
+    else if (!editId) metaPayload.readingPassage = '';
+
+    // If no vocab at all, send empty array now
+    if (!vocab.length) metaPayload.vocabulary = [];
+
+    btn.textContent = 'Saving info...';
+    const metaRes = await api(action, metaPayload);
+    if (!metaRes.success) {
+      toast(metaRes.error || 'Save failed.', 'error');
+      return;
+    }
+    // Get the assignment ID (new or existing)
+    const asnId = metaRes.id || editId;
+
+    // ── STEP 2: Save vocab in 15-word JSONP chunks ──
+    if (vocab.length > 0 && asnId) {
+      const CHUNK = 15;
+      const vocabClean = vocab.map(v => ({
+        original:   (v.original  || '').substring(0, 80),
+        ipa:        (v.ipa       || '').substring(0, 30),
+        synonyms:   (v.synonyms  || '').substring(0, 120),
+        vietnamese: (v.vietnamese|| '').substring(0, 60)
+      }));
+      const totalChunks = Math.ceil(vocabClean.length / CHUNK);
+
+      for (let c = 0; c < totalChunks; c++) {
+        const chunk  = vocabClean.slice(c * CHUNK, (c + 1) * CHUNK);
+        const isLast = c === totalChunks - 1;
+        btn.textContent = totalChunks > 1
+          ? `Saving vocab ${c * CHUNK + 1}–${Math.min((c+1)*CHUNK, vocabClean.length)} / ${vocabClean.length}...`
+          : 'Saving vocab...';
+
+        const chunkRes = await api('teacher.vocab.updateVocabChunk', {
+          id:         asnId,
+          chunk:      chunk,
+          chunkIndex: c,
+          chunkTotal: totalChunks,
+          isLast:     isLast
+        });
+        if (!chunkRes.success) {
+          toast('Vocab save error (chunk ' + (c+1) + '): ' + (chunkRes.error || 'Unknown'), 'error');
+          return;
+        }
+        if (!isLast) await new Promise(r => setTimeout(r, 200));
+      }
+    }
+
+    toast(editId ? 'Assignment updated! ✅' : 'Assignment created! ✅', 'success');
+    closeModal('vocab-assignment-modal');
+    setTimeout(loadTeacherData, 800);
+
+  } catch(e) {
+    toast('Save error: ' + e.message, 'error');
+    console.error('saveVAAssignment:', e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Save Assignment';
+  }
+}
+
+
+// ── WRITE RESULTS ──
+var _writeRows = [];
+var _writeSortField = null;
+var _writeSortAsc = true;
+
+function _writeSortBy(field) {
+  if (_writeSortField === field) _writeSortAsc = !_writeSortAsc;
+  else { _writeSortField = field; _writeSortAsc = true; }
+  _writeRenderTable(_writeRows);
+}
+
+function _writeRenderTable(rows) {
+  const tbody = document.getElementById('write-results-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">No results yet.</td></tr>'; return; }
+
+  // Duration helper
+  const getDuration = r => {
+    try {
+      const start = new Date(r.StartedAt || r.Timestamp || 0);
+      const end   = new Date(r.SubmittedAt || r.Timestamp || 0);
+      const mins  = Math.round((end - start) / 60000);
+      if (isNaN(mins) || mins < 0) return 0;
+      return mins;
+    } catch(e) { return 0; }
+  };
+  const fmtDur = mins => {
+    if (!mins) return '—';
+    const h = Math.floor(mins/60), m = mins%60;
+    return h > 0 ? `${h}:${String(m).padStart(2,'0')}` : `${m} min`;
+  };
+  const fmtShort = s => {
+    try { const d = new Date(s); if (isNaN(d)) return '—';
+      return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}) + ' ' +
+             d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+    } catch(e) { return '—'; }
+  };
+
+  // Sort
+  let sorted = [...rows];
+  if (_writeSortField) {
+    sorted.sort((a, b) => {
+      let va, vb;
+      if (_writeSortField === 'duration') { va = getDuration(a); vb = getDuration(b); }
+      else if (_writeSortField === 'band') { va = parseFloat(a.OverallBand||0); vb = parseFloat(b.OverallBand||0); }
+      else if (_writeSortField === 'name') { va = String(a.StudentName||'').toLowerCase(); vb = String(b.StudentName||'').toLowerCase(); }
+      else if (_writeSortField === 'class') { va = String(a.Class||'').toLowerCase(); vb = String(b.Class||'').toLowerCase(); }
+      if (va < vb) return _writeSortAsc ? -1 : 1;
+      if (va > vb) return _writeSortAsc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  tbody.innerHTML = sorted.map((r, i) => {
+    const dur = getDuration(r);
+    const band = parseFloat(r.OverallBand||0);
+    const bandCls = band >= 7 ? 'badge-green' : band >= 5.5 ? 'badge-gold' : 'badge-red';
+    // Build URL for write-detail view with row data encoded
+    const rowEnc = encodeURIComponent(JSON.stringify({
+      name: r.StudentName||'', code: r.AccessCode||'', class: r.Class||'',
+      mode: r.Mode||'', question: r.Question||'', writing: r.Essay||'',
+      startedAt: r.StartedAt||'', submittedAt: r.SubmittedAt||'',
+      timestamp: r.SubmittedAt||r.Timestamp||'',
+      overall: r.OverallBand||'',
+      scores: { TR: r.TaskResponse||'', CC: r.Coherence||'', LR: r.Lexical||'', GRA: r.Grammar||'' },
+      result: (() => { try { return JSON.parse(r.FeedbackJSON||'{}'); } catch(e){ return {}; } })()
+    }));
+    return `<tr>
+      <td style="color:var(--grey-400)">${sorted.length-i}</td>
+      <td style="font-size:11px;white-space:nowrap">${fmtShort(r.StartedAt||r.Timestamp)}</td>
+      <td style="font-size:11px;white-space:nowrap">${fmtShort(r.SubmittedAt||r.Timestamp)}</td>
+      <td style="font-size:12px;font-weight:600;color:var(--grey-600)">${fmtDur(dur)}</td>
+      <td><strong>${r.StudentName||'—'}</strong></td>
+      <td style="font-size:12px">${r.Class||'—'}</td>
+      <td style="font-size:12px">${r.Mode||'—'}</td>
+      <td style="text-align:center">${r.TaskResponse||'—'}</td>
+      <td style="text-align:center">${r.Coherence||'—'}</td>
+      <td style="text-align:center">${r.Lexical||'—'}</td>
+      <td style="text-align:center">${r.Grammar||'—'}</td>
+      <td style="text-align:center"><span class="badge ${bandCls}">${r.OverallBand||'—'}</span></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--grey-600)">${String(r.Question||'').substring(0,50)}${(r.Question||'').length>50?'…':''}</td>
+      <td><a href="write-detail.html?row=${rowEnc}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px">👁 View</a></td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadWriteResults() {
+  const tbody = document.getElementById('write-results-tbody');
+  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  const res = await api('teacher.getAllResults');
+  if (!res.success) { tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
+  _writeRows = (res.writeSubs||[]).slice().reverse();
+  _writeSortField = null; _writeSortAsc = true;
+  _writeRenderTable(_writeRows);
+}
+
+async function issueWriteCode() {
+  const name = document.getElementById('wc-name').value.trim();
+  const email = document.getElementById('wc-email').value.trim();
+  const pkg = document.getElementById('wc-package').value;
+  if (!name || !email) { toast('Enter name and email.', 'error'); return; }
+  const res = await api('teacher.write.approveReg', { name, email, package: pkg });
+  if (res.success) { toast(`Code ${res.code} issued and emailed!`, 'success'); closeModal('write-code-modal'); }
+  else { toast(res.error||'Failed.', 'error'); }
+}
+
+// ── LISTEN RESULTS ──
+var _listenRows = [];       // cached rows for sort
+var _listenSortAsc = null;  // null=original, true=asc, false=desc
+
+function sortListenByClass() {
+  if (_listenSortAsc === null || _listenSortAsc === false) _listenSortAsc = true;
+  else if (_listenSortAsc === true) _listenSortAsc = false;
+  else _listenSortAsc = null;
+  renderListenTable(_listenRows);
+}
+
+function renderListenTable(rows) {
+  const tbody = document.getElementById('listen-results-tbody');
+  if (!rows || !rows.length) {
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">No results yet.</td></tr>';
+    return;
+  }
+
+  // Build name→{class,studentId} lookup from students list
+  const studentMap = {};
+  (App.teacherData && App.teacherData.students || []).forEach(s => {
+    const name = String(s.FullName || s.fullName || '').trim().toLowerCase();
+    if (name) studentMap[name] = {
+      cls: String(s.Class || s.class || '—'),
+      sid: String(s.StudentID || s.studentId || '—')
+    };
+  });
+
+  // Apply sort
+  let display = rows.slice();
+  const icon = document.getElementById('listen-class-sort-icon');
+  if (_listenSortAsc === true) {
+    display.sort((a,b) => (a._class||'').localeCompare(b._class||''));
+    if (icon) icon.textContent = '▲';
+  } else if (_listenSortAsc === false) {
+    display.sort((a,b) => (b._class||'').localeCompare(a._class||''));
+    if (icon) icon.textContent = '▼';
+  } else {
+    if (icon) icon.textContent = '⇅';
+  }
+
+  function parseLisDate(str) {
+    if (!str) return null;
+    const m = String(str).match(/(\d{1,2})-(\d{2})-(\d{4})\s*@\s*(\d{2}):(\d{2})/);
+    if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`);
+    const d = new Date(str); return isNaN(d) ? null : d;
+  }
+  function fmtT(str) {
+    const d = parseLisDate(str); if (!d) return str || '—';
+    return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  function fmtDur(ms) {
+    if (!ms || ms<0) return '—';
+    const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);
+    return m>0?m+'m '+s+'s':s+'s';
+  }
+
+  tbody.innerHTML = display.map((r, i) => {
+    const rawAcc = String(r.Accuracy||'').replace('%','').trim();
+    const acc = Math.min(100, parseInt(rawAcc)||0);
+    const cls = acc>=80?'badge-green':acc>=60?'badge-gold':'badge-red';
+    const t1 = parseLisDate(r.StartingTime), t2 = parseLisDate(r.SubmittingTime);
+    const dur = (t1&&t2) ? fmtDur(t2-t1) : (r.Duration||'—');
+    const sid = r.SessionID || r.sessionId || '';
+    const detailBtn = sid
+      ? `<a href="listen-detail.html?sessionId=${encodeURIComponent(sid)}&teacher=1" target="_blank"
+           style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--blue,#3b82f6);color:#fff;text-decoration:none;white-space:nowrap">🔍 Detail</a>`
+      : '—';
+    return `<tr>
+      <td>${display.length - i}</td>
+      <td style="white-space:nowrap">${fmtT(r.StartingTime)}</td>
+      <td style="font-size:11px;color:var(--grey-500)">${r._sid||'—'}</td>
+      <td><strong>${r.FullName||''}</strong></td>
+      <td><span style="font-size:11px;background:var(--grey-100,#f3f4f6);padding:2px 7px;border-radius:4px">${r._class||'—'}</span></td>
+      <td style="white-space:nowrap">${fmtT(r.SubmittingTime)}</td>
+      <td style="text-align:center">${dur}</td>
+      <td>${r.BookTestPart||'—'}</td>
+      <td style="text-align:center">${r.SentencesDone||'—'}</td>
+      <td style="text-align:center">${r.TotalWords||r.totalWords||'—'}</td>
+      <td style="text-align:center">${r.CorrectWords||r.correctWords||'—'}</td>
+      <td style="text-align:center"><span class="badge ${cls}">${acc ? acc+'%' : '—'}</span></td>
+      <td style="text-align:center">${detailBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadListenResults() {
+  const tbody = document.getElementById('listen-results-tbody');
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  const res = await api('teacher.lis.getResults');
+  if (!res.success) { tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
+
+  // Build name→{class,studentId} lookup
+  const studentMap = {};
+  (App.teacherData && App.teacherData.students || []).forEach(s => {
+    const name = String(s.FullName || s.fullName || '').trim().toLowerCase();
+    if (name) studentMap[name] = {
+      cls: String(s.Class || s.class || '—'),
+      sid: String(s.StudentID || s.studentId || '—')
+    };
+  });
+
+  // Enrich rows with class + studentId
+  _listenRows = (res.rows||[]).slice().reverse().map(r => {
+    const name = String(r.FullName||'').trim().toLowerCase();
+    const info = studentMap[name] || {cls:'—', sid:'—'};
+    return Object.assign({}, r, { _class: info.cls, _sid: info.sid });
+  });
+  _listenSortAsc = null;
+  renderListenTable(_listenRows);
+}
+async function regenerateErrorFlat() {
+  const res = await api('teacher.lis.regenerateFlat');
+  if (res.success) toast(`Error_Flat regenerated: ${res.rowsWritten} rows.`, 'success');
+  else toast(res.error||'Failed.', 'error');
+}
+
+// ── SPEAK RESULTS ──
+async function loadSpeakResults() {
+  const tbody = document.getElementById('speak-results-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  const res = await api('teacher.getAllResults');
+  if (!res.success) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
+  const rows = (res.speakSubs||[]).slice().reverse();
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">No results yet.</td></tr>'; return; }
+  tbody.innerHTML = rows.map((r,i) => {
+    let avgBand = '—';
+    try { const results = JSON.parse(r.ResultsJSON||'[]'); if(results.length){const avg=results.reduce((a,x)=>a+(parseFloat(x.overall)||0),0)/results.length;avgBand=avg.toFixed(1);} } catch(e){}
+    let qCount='—'; try{qCount=JSON.parse(r.QuestionsJSON||'[]').length;}catch(e){}
+    return `<tr><td>${rows.length-i}</td><td style="font-size:12px">${fmtDateTime(new Date(r.StartingTime||0))}</td>
+      <td><strong>${r.StudentName||''}</strong></td><td>${r.Mode||''}</td>
+      <td style="text-align:center">${qCount}</td>
+      <td><span class="badge badge-gold">Band ${avgBand}</span></td></tr>`;
+  }).join('');
+}
+
+// ── SETTINGS ──
+async function loadSettings() {
+  const res = await api('teacher.getSettings');
+  if (res.success) {
+    if (res.hasOpenai) document.getElementById('key-openai').placeholder = '••••• (saved)';
+    if (res.hasGrok)   document.getElementById('key-grok').placeholder   = '••••• (saved)';
+    if (res.hasGemini) document.getElementById('key-gemini').placeholder = '••••• (saved)';
+    const sel = document.getElementById('ai-provider-select');
+    if (sel && res.aiProvider) sel.value = res.aiProvider;
+    const st = document.getElementById('settings-api-status');
+    if (st) st.textContent = '✅ OpenAI: ' + (res.hasOpenai?'configured':'not set') + ' · Grok: ' + (res.hasGrok?'configured':'not set');
+  }
+}
+
+async function saveApiKey(field, inputId) {
+  const val = document.getElementById(inputId).value.trim();
+  if (!val) { toast('Enter API key first.', 'error'); return; }
+  const res = await api('teacher.saveSetting', { field, value: val });
+  if (res.success) {
+    toast('Key saved!', 'success');
+    document.getElementById(inputId).value = '';
+    document.getElementById(inputId).placeholder = '••••• (saved)';
+  } else { toast(res.error||'Save failed.', 'error'); }
+}
+async function saveProviderSetting() {
+  const val = document.getElementById('ai-provider-select').value;
+  const res = await api('teacher.saveSetting', { field: 'aiProvider', value: val });
+  if (res.success) toast('AI provider saved!', 'success');
+  else toast(res.error||'Save failed.', 'error');
+}
+async function changeTeacherPassword() {
+  const cur = document.getElementById('cur-pass').value;
+  const np  = document.getElementById('new-pass').value;
+  if (!cur || !np) { toast('Enter both passwords.', 'error'); return; }
+  if (np.length < 6) { toast('New password too short.', 'error'); return; }
+  const res = await api('teacher.changePassword', { current: cur, newPassword: np });
+  const st = document.getElementById('settings-pw-status');
+  if (res.success) {
+    toast('Password updated!', 'success');
+    document.getElementById('cur-pass').value = '';
+    document.getElementById('new-pass').value = '';
+    if (st) { st.textContent = '✅ Password updated successfully.'; st.style.color = 'var(--green)'; }
+  } else {
+    toast(res.error||'Failed.', 'error');
+    if (st) { st.textContent = '❌ ' + (res.error||'Update failed.'); st.style.color = 'var(--red)'; }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+// Event delegation for activate buttons (avoids JSON-in-onclick issues)
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.activate-btn');
+  if (btn && btn.dataset.key) {
+    openActivateModalByKey(btn.dataset.key);
+  }
+});
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    ls.classList.add('fade-out');
+    setTimeout(() => ls.style.display = 'none', 500);
+
+    // Check for returning session
+    const savedToken = sessionStorage.getItem('ielts_hub_token');
+    const savedUser  = sessionStorage.getItem('ielts_hub_user');
+    if (savedToken && savedUser) {
+      try {
+        App.sessionToken = savedToken;
+        App.user = JSON.parse(savedUser);
+        initStudentDashboard();
+        showPage('page-student');
+        return;
+      } catch(e) { sessionStorage.clear(); }
+    }
+    showPage('page-auth');
+  }, 1800);
+});
+</script>
+</body>
+</html>

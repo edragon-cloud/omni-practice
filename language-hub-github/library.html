@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IELTS Library — ArticuWrite</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --g:#C8102E; --gd:#1A1A16; --gm:#9B0B22; --gp:#F5E6E9;
+  --fn:'Sora',Arial,sans-serif; --sr:'Playfair Display',Georgia,serif;
+  --r:14px; --rs:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fn);background:linear-gradient(145deg,var(--gd),#2a0a10);min-height:100vh;color:white}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(200,16,46,.4);border-radius:4px}
+
+/* TOP BAR */
+.topbar{background:rgba(0,0,0,.3);padding:12px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.topbar-brand{font-family:var(--sr);font-size:1.1rem;font-weight:700;color:white}
+.topbar-brand span{color:var(--g)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.btn{padding:7px 16px;border-radius:50px;border:none;font-family:var(--fn);font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-back{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)}
+.btn-back:hover{background:rgba(255,255,255,.2);color:white}
+.btn-sm{padding:5px 12px;font-size:.65rem}
+
+/* SEARCH + STATS */
+.search-bar{padding:20px 24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.search-inp{flex:1;min-width:240px;padding:11px 16px;border:1.5px solid rgba(255,255,255,.15);border-radius:50px;background:rgba(255,255,255,.08);color:white;font-family:var(--fn);font-size:.88rem;outline:none}
+.search-inp::placeholder{color:rgba(255,255,255,.35)}
+.search-inp:focus{border-color:rgba(200,16,46,.6);background:rgba(255,255,255,.12)}
+.stats{font-size:.7rem;color:rgba(255,255,255,.4);white-space:nowrap;letter-spacing:.5px}
+.font-controls{display:flex;gap:4px;align-items:center}
+.font-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.7rem}
+.font-btn:hover{background:rgba(255,255,255,.2)}
+
+/* BREADCRUMB */
+.breadcrumb{padding:0 24px 16px;display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;flex-wrap:wrap}
+.bc-link{color:rgba(255,255,255,.5);cursor:pointer}.bc-link:hover{color:white}
+.bc-sep{color:rgba(255,255,255,.25)}
+.bc-cur{color:white}
+
+/* TOPIC GRID */
+.grid-wrap{padding:0 24px 32px}
+.section-label{font-size:.62rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:16px}
+.topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.topic-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;padding:18px 16px;cursor:pointer;transition:all .2s}
+.topic-card:hover{background:rgba(255,255,255,.12);border-color:rgba(200,16,46,.5);transform:translateY(-3px)}
+.topic-icon{font-size:1.6rem;margin-bottom:8px}
+.topic-name{font-size:.95rem;font-weight:700;color:white;line-height:1.4;margin-bottom:4px}
+.topic-count{font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.35)}
+
+/* QUESTION LIST */
+.q-list{display:flex;flex-direction:column;gap:12px}
+.q-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden}
+.q-header{padding:16px 18px;background:rgba(200,16,46,.18);cursor:pointer;user-select:none}
+.q-header:hover{background:rgba(200,16,46,.28)}
+.q-text{font-size:var(--lib-fs,15px);font-weight:700;color:white;line-height:1.5;margin-bottom:8px}
+.q-meta{display:flex;gap:6px;flex-wrap:wrap}
+.q-tag{font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase}
+.q-tag-type{background:rgba(200,16,46,.4);color:#fbb8c3}
+.q-tag-kw{background:rgba(255,255,255,.1);color:rgba(255,255,255,.65)}
+.q-tag-date{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45)}
+.q-expand-icon{float:right;font-size:.8rem;color:rgba(255,255,255,.45);margin-top:2px}
+
+.q-body{padding:14px 18px;display:none}
+.q-body.open{display:block}
+.bp-label{font-size:.58rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin:10px 0 8px}
+.mp-card{background:rgba(255,255,255,.06);border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid rgba(200,16,46,.5)}
+.mp-idea{font-size:var(--lib-fs,15px);font-weight:700;color:#f5a0b0;margin-bottom:6px}
+.mp-row{font-size:calc(var(--lib-fs,15px) - 1px);color:rgba(255,255,255,.6);line-height:1.5;margin-bottom:3px}
+.mp-row strong{color:rgba(255,255,255,.85);font-weight:600}
+
+.q-actions{padding:10px 18px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:8px}
+.q-btn{padding:7px 16px;border-radius:20px;border:none;font-family:var(--fn);font-size:.68rem;font-weight:800;letter-spacing:1px;cursor:pointer;text-transform:uppercase;transition:all .2s}
+.q-btn-practice{background:var(--g);color:white}
+.q-btn-practice:hover{background:var(--gm)}
+.q-btn-copy{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2)}
+.q-btn-copy:hover{background:rgba(255,255,255,.2)}
+
+/* LOADING / EMPTY */
+.loading-wrap{text-align:center;padding:60px 24px;color:rgba(255,255,255,.4)}
+.spinner{width:40px;height:40px;border:3px solid rgba(200,16,46,.2);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-msg{text-align:center;padding:40px;color:rgba(255,255,255,.35);font-size:.9rem}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--gd);color:white;padding:10px 20px;border-radius:30px;font-size:.78rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:9999;transition:transform .3s;pointer-events:none;border-left:4px solid var(--g)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:600px){
+  .topic-grid{grid-template-columns:1fr 1fr}
+  .search-bar{padding:16px}
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-brand">📚 IELTS <span>Library</span></div>
+  <div class="topbar-right">
+    <div class="font-controls">
+      <button class="font-btn" onclick="adjFont(-1)">A−</button>
+      <button class="font-btn" onclick="adjFont(1)">A+</button>
+    </div>
+    <button class="btn btn-back btn-sm" onclick="goBack()">← Back to Write</button>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input class="search-inp" id="search-inp" placeholder="🔍  Search questions, topics, keywords..." oninput="onSearch(this.value)">
+  <span class="stats" id="stats-label">Loading...</span>
+</div>
+
+<div class="breadcrumb" id="breadcrumb">
+  <span class="bc-link" onclick="showAllTopics()">ALL TOPICS</span>
+</div>
+
+<div class="grid-wrap">
+  <div class="section-label" id="section-label">BROWSE TOPICS</div>
+  <div id="content-area">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div>Loading library from Google Sheets…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAS = 'https://script.google.com/macros/s/AKfycbwLSYi2cFovdrCCS6-p3Vi_KJMOWF6uf1p9KOsY8_huboJ1UWQoTfq_ZoIJz426um2jMA/exec';
+let libData = [];
+let fontSize = 15;
+let currentTopic = null;
+
+// ── FONT ──
+function adjFont(d) {
+  fontSize = Math.max(11, Math.min(22, fontSize + d));
+  document.documentElement.style.setProperty('--lib-fs', fontSize + 'px');
+}
+
+// ── NAVIGATION ──
+function goBack() {
+  window.location.href = './write.html';
+}
+
+// ── LOAD LIBRARY via JSONP ──
+function loadLibrary() {
+  const cb = 'lib_cb_' + Date.now();
+  const params = new URLSearchParams({
+    callback: cb,
+    action: 'write.getLibrary',
+    payload: '{}',
+    sessionToken: sessionStorage.getItem('ielts_hub_token') || ''
+  });
+  const s = document.createElement('script');
+  s.src = GAS + '?' + params.toString();
+
+  const timeout = setTimeout(() => {
+    cleanup();
+    showError('Timeout loading library. Please refresh.');
+  }, 20000);
+
+  window[cb] = function(data) {
+    cleanup();
+    if (Array.isArray(data) && data.length > 0) {
+      libData = data;
+      showAllTopics();
+    } else if (data && data.success === false) {
+      showError('Error: ' + (data.error || 'Could not load library'));
+    } else {
+      showError('Library returned no data. Check sheet sharing permissions.');
+    }
+  };
+
+  function cleanup() {
+    clearTimeout(timeout);
+    delete window[cb];
+    if (s.parentNode) s.parentNode.removeChild(s);
+  }
+
+  s.onerror = () => { cleanup(); showError('Network error loading library.'); };
+  document.head.appendChild(s);
+}
+
+function showError(msg) {
+  document.getElementById('content-area').innerHTML =
+    `<div class="empty-msg">⚠️ ${msg}<br><br>
+    <small style="color:rgba(255,255,255,.25)">Make sure the library Google Sheet is shared with "Anyone with the link" as Viewer,<br>
+    or shared with the GAS service account email.</small></div>`;
+  document.getElementById('stats-label').textContent = 'Error loading';
+}
+
+// ── SHOW ALL TOPICS ──
+function showAllTopics(filtered) {
+  currentTopic = null;
+  const topics = filtered || libData;
+  document.getElementById('breadcrumb').innerHTML =
+    '<span class="bc-cur">ALL TOPICS</span>';
+  document.getElementById('section-label').textContent =
+    'BROWSE TOPICS — ' + topics.length + ' topics';
+  document.getElementById('stats-label').textContent =
+    topics.length + ' topics, ' + topics.reduce((a,t)=>a+(t.questions||[]).length,0) + ' questions';
+
+  if (!topics.length) {
+    document.getElementById('content-area').innerHTML = '<div class="empty-msg">No topics found.</div>';
+    return;
+  }
+
+  const icons = ['📁','📂','🗂','📋','📌','🗒','📓','📗','📘','📙'];
+  document.getElementById('content-area').innerHTML =
+    `<div class="topic-grid">` +
+    topics.map((t, i) => `
+      <div class="topic-card" onclick="showTopic(${libData.indexOf(t)})">
+        <div class="topic-icon">${icons[i % icons.length]}</div>
+        <div class="topic-name">${t.topic}</div>
+        <div class="topic-count">${(t.questions||[]).length} question${(t.questions||[]).length!==1?'s':''}</div>
+      </div>`).join('') +
+    `</div>`;
+}
+
+// ── SHOW TOPIC ──
+function showTopic(idx) {
+  const topic = libData[idx];
+  if (!topic) return;
+  currentTopic = idx;
+  document.getElementById('section-label').textContent =
+    topic.topic.toUpperCase() + ' — ' + (topic.questions||[]).length + ' questions';
+  document.getElementById('stats-label').textContent =
+    (topic.questions||[]).length + ' questions';
+  document.getElementById('breadcrumb').innerHTML =
+    `<span class="bc-link" onclick="showAllTopics()">ALL TOPICS</span>
+     <span class="bc-sep">›</span>
+     <span class="bc-cur">${topic.topic}</span>`;
+
+  document.getElementById('content-area').innerHTML =
+    `<div class="q-list">` +
+    (topic.questions||[]).map((q, qi) => buildQuestionCard(q, idx, qi)).join('') +
+    `</div>`;
+}
+
+// ── BUILD QUESTION CARD ──
+function buildQuestionCard(q, ti, qi) {
+  const kws = (q.keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+  const kwHtml = kws.map(k=>`<span class="q-tag q-tag-kw">${k}</span>`).join('');
+  const b1 = q.body1 || {}, b2 = q.body2 || {};
+
+  function mpHtml(mp) {
+    if (!mp || !mp.idea) return '';
+    return `<div class="mp-card">
+      <div class="mp-idea">${mp.idea}</div>
+      ${mp.why     ? `<div class="mp-row"><strong>Why:</strong> ${mp.why}</div>` : ''}
+      ${mp.example ? `<div class="mp-row"><strong>Example:</strong> ${mp.example}</div>` : ''}
+      ${mp.result  ? `<div class="mp-row"><strong>Result:</strong> ${mp.result}</div>` : ''}
+    </div>`;
+  }
+
+  const hasB1 = b1.mp1 || b1.mp2, hasB2 = b2.mp1 || b2.mp2;
+  const bodyHtml = `
+    ${hasB1 ? `<div class="bp-label">Body Paragraph 1</div>${mpHtml(b1.mp1)}${mpHtml(b1.mp2)}` : ''}
+    ${hasB2 ? `<div class="bp-label">Body Paragraph 2</div>${mpHtml(b2.mp1)}${mpHtml(b2.mp2)}` : ''}
+  `;
+
+  const qEsc = q.q.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return `<div class="q-card">
+    <div class="q-header" onclick="toggleQ(this)">
+      <span class="q-expand-icon">▼</span>
+      <div class="q-text">${q.q}</div>
+      <div class="q-meta">
+        ${q.taskType ? `<span class="q-tag q-tag-type">${q.taskType}</span>` : ''}
+        ${q.date     ? `<span class="q-tag q-tag-date">${q.date}</span>` : ''}
+        ${kwHtml}
+      </div>
+    </div>
+    <div class="q-body">${bodyHtml}</div>
+    <div class="q-actions">
+      <button class="q-btn q-btn-practice" onclick="practiceQ('${qEsc}')">▶ Practice This</button>
+      <button class="q-btn q-btn-copy" onclick="copyIdeas(this, ${ti}, ${qi})">📋 Copy Ideas</button>
+    </div>
+  </div>`;
+}
+
+function toggleQ(header) {
+  const body = header.nextElementSibling;
+  const icon = header.querySelector('.q-expand-icon');
+  const open = body.classList.toggle('open');
+  icon.textContent = open ? '▲' : '▼';
+}
+
+// ── ACTIONS ──
+function practiceQ(question) {
+  // Store question for write.html to pick up
+  sessionStorage.setItem('articu_question', question);
+  window.location.href = './write.html?q=' + encodeURIComponent(question);
+}
+
+function copyIdeas(btn, ti, qi) {
+  const q = libData[ti].questions[qi];
+  let text = `Question: ${q.q}\n\nBODY 1:\n`;
+  const addMP = mp => {
+    if (!mp) return;
+    if (mp.idea)    text += `- ${mp.idea}\n`;
+    if (mp.example) text += `  Ex: ${mp.example}\n`;
+    if (mp.result)  text += `  Result: ${mp.result}\n`;
+  };
+  if (q.body1) { addMP(q.body1.mp1); addMP(q.body1.mp2); }
+  text += '\nBODY 2:\n';
+  if (q.body2) { addMP(q.body2.mp1); addMP(q.body2.mp2); }
+  navigator.clipboard.writeText(text)
+    .then(() => { btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = '📋 Copy Ideas', 2000); })
+    .catch(() => toast('Copy failed'));
+}
+
+// ── SEARCH ──
+function onSearch(val) {
+  if (!val.trim()) { showAllTopics(); return; }
+  const v = val.toLowerCase();
+  const results = [];
+  libData.forEach((topic, ti) => {
+    const matched = (topic.questions || []).filter(q => {
+      const searchable = (q.q + ' ' + (q.keywords||'') + ' ' + (q.taskType||'') +
+        ' ' + ((q.body1?.mp1?.idea)||'') + ' ' + ((q.body1?.mp2?.idea)||'') +
+        ' ' + ((q.body2?.mp1?.idea)||'') + ' ' + ((q.body2?.mp2?.idea)||'')
+      ).toLowerCase();
+      return searchable.includes(v);
+    });
+    if (matched.length) results.push({ topic: topic.topic, ti, questions: matched });
+  });
+
+  document.getElementById('breadcrumb').innerHTML =
+    `<span class="bc-link" onclick="showAllTopics();document.getElementById('search-inp').value=''">ALL TOPICS</span>
+     <span class="bc-sep">›</span><span class="bc-cur">Search</span>`;
+  document.getElementById('section-label').textContent =
+    `SEARCH RESULTS — ${results.reduce((a,r)=>a+r.questions.length,0)} questions`;
+  document.getElementById('stats-label').textContent =
+    results.reduce((a,r)=>a+r.questions.length,0) + ' results';
+
+  if (!results.length) {
+    document.getElementById('content-area').innerHTML =
+      '<div class="empty-msg">No results found for "' + val + '"</div>';
+    return;
+  }
+
+  document.getElementById('content-area').innerHTML =
+    results.map(r => `
+      <div style="margin-bottom:24px">
+        <div style="font-size:.65rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px">📁 ${r.topic}</div>
+        <div class="q-list">${r.questions.map((q,qi)=>buildQuestionCard(q, r.ti, libData[r.ti].questions.indexOf(q))).join('')}</div>
+      </div>`).join('');
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', loadLibrary);
+</script>
+</body>
+</html>

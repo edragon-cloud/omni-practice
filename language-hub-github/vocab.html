@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VocabMaster — Language Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#C8102E;--red-dark:#9B0B22;--red-light:#F5E6E9;--red-mid:#E8304A;
+  --white:#FFF;--off-white:#FAFAF8;--grey-100:#F4F4F2;--grey-200:#E8E8E4;
+  --grey-400:#BBBBB4;--grey-600:#77776E;--grey-800:#3A3A35;--black:#1A1A16;
+  --gold:#C9A84C;--gold-light:#EFC84A;
+  --green:#1A7A4A;--green-light:#E6F4ED;
+  --teal:#0F7B6C;--teal-light:#E0F2EF;
+  --blue:#1565C0;--navy:#063672;--navy2:#04245A;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 16px rgba(0,0,0,.10);--shadow-lg:0 12px 40px rgba(0,0,0,.16);
+  --radius:12px;--radius-lg:20px;--transition:.2s cubic-bezier(.4,0,.2,1);
+  --font-display:'Playfair Display',serif;--font-body:'DM Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-body);background:var(--off-white);color:var(--black);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+/* ── LAYOUT ── */
+.app-layout{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+@media(max-width:900px){.app-layout{grid-template-columns:1fr}.sidebar{display:none}}
+/* ── SIDEBAR ── */
+.sidebar{background:var(--black);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-brand-name{font-family:var(--font-display);font-size:1.25rem;color:#fff}
+.sidebar-brand-name em{color:var(--red-mid);font-style:normal}
+.sidebar-brand-sub{font-size:10px;color:rgba(255,255,255,.28);letter-spacing:.1em;margin-top:2px;text-transform:uppercase}
+.sidebar-user{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-avatar{width:36px;height:36px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;margin-bottom:8px}
+.sidebar-name{color:#fff;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-class{color:rgba(255,255,255,.35);font-size:11px;margin-top:1px}
+.sidebar-nav{padding:12px 10px;flex:1}
+.nav-section-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.22);padding:0 10px;margin-bottom:5px;margin-top:12px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;transition:var(--transition);margin-bottom:1px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:rgba(200,16,46,.2);color:var(--red-mid)}
+.nav-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;flex-shrink:0}
+.new-badge{font-size:9px;background:var(--gold);color:#fff;padding:1px 6px;border-radius:10px;margin-left:auto;font-weight:700;flex-shrink:0;letter-spacing:.03em}
+.sidebar-footer{padding:10px 10px;border-top:1px solid rgba(255,255,255,.06)}
+/* ── MAIN ── */
+.main-content{background:var(--off-white);overflow-y:auto;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid var(--grey-200);padding:0 26px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-title{font-family:var(--font-display);font-size:1rem;color:var(--black)}
+.topbar-date{font-size:12px;color:var(--grey-600)}
+.page-content{padding:26px;max-width:940px}
+/* ── SECTIONS ── */
+.section{display:none;animation:fadeIn .3s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* ── CARD ── */
+.card{background:#fff;border-radius:var(--radius-lg);padding:20px 22px;box-shadow:var(--shadow-sm);border:1px solid var(--grey-200);margin-bottom:16px}
+.card-title{font-family:var(--font-display);font-size:.95rem;color:var(--black);margin-bottom:13px;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);white-space:nowrap;user-select:none;text-decoration:none}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.btn-primary{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff}
+.btn-secondary{background:var(--grey-100);color:var(--grey-800);border:1.5px solid var(--grey-200)}
+.btn-outline{background:transparent;border:1.5px solid var(--grey-200);color:var(--grey-800)}
+.btn-outline:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.btn-teal{background:linear-gradient(135deg,var(--teal),#0a6357);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#8a6d10);color:#fff}
+.btn-green{background:linear-gradient(135deg,var(--green),#27ae60);color:#fff}
+.btn-blue{background:linear-gradient(135deg,var(--blue),var(--navy));color:#fff}
+.btn-navy{background:linear-gradient(135deg,var(--navy2),var(--navy));color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:8px}
+.btn-full{width:100%;justify-content:center}
+/* ── FORM ── */
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--grey-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.form-input,.form-select,.form-textarea{width:100%;padding:10px 13px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:14px;color:var(--black);background:#fff;transition:var(--transition);outline:none}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(200,16,46,.08)}
+.form-textarea{resize:vertical;min-height:90px;line-height:1.65}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{margin-bottom:15px}
+@media(max-width:600px){.form-row-2{grid-template-columns:1fr}}
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:700}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-grey{background:var(--grey-100);color:var(--grey-600)}
+.badge-gold{background:#FFF8E6;color:var(--gold)}
+.badge-teal{background:var(--teal-light);color:var(--teal)}
+.badge-blue{background:#e8f0fe;color:var(--blue)}
+/* ── TOAST ── */
+#toast-wrap{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--black);color:#fff;padding:10px 15px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;max-width:280px;pointer-events:all}
+.toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--gold)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+/* ── SPINNER ── */
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.spinner-dark{border-color:var(--grey-200);border-top-color:var(--red)}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:var(--radius-lg);padding:16px 18px;border:1px solid var(--grey-200);position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:var(--red-light);border-radius:0 var(--radius-lg) 0 60px;opacity:.55}
+.stat-card.green::after{background:var(--green-light)}
+.stat-card.teal::after{background:var(--teal-light)}
+.stat-card.gold::after{background:#FFF8E6}
+.stat-num{font-family:var(--font-display);font-size:1.7rem;color:var(--black);line-height:1;margin-bottom:3px}
+.stat-label{font-size:11px;color:var(--grey-600)}
+.stat-icon{position:absolute;top:12px;right:12px;font-size:16px;opacity:.4;z-index:1}
+/* ── ASSIGNMENT CARD ── */
+.asn-card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--grey-200);padding:16px 20px;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:var(--transition);cursor:pointer}
+.asn-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.asn-icon{width:44px;height:44px;border-radius:12px;background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.asn-info{flex:1;min-width:0}
+.asn-title{font-weight:700;color:var(--black);margin-bottom:2px;font-size:14px}
+.asn-meta{font-size:11px;color:var(--grey-600);display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+/* ── PROGRESS ── */
+.progress-wrap{background:var(--grey-100);border-radius:100px;overflow:hidden;height:6px}
+.progress-bar{height:100%;border-radius:100px;background:var(--red);transition:width .5s ease}
+.progress-bar.green{background:var(--green)}
+.progress-bar.teal{background:var(--teal)}
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--grey-200)}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table thead{background:var(--grey-100)}
+.data-table th{padding:9px 13px;text-align:left;font-size:11px;font-weight:700;color:var(--grey-600);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.data-table td{padding:9px 13px;border-top:1px solid var(--grey-100);color:var(--grey-800)}
+.data-table tr:hover td{background:var(--grey-100)}
+/* ── VOCAB ENTRY TABLE ── */
+.vocab-table{width:100%;border-collapse:collapse;font-size:13px}
+.vocab-table th{background:var(--black);color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap}
+.vocab-table td{padding:6px 8px;border-bottom:1px solid var(--grey-100)}
+.vocab-table tr:hover td{background:var(--grey-100)}
+.vocab-table td input{width:100%;border:1.5px solid transparent;border-radius:6px;padding:4px 8px;font-size:12px;font-family:var(--font-body);outline:none;transition:var(--transition);background:transparent}
+.vocab-table td input:focus{border-color:var(--red);background:#fff;box-shadow:0 0 0 2px rgba(200,16,46,.06)}
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:0}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+.modal-center{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal-center.open{display:flex;animation:fadeIn .2s ease}
+.modal-box{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+/* ── PRETEST MODAL (fullscreen) ── */
+.pretest-shell{width:100%;height:100vh;display:flex;flex-direction:column;background:#fff}
+.pretest-topbar{background:var(--black);color:#fff;padding:10px 22px;display:flex;align-items:center;gap:16px;flex-shrink:0;border-bottom:2px solid var(--gold)}
+.timer-lbl{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em}
+.timer-display{font-family:var(--font-mono);font-size:1.8rem;color:#fff;line-height:1;min-width:80px}
+.timer-display.urgent{color:var(--red-mid);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
+.pretest-info{flex:1;min-width:0}
+.pretest-title{font-family:var(--font-display);font-size:1rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pretest-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.pretest-body{flex:1;display:flex;overflow:hidden}
+.pretest-left{flex:1.2;overflow-y:auto;padding:22px 26px;border-right:1px solid var(--grey-200)}
+.pretest-left-title{font-family:var(--font-display);font-size:1.05rem;color:var(--black);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--red);display:flex;align-items:center;gap:8px}
+.passage-text{line-height:1.9;font-size:14px;color:var(--grey-800)}
+.passage-text p{margin-bottom:1em}
+.pretest-right{flex:1;overflow-y:auto;padding:22px 22px;background:var(--grey-100)}
+.pretest-right-title{font-family:var(--font-display);font-size:1.05rem;color:var(--black);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--red);display:flex;align-items:center;gap:8px}
+/* ── QUIZ MODAL ── */
+.quiz-wrap{background:#fff;border-radius:var(--radius-lg);width:100%;max-width:860px;max-height:96vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.quiz-header{background:var(--black);padding:16px 22px;display:flex;align-items:center;gap:12px}
+.ring-wrap{position:relative;width:48px;height:48px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.quiz-title-sm{font-family:var(--font-display);font-size:.92rem;color:#fff;margin-bottom:1px}
+.quiz-sub{font-size:11px;color:rgba(255,255,255,.4)}
+.quiz-close{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.55);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);margin-left:auto;flex-shrink:0}
+.quiz-close:hover{background:rgba(255,255,255,.2);color:#fff}
+.quiz-progress-bar-wrap{background:var(--grey-200);height:3px}
+.quiz-progress-bar-fill{height:3px;background:var(--red);transition:width .3s}
+.quiz-body{flex:1;overflow-y:auto;padding:36px 40px}
+/* ── QUESTION ── */
+.q-card{animation:fadeIn .22s ease;text-align:center}
+.q-type-badge{display:inline-block;font-size:12px;font-weight:700;padding:5px 14px;border-radius:100px;margin-bottom:16px;text-transform:uppercase;letter-spacing:.06em}
+.q-type-mc{background:var(--red-light);color:var(--red)}
+.q-type-fitb{background:var(--teal-light);color:var(--teal)}
+.q-prompt{font-family:var(--font-display);font-size:2.6rem;color:var(--black);margin-bottom:8px;line-height:1.25;word-break:break-word}
+.q-ipa{font-family:var(--font-mono);font-size:17px;color:var(--grey-600);margin-bottom:28px}
+.q-instr{font-size:13px;color:var(--grey-600);margin-bottom:20px}
+/* MC */
+.mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}
+@media(max-width:500px){.mc-grid{grid-template-columns:1fr}}
+.mc-btn{padding:18px 20px;border:2px solid var(--grey-200);border-radius:var(--radius);background:#fff;font-family:var(--font-body);font-size:17px;color:var(--black);cursor:pointer;transition:var(--transition);text-align:center;line-height:1.4;word-break:break-word}
+.mc-btn:hover:not(:disabled){border-color:var(--red);background:var(--red-light);color:var(--red)}
+.mc-btn.correct{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:700}
+.mc-btn.wrong{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.mc-btn:disabled{cursor:not-allowed}
+/* FITB */
+.fitb-context-card{background:linear-gradient(135deg,#f0f4ff,#e8f0fe);border-radius:var(--radius-lg);border:1.5px solid #c5d5f5;padding:16px 20px;margin-bottom:18px;text-align:left}
+.fitb-context-label{font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.fitb-context-text{font-size:18px;line-height:1.85;color:var(--black)}
+.fitb-blank-span{display:inline-block;min-width:100px;border-bottom:2px solid var(--teal);padding:0 6px;font-weight:700;color:var(--teal);font-family:var(--font-mono)}
+.fitb-answer-row{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.fitb-input{padding:14px 22px;border:2px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-mono);font-size:1.35rem;outline:none;transition:var(--transition);min-width:220px;text-align:center;letter-spacing:.05em}
+.fitb-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,123,108,.1)}
+.fitb-input.correct-ans{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:700}
+.fitb-input.wrong-ans{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.fitb-hint-row{font-size:12px;color:var(--grey-400);text-align:center;margin-bottom:14px}
+.fitb-hint-letters{display:flex;gap:4px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+.fitb-letter-box{width:28px;height:32px;border-radius:5px;border:1.5px solid var(--grey-200);background:var(--grey-100);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--grey-600)}
+.fitb-letter-box.revealed{border-color:var(--teal);background:var(--teal-light);color:var(--teal)}
+/* Feedback */
+.feedback-strip{padding:11px 16px;border-radius:var(--radius);text-align:center;font-size:13px;font-weight:700;margin-bottom:14px;animation:fadeIn .2s ease}
+.feedback-strip.correct{background:var(--green-light);color:var(--green)}
+.feedback-strip.wrong{background:var(--red-light);color:var(--red)}
+.next-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;transition:var(--transition);font-family:var(--font-body)}
+.next-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,16,46,.3)}
+/* Results */
+.results-wrap{text-align:center;padding:8px}
+.score-ring{width:120px;height:120px;border-radius:50%;border:5px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 18px}
+.score-big{font-family:var(--font-display);font-size:2rem;line-height:1}
+.score-pass{font-size:11px;margin-top:3px;font-weight:700;letter-spacing:.05em}
+.results-wrong{text-align:left;background:var(--red-light);border-radius:var(--radius);padding:12px 14px;margin-top:16px}
+.results-wrong-title{font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px}
+.wrong-chip{display:inline-block;background:#fff;border:1px solid var(--red);color:var(--red);border-radius:100px;padding:2px 10px;font-size:12px;font-weight:700;margin:2px 3px}
+/* ── COPY MODAL ── */
+.copy-wrap{background:#fff;border-radius:var(--radius-lg);width:100%;max-width:520px;max-height:94vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.copy-header{background:var(--black);padding:14px 20px;display:flex;align-items:center;gap:10px}
+.copy-word-hero{background:var(--black);border-radius:var(--radius-lg);padding:18px 20px;text-align:center;margin-bottom:16px}
+.copy-word-big{font-family:var(--font-display);font-size:2rem;color:#fff;margin-bottom:4px}
+.copy-ipa{font-family:var(--font-mono);font-size:13px;color:rgba(255,255,255,.5)}
+.copy-viet{font-size:13px;color:var(--gold-light);margin-top:4px}
+.typing-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px}
+@media(max-width:500px){.typing-grid{grid-template-columns:repeat(4,1fr)}}
+.typing-cell{position:relative}
+.typing-num{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--grey-400);background:#fff;padding:0 3px;line-height:1}
+.typing-input{width:100%;padding:8px 5px;text-align:center;border:2px solid var(--grey-200);border-radius:7px;font-size:11px;font-family:var(--font-mono);transition:var(--transition);outline:none;background:var(--grey-100)}
+.typing-input:focus{border-color:var(--red);background:#fff}
+.typing-input.done{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:700}
+/* ── FREE READING ── */
+.fr-step{position:relative;padding-left:34px;margin-bottom:20px}
+.fr-step-num{position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+@media(max-width:700px){#fr-passage-grid{grid-template-columns:1fr!important}}
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--grey-200);border-radius:3px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="toast-wrap"></div>
+
+<div class="app-layout">
+<!-- ╔════════════════════════╗
+     ║        SIDEBAR         ║
+     ╚════════════════════════╝ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-name">Vocab<em>Master</em></div>
+    <div class="sidebar-brand-sub">IELTS Vocabulary System</div>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar" id="s-avatar">?</div>
+    <div class="sidebar-name" id="s-name">Loading…</div>
+    <div class="sidebar-class" id="s-class">—</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <button class="nav-item active" onclick="showSection('overview')" id="nav-overview">
+      <span class="nav-icon">📊</span> Overview
+    </button>
+    <div class="nav-section-label">Teacher-Assigned</div>
+    <button class="nav-item" onclick="showSection('assignments')" id="nav-assignments">
+      <span class="nav-icon">📚</span> Assignments
+      <span class="nav-badge hidden" id="nav-badge-asn">0</span>
+    </button>
+    <button class="nav-item" onclick="showSection('review')" id="nav-review">
+      <span class="nav-icon">🔄</span> In-Class Review
+    </button>
+    <div class="nav-section-label">Self-Study</div>
+    <button class="nav-item" onclick="showSection('free-reading')" id="nav-free-reading">
+      <span class="nav-icon">📖</span> Free Reading
+      <span class="new-badge">NEW</span>
+    </button>
+    <div class="nav-section-label">Practice</div>
+    <button class="nav-item" onclick="showSection('copying')" id="nav-copying">
+      <span class="nav-icon">✍️</span> Copying Words
+      <span class="nav-badge hidden" id="nav-badge-pun">0</span>
+    </button>
+    <div class="nav-section-label">History</div>
+    <button class="nav-item" onclick="showSection('my-history');loadMyHistory()" id="nav-my-history">
+      <span class="nav-icon">📋</span> My History
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="nav-item" onclick="goHome()" style="color:rgba(255,255,255,.35)">
+      <span class="nav-icon">🏠</span> Dashboard
+    </button>
+  </div>
+</aside>
+
+<!-- ╔════════════════════════╗
+     ║      MAIN CONTENT      ║
+     ╚════════════════════════╝ -->
+<main class="main-content">
+  <div class="topbar">
+    <div class="topbar-title" id="section-title">Overview</div>
+    <div class="topbar-date" id="topbar-date"></div>
+  </div>
+  <div class="page-content">
+
+    <!-- ══════════ OVERVIEW ══════════ -->
+    <div id="section-overview" class="section active">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-num" id="stat-total">—</div><div class="stat-label">Assignments</div></div>
+        <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-num" id="stat-done">—</div><div class="stat-label">Completed</div></div>
+        <div class="stat-card teal"><div class="stat-icon">🧠</div><div class="stat-num" id="stat-words">—</div><div class="stat-label">Words Studied</div></div>
+        <div class="stat-card gold"><div class="stat-icon">⚠️</div><div class="stat-num" id="stat-wrong">—</div><div class="stat-label">Need Practice</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Submissions</div>
+        <div id="submissions-list"><div style="text-align:center;padding:28px;color:var(--grey-400)">Loading…</div></div>
+      </div>
+      <div class="card hidden" id="wrong-words-card">
+        <div class="card-title" style="color:var(--red)">⚠️ Words to Practice</div>
+        <p style="font-size:12px;color:var(--grey-600);margin-bottom:10px">Click a word to start copying practice.</p>
+        <div id="wrong-words-list" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+      </div>
+    </div>
+
+    <!-- ══════════ ASSIGNMENTS ══════════ -->
+    <div id="section-assignments" class="section">
+      <h2 style="font-family:var(--font-display);font-size:1.25rem;margin-bottom:5px">Your Assignments</h2>
+      <p style="color:var(--grey-600);font-size:13px;margin-bottom:18px">Read the passage for the required time, then take a 60-question quiz.</p>
+      <div id="assignments-list"><div style="text-align:center;padding:44px;color:var(--grey-400)">Loading assignments…</div></div>
+    </div>
+
+    <!-- ══════════ IN-CLASS REVIEW ══════════ -->
+    <div id="section-review" class="section">
+      <h2 style="font-family:var(--font-display);font-size:1.25rem;margin-bottom:5px">In-Class Review</h2>
+      <p style="color:var(--grey-600);font-size:13px;margin-bottom:18px">Scheduled by your teacher — one attempt only, wrong words go to Copying Words.</p>
+      <div id="review-list"><div style="text-align:center;padding:44px;color:var(--grey-400)">Loading…</div></div>
+    </div>
+
+    <!-- ══════════ FREE READING (NEW) ══════════ -->
+    <div id="section-free-reading" class="section">
+      <h2 style="font-family:var(--font-display);font-size:1.25rem;margin-bottom:3px">📖 Free Reading</h2>
+      <p style="color:var(--grey-600);font-size:13px;margin-bottom:22px">Paste any English text, build your own vocabulary list, then take an AI-generated quiz.</p>
+
+      <!-- Step 1: Passage + Target Vocab -->
+      <div class="card">
+        <div class="card-title">
+          <span>① Reading Passage &amp; Target Vocabulary <span style="font-size:11px;color:var(--grey-400);font-weight:400">(optional)</span></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Title / Topic</label>
+          <input type="text" class="form-input" id="fr-title" placeholder="e.g. Environmental Issues, Technology, Health…">
+        </div>
+
+        <!-- Two-column layout: passage left, target vocab right -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px">
+          <div>
+            <label class="form-label">Reading Passage</label>
+            <textarea class="form-textarea" id="fr-passage" rows="8"
+              placeholder="Paste any English article, IELTS passage, or textbook excerpt here…&#10;&#10;You can also skip this and add vocabulary manually below."
+              style="min-height:180px"></textarea>
+          </div>
+          <div>
+            <label class="form-label">
+              Target Vocabulary List
+              <span style="font-weight:400;color:var(--grey-600);font-size:10px;display:block;margin-top:1px">
+                Format: <code style="background:var(--grey-100);padding:1px 5px;border-radius:4px;font-family:var(--font-mono)">word= synonym or definition</code>
+              </span>
+            </label>
+            <textarea class="form-textarea" id="fr-target-vocab" rows="8"
+              placeholder="polar= relating to the North Pole or South Pole&#10;threaten= to be likely to harm or destroy sth&#10;sustainable= able to be maintained long-term&#10;biodiversity&#10;conservation&#10;&#10;AI sẽ căn cứ vào = hoặc : để tách từ gốc và synonym, sau đó tự thêm IPA và Vietnamese"
+              style="min-height:180px;font-family:var(--font-mono);font-size:12px;line-height:1.65"></textarea>
+            <div style="font-size:11px;color:var(--grey-400);margin-top:5px">
+              💡 Nếu có danh sách từ sẵn, dùng cột này thay vì bài đọc. AI sẽ tự thêm IPA + Vietnamese.
+            </div>
+          </div>
+        </div>
+        <!-- Gemini API Key for AI Extract -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;background:var(--grey-50,#f8f9fa);border:1.5px solid var(--grey-200,#e5e7eb);border-radius:8px">
+          <span style="font-size:12px;white-space:nowrap;color:var(--grey-700,#374151);font-weight:600">🔑 Gemini API Key</span>
+          <input type="password" id="fr-gemini-key" placeholder="AIza… (miễn phí tại aistudio.google.com)"
+            style="flex:1;padding:5px 9px;border:1px solid var(--grey-300,#d1d5db);border-radius:6px;font-size:12px;font-family:var(--font-mono,monospace);outline:none"
+            oninput="saveFrKey(this.value)">
+          <button onclick="toggleFrKey()" style="background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px" title="Show/hide">👁</button>
+          <span id="fr-key-st" style="font-size:11px;white-space:nowrap;color:var(--grey-400)">⚠ Chưa có</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-navy btn-sm" id="btn-fr-extract" onclick="frAIExtractVocab()">
+            🤖 AI Extract Vocabulary
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="frClearStep1()">🗑 Clear</button>
+        </div>
+        <div id="fr-extract-status" style="font-size:12px;color:var(--grey-600);margin-top:8px;min-height:16px"></div>
+      </div>
+
+      <!-- Step 2: Vocabulary list -->
+      <div class="card">
+        <div class="card-title">
+          <span>② Vocabulary List <span id="fr-vocab-count" style="color:var(--grey-400);font-weight:400;font-size:.85rem">(0 words)</span></span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="frAddRow()">+ Add Word</button>
+            <button class="btn btn-secondary btn-sm" onclick="frClearAll()">🗑 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:8px">
+          <table class="vocab-table" id="fr-vocab-table">
+            <thead><tr><th>#</th><th>Word / Phrase ✱</th><th>IPA</th><th>Synonyms / Definition</th><th>Vietnamese</th><th></th></tr></thead>
+            <tbody id="fr-tbody"></tbody>
+          </table>
+        </div>
+        <div id="fr-empty-hint" style="text-align:center;padding:20px;color:var(--grey-400);font-size:13px">
+          No words yet — paste text above and click AI Extract, or add manually.
+        </div>
+      </div>
+
+      <!-- Step 3: Settings + Start -->
+      <div class="card">
+        <div class="card-title">③ Quiz Settings</div>
+        <div class="form-row-2" style="margin-bottom:14px">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Study Time Before Quiz</label>
+            <select class="form-select" id="fr-study-time">
+              <option value="0">No reading time (start immediately)</option>
+              <option value="180">3 minutes</option>
+              <option value="360" selected>6 minutes</option>
+              <option value="480">8 minutes</option>
+              <option value="720">12 minutes</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Question Types</label>
+            <select class="form-select" id="fr-quiz-mode">
+              <option value="mixed" selected>Mixed — MC + Fill in Blank</option>
+              <option value="mc">Multiple Choice only</option>
+              <option value="fitb">Fill in Blank only</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="frStartSession()" style="padding:13px;font-size:14px;border-radius:var(--radius-lg)">
+          🚀 Start Free Reading Quiz (60 Questions)
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════ COPYING WORDS ══════════ -->
+    <div id="section-copying" class="section">
+      <h2 style="font-family:var(--font-display);font-size:1.25rem;margin-bottom:5px">✍️ Copying Words</h2>
+      <p style="color:var(--grey-600);font-size:13px;margin-bottom:18px">Words you got wrong — copy each word 20 times to reinforce memory.</p>
+      <div id="copying-list"><div style="text-align:center;padding:44px;color:var(--grey-400)">Loading…</div></div>
+    </div>
+
+    <!-- MY HISTORY SECTION -->
+    <div id="section-my-history" class="section">
+      <h2 style="font-family:var(--font-display);font-size:1.25rem;margin-bottom:5px">📋 My History</h2>
+      <p style="color:var(--grey-600);font-size:13px;margin-bottom:18px">Lịch sử làm bài của bạn.</p>
+
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:20px">
+        <button id="htab-btn-assignment" onclick="switchHistoryTab('assignment')"
+          style="flex:1;padding:8px;border:none;background:#fff;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;box-shadow:var(--shadow-sm)">
+          📚 Assignment
+        </button>
+        <button id="htab-btn-inclass" onclick="switchHistoryTab('inclass')"
+          style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">
+          🔄 In-Class
+        </button>
+        <button id="htab-btn-free" onclick="switchHistoryTab('free')"
+          style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">
+          📖 Free Practice
+        </button>
+      </div>
+
+      <!-- Assignment history -->
+      <div id="htab-assignment">
+        <div id="history-assignment-wrap"><div style="text-align:center;padding:40px;color:var(--grey-400)">Loading…</div></div>
+      </div>
+      <!-- In-class history -->
+      <div id="htab-inclass" style="display:none">
+        <div id="history-inclass-wrap"><div style="text-align:center;padding:40px;color:var(--grey-400)">Loading…</div></div>
+      </div>
+      <!-- Free practice history -->
+      <div id="htab-free" style="display:none">
+        <div id="history-free-wrap"><div style="text-align:center;padding:40px;color:var(--grey-400)">Loading…</div></div>
+      </div>
+    </div>
+
+  </div><!-- page-content -->
+</main>
+</div><!-- app-layout -->
+
+<!-- ╔══════════════════════════════════════╗
+     ║     PRE-TEST MODAL (Fullscreen)      ║
+     ╚══════════════════════════════════════╝ -->
+<div class="modal-overlay" id="pretest-modal" style="padding:0">
+  <div class="pretest-shell">
+    <div class="pretest-topbar">
+      <div>
+        <div class="timer-lbl">Remaining</div>
+        <div class="timer-display" id="timer-display">6:00</div>
+      </div>
+      <div class="pretest-info">
+        <div class="pretest-title" id="pretest-title">Reading Time</div>
+        <div class="pretest-sub">Study the passage and vocabulary carefully before starting</div>
+      </div>
+      <button class="btn btn-primary" id="start-quiz-btn" onclick="startQuizFromPretest()" disabled style="white-space:nowrap;min-width:180px">
+        🔒 Unlocks in <span id="btn-countdown">6:00</span>
+      </button>
+      <button onclick="cancelPretest()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:8px">✕</button>
+    </div>
+    <div class="pretest-body">
+      <div class="pretest-left">
+        <div class="pretest-left-title">📖 Reading Passage</div>
+        <div class="passage-text" id="pretest-passage"></div>
+      </div>
+      <div class="pretest-right">
+        <div class="pretest-right-title">📚 Vocabulary to Study</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Word</th><th>IPA</th><th>Synonyms / Definition</th><th>Vietnamese</th></tr></thead>
+            <tbody id="pretest-vocab-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗
+     ║           QUIZ MODAL                 ║
+     ╚══════════════════════════════════════╝ -->
+<div class="modal-center" id="quiz-modal">
+  <div class="quiz-wrap">
+    <div class="quiz-header">
+      <div class="ring-wrap">
+        <svg width="48" height="48" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="4"/>
+          <circle id="quiz-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--red-mid)" stroke-width="4"
+            stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700" id="quiz-ring-num">0</div>
+      </div>
+      <div>
+        <div class="quiz-title-sm" id="quiz-title">Quiz</div>
+        <div class="quiz-sub" id="quiz-sub">Question 1 of 60</div>
+      </div>
+      <button class="quiz-close" onclick="confirmCloseQuiz()">✕</button>
+    </div>
+    <div class="quiz-progress-bar-wrap">
+      <div class="quiz-progress-bar-fill" id="quiz-fill" style="width:0%"></div>
+    </div>
+    <div class="quiz-body" id="quiz-body"></div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗
+     ║        COPYING WORDS MODAL           ║
+     ╚══════════════════════════════════════╝ -->
+<div class="modal-center" id="copy-modal">
+  <div class="copy-wrap">
+    <div class="copy-header">
+      <div style="flex:1">
+        <div style="font-family:var(--font-display);font-size:.9rem;color:#fff">✍️ Copying: <span id="copy-word-title">—</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:1px" id="copy-progress-label">0 / 20</div>
+      </div>
+      <button onclick="closeCopyModal()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.55);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div style="padding:18px;overflow-y:auto;max-height:calc(94vh - 60px)">
+      <div class="copy-word-hero">
+        <div class="copy-word-big" id="copy-word-big">—</div>
+        <div class="copy-ipa" id="copy-ipa"></div>
+        <div class="copy-viet" id="copy-viet"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px">🚫 Paste disabled — type each word manually</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--grey-600);margin-bottom:5px">
+          <span>Progress</span><span id="copy-count-lbl">0 / 20</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar teal" id="copy-pbar" style="width:0%"></div></div>
+      </div>
+      <div class="typing-grid" id="copy-grid"></div>
+      <button class="btn btn-primary btn-full" id="copy-save-btn" onclick="saveCopyProgress()" disabled>💾 Save Progress</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════ -->
+<script>
+'use strict';
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONFIG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const API_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const App = {
+  user: null, token: null,
+  // data
+  assignments: [], submissions: [], reviews: [], reviewSubs: [], punishment: [],
+  // quiz
+  quizWords: [], quizIdx: 0, quizScore: 0, quizWrong: [],
+  quizAsnId: null, quizIsReview: false, quizReviewId: null, quizMode: 'mixed',
+  // pretest
+  pretestTimer: null, pretestAsnId: null, pretestMinutes: 6,
+  // copy
+  copyWord: '', copyCurrent: 0, copyTarget: 20, copyTyped: 0,
+  // free reading
+  frVocab: [], // [{word,ipa,synonyms,vietnamese}]
+};
+
+// ── Bootstrap ──────────────────────
+(function() {
+  const tok = sessionStorage.getItem('ielts_hub_token');
+  const usr = sessionStorage.getItem('ielts_hub_user');
+  if (!tok || !usr) { window.location.href = './index.html'; return; }
+  App.token = tok;
+  App.user  = JSON.parse(usr);
+  const n = App.user.fullName || App.user.FullName || '';
+  const c = App.user.class    || App.user.Class    || '';
+  const s = App.user.studentId|| App.user.StudentID|| '';
+  document.getElementById('s-avatar').textContent = n.charAt(0).toUpperCase();
+  document.getElementById('s-name').textContent   = n;
+  document.getElementById('s-class').textContent  = [c, s].filter(Boolean).join(' · ');
+  document.getElementById('topbar-date').textContent =
+    new Date().toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+  renderFrTable();
+  loadStudentData();
+})();
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// API (JSONP)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function api(action, payload) {
+  payload = payload || {};
+  return new Promise((resolve, reject) => {
+    const cb = 'gasCallback_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+    const params = 'callback=' + encodeURIComponent(cb)
+      + '&action='       + encodeURIComponent(action)
+      + '&payload='      + encodeURIComponent(JSON.stringify(payload))
+      + '&sessionToken=' + encodeURIComponent(App.token || '');
+    const s = document.createElement('script');
+    s.src = API_URL + '?' + params;
+    const t = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 30000);
+    window[cb] = r => { cleanup(); resolve(r); };
+    const cleanup = () => { clearTimeout(t); delete window[cb]; s.parentNode && s.parentNode.removeChild(s); };
+    s.onerror = () => { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(s);
+  });
+}
+
+// apiPost: fetch POST for large payloads (no JSONP URL limit)
+// GAS receives body, processes, returns response.
+// Browser gets CORS error reading response — but GAS already ran.
+// For fire-and-forget saves this is fine.
+async function apiPost(action, payload) {
+  const body = JSON.stringify({
+    action:       action,
+    payload:      payload || {},
+    sessionToken: App.token || ''
+  });
+  try {
+    // text/plain = simple request → no preflight OPTIONS → GAS receives body
+    await fetch(API_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body:    body
+    });
+    // GAS processes the request — CORS error on response read is expected and ignored
+  } catch(e) {
+    // Ignore — GAS already processed the request
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TOAST + UI HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toast(msg, type, dur) {
+  type = type || 'info'; dur = dur || 3500;
+  const icons = {success:'✓', error:'✕', info:'ℹ'};
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(() => el.remove(), dur);
+}
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name)?.classList.add('active');
+  document.getElementById('nav-' + name)?.classList.add('active');
+  const titles = {overview:'Overview', assignments:'Assignments', review:'In-Class Review', 'free-reading':'Free Reading', copying:'Copying Words'};
+  document.getElementById('section-title').textContent = titles[name] || name;
+}
+function goHome() { window.location.href = './index.html'; }
+function openModal(id)  { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+function esc(s)     { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LOAD DATA
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadStudentData() {
+  const sid = App.user.studentId || App.user.StudentID || '';
+  const cls = App.user.class     || App.user.Class     || '';
+  let done = {a:false, s:false, r:false, rs:false};
+  const tryFinish = () => {
+    if (Object.values(done).every(Boolean)) {
+      updateNavBadges(); updateStats(); renderSubmissions(); renderAssignments(); renderReview();
+    }
+  };
+  api('vocab.getAssignments', {studentClass: cls}).then(res => {
+    App.assignments = res?.data || []; done.a = true; tryFinish();
+  }).catch(() => { done.a = true; tryFinish(); });
+  api('vocab.getSubmissions', {studentId: sid}).then(res => {
+    App.submissions = res?.data || []; done.s = true; tryFinish();
+  }).catch(() => { done.s = true; tryFinish(); });
+  api('vocab.getReviewSessions', {studentClass: cls}).then(res => {
+    App.reviews = res?.data || []; done.r = true; tryFinish();
+  }).catch(() => { done.r = true; tryFinish(); });
+  api('vocab.getReviewSubs', {studentId: sid}).then(res => {
+    App.reviewSubs = res?.data || []; done.rs = true; tryFinish();
+  }).catch(() => { done.rs = true; tryFinish(); });
+  // punishment (independent)
+  api('vocab.getPunishment', {studentId: sid}).then(res => {
+    App.punishment = res?.data || [];
+    renderCopying();
+    const b = document.getElementById('nav-badge-pun');
+    if (b) { b.textContent = App.punishment.length; b.classList.toggle('hidden', !App.punishment.length); }
+  }).catch(() => {});
+}
+
+function updateNavBadges() {
+  const pending = App.assignments.filter(a => {
+    const sub = App.submissions.find(s => s.AssignmentID === a.ID);
+    return !sub || sub.Status !== 'Completed';
+  }).length;
+  const b = document.getElementById('nav-badge-asn');
+  if (b) { b.textContent = pending; b.classList.toggle('hidden', !pending); }
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = App.assignments.length;
+  document.getElementById('stat-done').textContent  = App.submissions.filter(s => s.Status==='Completed').length;
+  const allW = new Set(), wrongW = new Set();
+  App.assignments.forEach(a => {
+    try { JSON.parse(a.VocabularyJSON||'[]').forEach(v => allW.add(v.original||v)); } catch(e) {}
+  });
+  App.submissions.forEach(s => {
+    try { JSON.parse(s.WrongWords||'[]').forEach(w => wrongW.add(w)); } catch(e) {}
+  });
+  document.getElementById('stat-words').textContent = allW.size;
+  document.getElementById('stat-wrong').textContent = wrongW.size;
+  const card = document.getElementById('wrong-words-card');
+  const list = document.getElementById('wrong-words-list');
+  if (wrongW.size > 0) {
+    card.classList.remove('hidden');
+    list.innerHTML = '';
+    wrongW.forEach(w => {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'background:var(--red-light);color:var(--red);border-radius:100px;padding:3px 11px;font-size:12px;font-weight:700;cursor:pointer;display:inline-block';
+      chip.textContent = w;
+      chip.onclick = () => openCopyForWord(w);
+      list.appendChild(chip);
+    });
+  } else { card.classList.add('hidden'); }
+}
+
+function renderSubmissions() {
+  const el = document.getElementById('submissions-list');
+  if (!App.submissions.length) { el.innerHTML = '<div style="text-align:center;padding:28px;color:var(--grey-400)">No submissions yet.</div>'; return; }
+  const sorted = [...App.submissions].sort((a,b) => new Date(b.LastAttempt||0) - new Date(a.LastAttempt||0));
+  el.innerHTML = `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Assignment</th><th>Score</th><th>Attempts</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>${sorted.slice(0,8).map(s => {
+      const a = App.assignments.find(x => x.ID===s.AssignmentID);
+      const sc = parseInt(s.Score)||0;
+      const col = sc>=80?'var(--green)':sc>=60?'var(--gold)':'var(--red)';
+      return `<tr>
+        <td><strong>${esc(a?.Title || s.AssignmentID)}</strong></td>
+        <td><strong style="color:${col}">${sc}%</strong></td>
+        <td>${s.AttemptCount||1}</td>
+        <td><span class="badge badge-${s.Status==='Completed'?'green':'grey'}">${s.Status}</span></td>
+        <td style="font-size:11px;color:var(--grey-600)">${s.LastAttempt?new Date(s.LastAttempt).toLocaleDateString():'-'}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+function renderAssignments() {
+  const el = document.getElementById('assignments-list');
+  if (!App.assignments.length) { el.innerHTML = '<div style="text-align:center;padding:44px;color:var(--grey-400)">No assignments for your class yet.</div>'; return; }
+  el.innerHTML = App.assignments.map(a => {
+    const sub  = App.submissions.find(s => s.AssignmentID === a.ID);
+    const done = sub?.Status === 'Completed';
+    let vocabN = 0; try { vocabN = JSON.parse(a.VocabularyJSON||'[]').length; } catch(e) {}
+    const dl = a.Deadline ? new Date(a.Deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'No deadline';
+    return `<div class="asn-card" onclick="openPretest('${esc(a.ID)}', 6)">
+      <div class="asn-icon">${done?'✅':'📚'}</div>
+      <div class="asn-info">
+        <div class="asn-title">${esc(a.Title)}</div>
+        <div class="asn-meta">
+          <span>📅 Due: ${dl}</span>
+          <span>📖 ${vocabN} words</span>
+          ${sub ? `<span>Score: <strong>${sub.Score}%</strong></span>` : ''}
+        </div>
+        ${sub ? `<div class="progress-wrap" style="width:180px;max-width:100%;margin-top:6px">
+          <div class="progress-bar ${done?'green':''}" style="width:${sub.Score}%"></div></div>` : ''}
+      </div>
+      <div><span class="badge badge-${done?'green':'red'}">${done?'Done':'Start'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderReview() {
+  const el = document.getElementById('review-list');
+  if (!App.reviews.length) { el.innerHTML = '<div style="text-align:center;padding:44px;color:var(--grey-400)">No review sessions yet.</div>'; return; }
+  const now = new Date();
+  el.innerHTML = App.reviews.map(r => {
+    const st   = r.StartTime ? new Date(r.StartTime) : null;
+    const live = st && now >= st;
+    const sub  = App.reviewSubs.find(s => s.ReviewID === r.ID);
+    const done = !!sub;
+    const asn  = App.assignments.find(a => a.ID === r.AssignmentID);
+    const timeStr = st ? st.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'N/A';
+    const action = done ? `<span class="badge badge-green">✓ ${sub.Score}%</span>`
+      : live ? `<button class="btn btn-primary btn-sm" onclick="startReview('${esc(r.ID)}')">▶ Start</button>`
+      : `<button class="btn btn-secondary btn-sm" disabled>🔒 ${timeStr}</button>`;
+    const border = done?'var(--green)':live?'var(--red)':'var(--gold)';
+    return `<div class="asn-card" style="border-left:4px solid ${border}">
+      <div class="asn-icon">${done?'✅':live?'🔴':'⏰'}</div>
+      <div class="asn-info">
+        <div class="asn-title">${esc(r.Title || (asn?.Title||r.AssignmentID) + ' — Review')}</div>
+        <div class="asn-meta">
+          <span>📚 ${esc(asn?.Title||r.AssignmentID)}</span>
+          <span>⏱ ${r.DurationMinutes||10} min</span>
+          <span>🕐 ${timeStr}</span>
+        </div>
+      </div>
+      <div>${action}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCopying() {
+  const el = document.getElementById('copying-list');
+  if (!App.punishment.length) {
+    el.innerHTML = `<div style="text-align:center;padding:44px">
+      <div style="font-size:40px;margin-bottom:12px">🎉</div>
+      <div style="font-family:var(--font-display);font-size:1.2rem;margin-bottom:6px">All Clear!</div>
+      <div style="color:var(--grey-600);font-size:13px">No words to copy. Great work!</div>
+    </div>`;
+    return;
+  }
+  const groups = {};
+  App.punishment.forEach(p => {
+    const k = p.AssignmentID || 'general';
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(p);
+  });
+  let html = '';
+  for (const [asnId, words] of Object.entries(groups)) {
+    const asn = App.assignments.find(a => a.ID === asnId);
+    const title = asn?.Title || (asnId === 'general' ? 'Practice Words' : asnId);
+    html += `<div class="card"><div class="card-title"><span>📚 ${esc(title)}</span><span style="font-size:11px;color:var(--grey-400)">${words.length} word(s)</span></div>`;
+    words.forEach(p => {
+      const cur = parseInt(p.CurrentCount)||0;
+      const tgt = parseInt(p.TargetCount)||20;
+      const pct = Math.round((cur/tgt)*100);
+      const done = pct >= 100;
+      // Get vocab info from assignment
+      let vocabInfo = null;
+      if (asn?.VocabularyJSON) try {
+        const vArr = JSON.parse(asn.VocabularyJSON);
+        vocabInfo = vArr.find(v => (v.original||'').toLowerCase() === p.Word?.toLowerCase());
+      } catch(e) {}
+      html += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;${done?'opacity:.6':''}">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">${esc(p.Word)}${done?'<span class="badge badge-green" style="margin-left:6px">Done ✓</span>':''}
+          ${vocabInfo?.vietnamese?`<span style="font-size:11px;color:var(--gold);margin-left:6px">${esc(vocabInfo.vietnamese)}</span>`:''}
+          </div>
+          <div class="progress-wrap"><div class="progress-bar ${done?'green':'teal'}" style="width:${pct}%"></div></div>
+          <div style="font-size:11px;color:var(--grey-600);margin-top:2px">${cur} / ${tgt} times</div>
+        </div>
+        ${!done ? `<button class="btn btn-teal btn-sm" onclick="openCopyModal('${escAttr(p.Word)}',${cur},${tgt})">✍️ Copy</button>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// REVIEW SESSION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function startReview(reviewId) {
+  const r = App.reviews.find(x => x.ID === reviewId);
+  if (!r) return;
+  const sub = App.reviewSubs.find(s => s.ReviewID === reviewId);
+  if (sub) { toast('You already completed this review.', 'error'); return; }
+
+  App.quizIsReview = true;
+  App.quizReviewId = reviewId;
+
+  const asn = App.assignments.find(a => a.ID === r.AssignmentID);
+  if (asn) {
+    // Assignment đã có trong cache (cùng class) → chạy ngay
+    openPretest(r.AssignmentID, 3, reviewId);
+  } else {
+    // Assignment thuộc class khác → fetch trực tiếp theo ID
+    toast('Đang tải bài…', 'info', 2000);
+    api('vocab.getAssignmentById', { assignmentId: r.AssignmentID }).then(res => {
+      if (!res?.data) { toast('Không tải được bài. Liên hệ giáo viên.', 'error'); return; }
+      App.assignments.push(res.data); // cache lại
+      openPretest(r.AssignmentID, 3, reviewId);
+    }).catch(() => toast('Lỗi kết nối. Thử lại.', 'error'));
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PRE-TEST / READING TIMER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openPretest(asnId, minutes, reviewId) {
+  const asn = App.assignments.find(a => a.ID === asnId);
+  if (!asn) return;
+  App.pretestAsnId = asnId;
+  if (reviewId) { App.quizIsReview = true; App.quizReviewId = reviewId; }
+  else          { App.quizIsReview = false; App.quizReviewId = null; }
+
+  document.getElementById('pretest-title').textContent = asn.Title;
+
+  // Passage
+  const raw = (asn.ReadingPassage || '').trim();
+  const passEl = document.getElementById('pretest-passage');
+  if (raw) {
+    passEl.innerHTML = raw.split(/\n{2,}|\n/).filter(p => p.trim())
+      .map(p => `<p>${esc(p.trim())}</p>`).join('');
+  } else {
+    passEl.innerHTML = '<em style="color:var(--grey-400)">No reading passage provided.</em>';
+  }
+
+  // Vocab table
+  let vocab = [];
+  try { vocab = JSON.parse(asn.VocabularyJSON || '[]'); } catch(e) {}
+  document.getElementById('pretest-vocab-body').innerHTML = vocab.map(v =>
+    `<tr><td><strong>${esc(v.original||v)}</strong></td>
+     <td style="font-family:var(--font-mono);font-size:11px">${esc(v.ipa||'-')}</td>
+     <td>${esc(v.synonyms||'-')}</td>
+     <td>${esc(v.vietnamese||'-')}</td></tr>`
+  ).join('');
+
+  startPretestTimer(minutes);
+  openModal('pretest-modal');
+}
+
+function startPretestTimer(minutes) {
+  clearInterval(App.pretestTimer);
+  let secs = minutes * 60;
+  const btn = document.getElementById('start-quiz-btn');
+  btn.disabled = true;
+
+  const update = () => {
+    const m = Math.floor(secs/60), s = secs%60;
+    const fmt = `${m}:${s<10?'0':''}${s}`;
+    document.getElementById('timer-display').textContent = fmt;
+    document.getElementById('btn-countdown').textContent = fmt;
+    document.getElementById('timer-display').classList.toggle('urgent', secs <= 60);
+    if (secs <= 0) {
+      clearInterval(App.pretestTimer);
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Start Quiz Now!';
+      document.getElementById('timer-display').textContent = 'Ready!';
+      toast('Reading time up! Start the quiz.', 'success');
+    }
+    secs--;
+  };
+  update();
+  App.pretestTimer = setInterval(update, 1000);
+}
+
+function cancelPretest() {
+  clearInterval(App.pretestTimer);
+  closeModal('pretest-modal');
+}
+
+function startQuizFromPretest() {
+  clearInterval(App.pretestTimer);
+  closeModal('pretest-modal');
+  App.usedPretest = true;  // flag: came through vocab study
+  const asn = App.assignments.find(a => a.ID === App.pretestAsnId);
+  if (asn) launchQuiz(asn, App.quizIsReview, 'mixed');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// QUIZ ENGINE  (60 questions, MC + FITB)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function launchQuiz(asn, isReview, mode) {
+  App.quizAsnId    = asn.ID;
+  App.quizIsReview = isReview;
+  App.quizIdx      = 0;
+  App.quizScore    = 0;
+  App.quizWrong    = [];
+  App.quizMode     = mode || 'mixed';
+  App.quizStartedAt = new Date().toISOString();
+  // usedPretest is set by startQuizFromPretest(); direct launch = false
+  if (!App.usedPretest) App.usedPretest = false;
+
+  let vocab = [];
+  try { vocab = JSON.parse(asn.VocabularyJSON || '[]'); } catch(e) {}
+  if (!vocab.length) { toast('No vocabulary found for this assignment.', 'error'); return; }
+
+  App.quizWords = buildQuestions(vocab, 60, App.quizMode, App.quizIsReview);
+  document.getElementById('quiz-title').textContent = asn.Title;
+  openModal('quiz-modal');
+  renderQuestion();
+}
+
+// ── BUILD 60 QUESTIONS ─────────────
+// AWL (Academic Word List) + high-frequency IELTS B2+ word patterns
+// Words matching these patterns get priority repetition (appear ~3x in 60 Qs)
+function isHighPriorityWord(word) {
+  const w = (word.original || word.word || String(word)).toLowerCase();
+  // AWL sublist 1-3 indicators: abstract, academic, formal patterns
+  const awlPatterns = /tion$|ment$|ity$|ance$|ence$|ous$|ive$|ify$|ise$|ize$|sis$|ogy$|ent$|ant$/;
+  const b2Patterns  = /^(significant|fundamental|contemporary|comprehensive|substantial|considerable|apparent|subsequent|relevant|adequate|equivalent|efficient|sufficient|initial|specific|primary|prior|major|minor|achieve|assess|analyse|analyze|identify|indicate|involve|maintain|obtain|provide|require|assume|benefit|concept|consist|constitute|contract|contribute|define|derive|distribute|establish|factor|focus|function|implement|integrate|interpret|issue|method|policy|process|respond|similar|source|structure|theory|traditional|vary|vary|affect|approach|context|create|design|develop|distribute|examine|feature|generate|illustrate|impact|increase|occur|perceive|proceed|research|restrict|select|significant|source|strategy|transfer)$/;
+  return awlPatterns.test(w) || b2Patterns.test(w) || w.length >= 8;
+}
+
+function buildQuestions(vocab, total, mode, isReview) {
+  // MC modes: meaning-focused ONLY (no IPA/pronunciation)
+  const mcModes = ['word-to-synonym', 'synonym-to-word', 'word-to-vietnamese', 'vietnamese-to-word'];
+  const questions = [];
+  const shuffleArr = arr => [...arr].sort(() => Math.random() - .5);
+
+  // ── IN-CLASS REVIEW: mỗi từ xuất hiện đúng 1 lần, không lặp ──
+  if (isReview) {
+    const pool = shuffleArr(vocab).slice(0, total);
+    pool.forEach((word, i) => {
+      let q;
+      if (mode === 'fitb') q = buildFITB(word, vocab);
+      else if (mode === 'mc') q = buildMC(word, mcModes[i % mcModes.length], vocab);
+      else {
+        if (i % 4 === 3) q = buildFITB(word, vocab);
+        else q = buildMC(word, mcModes[i % mcModes.length], vocab);
+      }
+      if (q) questions.push(q);
+    });
+    return questions; // trả về đúng số từ, tối đa 60
+  }
+
+  // ── ASSIGNMENT: 60 câu có lặp từ high-priority (spaced repetition) ──
+  const highPri = vocab.filter(isHighPriorityWord);
+  const normalW = vocab.filter(w => !isHighPriorityWord(w));
+
+  // ── Build pool: 40 normal + 20 high-priority repeats ──
+  let pool = [];
+
+  // Fill normal words (each appears ~2x)
+  while (pool.length < 40) {
+    pool.push(...shuffleArr(vocab));
+  }
+  pool = pool.slice(0, 40);
+
+  // Add 20 high-priority repeats (or fallback to normal if not enough)
+  const repeatPool = highPri.length >= 5 ? highPri : vocab;
+  let repeats = [];
+  while (repeats.length < 20) repeats.push(...shuffleArr(repeatPool));
+  pool = shuffleArr([...pool, ...repeats.slice(0, 20)]);
+
+  pool.forEach((word, i) => {
+    let q;
+    if (mode === 'fitb') {
+      q = buildFITB(word, vocab);
+    } else if (mode === 'mc') {
+      q = buildMC(word, mcModes[i % mcModes.length], vocab);
+    } else {
+      // mixed: every 4th question is FITB, rest MC (meaning-focused)
+      if (i % 4 === 3) q = buildFITB(word, vocab);
+      else q = buildMC(word, mcModes[i % mcModes.length], vocab);
+    }
+    if (q) questions.push(q);
+  });
+
+  return questions.slice(0, total);
+}
+
+// ── MULTIPLE CHOICE QUESTION ───────
+function buildMC(word, mode, allVocab) {
+  const others = allVocab.filter(w => w !== word).sort(() => Math.random()-.5).slice(0, 3);
+  let prompt, correct, choices, ipa = '', label = '';
+  const w = word.original || String(word);
+
+  if (mode === 'word-to-synonym') {
+    if (!word.synonyms) mode = 'word-to-vietnamese'; // fallback
+  }
+
+  switch (mode) {
+    case 'word-to-synonym':
+      prompt = w; ipa = word.ipa||''; correct = word.synonyms||w;
+      choices = [correct, ...others.map(o => o.synonyms||o.original||o)]; label = 'Word → Synonym';
+      break;
+    case 'synonym-to-word':
+      prompt = word.synonyms||word.vietnamese||w; correct = w;
+      choices = [correct, ...others.map(o => o.original||o)]; label = 'Definition → Word';
+      break;
+    case 'word-to-vietnamese':
+      prompt = w; ipa = word.ipa||''; correct = word.vietnamese||w;
+      choices = [correct, ...others.map(o => o.vietnamese||o.original||o)]; label = 'Word → Vietnamese';
+      break;
+    case 'vietnamese-to-word':
+      prompt = word.vietnamese||word.synonyms||w; correct = w;
+      choices = [correct, ...others.map(o => o.original||o)]; label = 'Vietnamese → Word';
+      break;
+    default:
+      prompt = w; correct = word.synonyms||word.vietnamese||w;
+      choices = [correct, ...others.map(o => o.synonyms||o.original||o)]; label = 'Multiple Choice';
+  }
+
+  return {
+    type: 'mc', word: w, prompt, correct, ipa, label,
+    choices: choices.sort(() => Math.random() - .5)
+  };
+}
+
+// ── FILL IN THE BLANK QUESTION ─────
+function buildFITB(word, allVocab) {
+  const w    = word.original || String(word);
+  const syn  = word.synonyms  || '';
+  const viet = word.vietnamese || '';
+  const ipa  = word.ipa || '';
+
+  // Build rich context sentence with blank
+  // Strategy: show definition/synonym as context, blank = the word
+  // Use multiple templates for variety
+  // Templates focused on meaning/synonym ONLY (no IPA/pronunciation)
+  const templates = [
+    syn  ? `A word that means "${syn}" is: _______`
+         : `Fill in the blank with the correct word: _______`,
+    viet ? `The English word for "${viet}" is: _______`
+         : `Write the missing word: _______`,
+    (syn && viet) ? `Word meaning "${syn}" (${viet}): _______`
+                  : (syn ? `Define "${syn}" with one word: _______` : `Complete the word: _______`),
+    syn  ? `We can describe it as "${syn}". The word is: _______`
+         : (viet ? `"${viet}" in English: _______` : `Type the missing vocabulary word: _______`),
+    syn  ? `Synonym of "${syn.split(',')[0].trim()}": _______`
+         : (viet ? `Translate "${viet}": _______` : `Fill in the blank: _______`),
+  ];
+
+  // Build letter hint: first letter revealed + dashes
+  const hint = w.charAt(0) + '_ '.repeat(w.length - 1).trim();
+  // Scrambled letters as hint
+  const scrambled = w.split('').sort(() => Math.random() - .5);
+
+  const sentenceIdx = Math.floor(Math.random() * templates.length);
+
+  return {
+    type: 'fitb', word: w, correct: w.toLowerCase(), ipa, syn, viet,
+    label: 'Fill in the Blank',
+    sentence: templates[sentenceIdx],
+    hint,
+    letters: w.split('').map((c,i) => ({char: c, idx: i})).sort(() => Math.random() - .5),
+    wordLen: w.length,
+    firstLetter: w.charAt(0).toUpperCase(),
+  };
+}
+
+// ── RENDER QUESTION ─────────────────
+function renderQuestion() {
+  const total = App.quizWords.length;
+  const idx   = App.quizIdx;
+  if (idx >= total) { renderResults(); return; }
+
+  const q        = App.quizWords[idx];
+  const progress = idx / total;
+
+  document.getElementById('quiz-sub').textContent    = `Question ${idx+1} of ${total}`;
+  document.getElementById('quiz-fill').style.width   = (progress*100) + '%';
+  document.getElementById('quiz-ring-num').textContent= idx + 1;
+  document.getElementById('quiz-ring').style.strokeDashoffset = 125.6 - (125.6 * progress);
+
+  if (q.type === 'fitb') renderFITB(q);
+  else renderMC(q);
+}
+
+function renderMC(q) {
+  document.getElementById('quiz-body').innerHTML = `
+    <div class="q-card">
+      <div class="q-type-badge q-type-mc">${esc(q.label)}</div>
+      <div class="q-prompt">${esc(q.prompt)}</div>
+      ${q.ipa ? `<div class="q-ipa">${esc(q.ipa)}</div>` : ''}
+      <div class="q-instr">Choose the correct answer:</div>
+      <div class="mc-grid">
+        ${q.choices.map(c => `<button class="mc-btn"
+          onclick="answerMC(this,'${escAttr(c)}','${escAttr(q.correct)}','${escAttr(q.word)}')"
+          >${esc(c)}</button>`).join('')}
+      </div>
+      <div id="feedback-area"></div>
+    </div>`;
+}
+
+function renderFITB(q) {
+  // Letter boxes as hint
+  const letterBoxes = q.word.split('').map((c, i) =>
+    `<div class="fitb-letter-box ${i===0?'revealed':''}">${i===0?esc(c.toUpperCase()):'?'}</div>`
+  ).join('');
+
+  document.getElementById('quiz-body').innerHTML = `
+    <div class="q-card">
+      <div class="q-type-badge q-type-fitb">Fill in the Blank</div>
+      <div class="fitb-context-card">
+        <div class="fitb-context-label">📝 Context Clue</div>
+        <div class="fitb-context-text">${esc(q.sentence).replace('_______', '<span class="fitb-blank-span">_______</span>')}</div>
+      </div>
+      ${q.viet ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px;text-align:center">🇻🇳 ${esc(q.viet)}</div>` : ''}
+      <div class="q-instr">Type the correct English word:</div>
+      <div class="fitb-answer-row">
+        <input class="fitb-input" id="fitb-inp" type="text" maxlength="${q.wordLen + 5}"
+          placeholder="Type here…" autocomplete="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();checkFITB();}">
+        <button class="btn btn-teal btn-sm" onclick="checkFITB()">✓ Check</button>
+      </div>
+      <div class="fitb-hint-row">
+        Hint — first letter & length:
+        <div class="fitb-hint-letters">${letterBoxes}</div>
+      </div>
+      <div id="feedback-area"></div>
+    </div>`;
+  setTimeout(() => document.getElementById('fitb-inp')?.focus(), 80);
+}
+
+function checkFITB() {
+  const inp = document.getElementById('fitb-inp');
+  if (!inp || !inp.value.trim()) { toast('Type your answer first.', 'error'); return; }
+  const q = App.quizWords[App.quizIdx];
+  const chosen = inp.value.trim().toLowerCase();
+  const correct = q.correct.toLowerCase();
+  const isCorrect = chosen === correct;
+
+  inp.disabled = true;
+  inp.classList.add(isCorrect ? 'correct-ans' : 'wrong-ans');
+  document.querySelector('.fitb-answer-row .btn')?.setAttribute('disabled', true);
+
+  if (isCorrect) {
+    App.quizScore++;
+  } else {
+    if (!App.quizWrong.includes(q.word)) App.quizWrong.push(q.word);
+  }
+
+  document.getElementById('feedback-area').innerHTML = `
+    <div class="feedback-strip ${isCorrect?'correct':'wrong'}">
+      ${isCorrect ? `✓ Correct! The word is <strong>${esc(q.word)}</strong>`
+                  : `✗ The correct word is: <strong>${esc(q.word)}</strong>${q.ipa?` <span style="font-family:var(--font-mono);font-size:12px">${esc(q.ipa)}</span>`:''}`}
+    </div>
+    <button class="next-btn" onclick="nextQ()">
+      ${App.quizIdx+1 >= App.quizWords.length ? 'See Results →' : 'Next →'}
+    </button>`;
+}
+
+function answerMC(btn, chosen, correct, word) {
+  document.querySelectorAll('.mc-btn').forEach(b => b.disabled = true);
+  const isCorrect = chosen === correct;
+  btn.classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    document.querySelectorAll('.mc-btn').forEach(b => { if (b.textContent.trim() === correct) b.classList.add('correct'); });
+    if (!App.quizWrong.includes(word)) App.quizWrong.push(word);
+  } else {
+    App.quizScore++;
+  }
+  document.getElementById('feedback-area').innerHTML = `
+    <div class="feedback-strip ${isCorrect?'correct':'wrong'}">
+      ${isCorrect ? '✓ Correct!' : `✗ The answer is: <strong>${esc(correct)}</strong>`}
+    </div>
+    <button class="next-btn" onclick="nextQ()">
+      ${App.quizIdx+1 >= App.quizWords.length ? 'See Results →' : 'Next →'}
+    </button>`;
+}
+
+function nextQ() { App.quizIdx++; renderQuestion(); }
+
+// ── RESULTS ──────────────────────────
+function renderResults() {
+  const total = App.quizWords.length;
+  const pct   = Math.round((App.quizScore / total) * 100);
+  const pass  = pct >= 80;
+  const isRev = App.quizIsReview;
+  const sid   = App.user.studentId || App.user.StudentID || '';
+
+  // Submit to backend — send full timing + pretest data
+  const now = new Date().toISOString();
+  const startedAt = App.quizStartedAt || now;
+  const sid2 = App.user.studentId || App.user.StudentID || '';
+  const uname = App.user.fullName || App.user.FullName || '';
+  const ucls  = App.user.class || App.user.Class || '';
+
+  if (isRev && App.quizReviewId) {
+    // ── IN-CLASS REVIEW ──
+    api('vocab.submitReview', {
+      studentId:   sid,
+      reviewId:    App.quizReviewId,
+      score:       pct,
+      wrongWords:  App.quizWrong,
+      startedAt:   startedAt,
+      submittedAt: now,
+      correct:     App.quizScore,
+      total:       App.quizWords.length
+    }).catch(() => {});
+
+  } else if (App.quizAsnId) {
+    if (String(App.quizAsnId).startsWith('FR_')) {
+      // ── FREE READING ──
+      const frAsn = App.assignments.find(a => a.ID === App.quizAsnId)
+                 || { Title:'Free Reading', ReadingPassage:'', VocabularyJSON:'[]' };
+      let vocab = [];
+      try { vocab = JSON.parse(frAsn.VocabularyJSON||'[]'); } catch(e) {}
+      // Save FULL data via POST (no JSONP URL limit)
+      // GAS receives passage + vocab + questions → teacher can view detail
+      const frTopic    = frAsn.Title          || 'Free Reading';
+      const frPassage  = frAsn.ReadingPassage || '';
+      const frVocabStr = frAsn.VocabularyJSON || '[]';
+      const frQuizMode = App.quizMode         || 'mixed';
+      const frPretest  = App.usedPretest ? 'Y' : 'N';
+      const frQStr     = JSON.stringify((App.quizWords||[]).map(q => ({
+        word: q.word, type: q.type||'mc', prompt: q.prompt||'', correct: q.correct||''
+      })));
+
+      // Save FULL data via POST — no JSONP URL limit
+      apiPost('vocab.saveFreeRead', {
+        studentId:      sid,
+        topic:          frTopic,
+        wordCount:      vocab.length,
+        score:          pct,
+        wrongWords:     App.quizWrong,
+        quizMode:       frQuizMode,
+        startedAt:      startedAt,
+        submittedAt:    now,
+        usedPretest:    frPretest,
+        correct:        App.quizScore,
+        total:          App.quizWords.length,
+        passage:        frPassage,
+        vocabularyJSON: frVocabStr,
+        questionsJSON:  frQStr
+      });
+
+      // Save to localStorage for vocab-detail.html (instant access, no network)
+      try {
+        localStorage.setItem('vd_last_fr', JSON.stringify({
+          timestamp:   now,
+          startedAt:   startedAt,
+          submittedAt: now,
+          studentName: uname,
+          studentId:   sid,
+          class:       ucls,
+          topic:       frTopic,
+          score:       pct,
+          quizMode:    frQuizMode,
+          usedPretest: frPretest,
+          wordCount:   vocab.length,
+          passage:     frPassage,
+          vocabulary:  vocab,
+          questions:   App.quizWords||[],
+          wrongWords:  App.quizWrong
+        }));
+      } catch(e2) {}
+
+    } else {
+      // ── ASSIGNMENT ──
+      api('vocab.submitQuiz', {
+        studentId:    sid,
+        assignmentId: App.quizAsnId,
+        score:        pct,
+        wrongWords:   App.quizWrong,
+        startedAt:    startedAt,
+        submittedAt:  now,
+        usedPretest:  App.usedPretest ? 'Y' : 'N',
+        correct:      App.quizScore,
+        total:        App.quizWords.length
+      }).then(() => { App.usedPretest = false; loadStudentData(); }).catch(() => {});
+    }
+    App.usedPretest = false;
+  }
+
+  document.getElementById('quiz-ring').style.strokeDashoffset = 0;
+  document.getElementById('quiz-sub').textContent = 'Completed!';
+
+  const wrongHtml = App.quizWrong.length
+    ? `<div class="results-wrong">
+        <div class="results-wrong-title">⚠️ Words to review (${App.quizWrong.length})</div>
+        ${App.quizWrong.map(w => `<span class="wrong-chip">${esc(w)}</span>`).join('')}
+        ${isRev ? '<p style="font-size:11px;color:var(--red);margin-top:8px">✍️ Added to your Copying Words list.</p>' : ''}
+       </div>` : '<div style="background:var(--green-light);color:var(--green);padding:12px 16px;border-radius:var(--radius);font-weight:700;margin-top:12px">🌟 Perfect score! All correct!</div>';
+
+  document.getElementById('quiz-body').innerHTML = `
+    <div class="results-wrap">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${isRev?'var(--gold)':'var(--red)'};margin-bottom:10px">
+        ${isRev ? 'In-Class Review Result' : 'Quiz Result'}
+      </div>
+      <div class="score-ring" style="border-color:${pass?'var(--green)':'var(--red)'};color:${pass?'var(--green)':'var(--red)'}">
+        <div class="score-big">${pct}%</div>
+        <div class="score-pass">${pass?'PASS':'FAIL'}</div>
+      </div>
+      <div style="font-family:var(--font-display);font-size:1.35rem;margin-bottom:6px">${pass?'🎉 Well done!':'📚 Keep studying!'}</div>
+      <p style="color:var(--grey-600);font-size:13px;margin-bottom:14px">
+        ${App.quizScore} / ${total} correct
+        ${pass ? ' — Great job!' : ' — Score 80%+ to pass'}
+      </p>
+      ${wrongHtml}
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('quiz-modal')">Close</button>
+        ${!isRev && App.quizAsnId ? `<button class="btn btn-primary btn-sm" onclick="closeModal('quiz-modal');openPretest('${App.quizAsnId}',6)">🔄 Retry</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function confirmCloseQuiz() {
+  if (App.quizIdx > 0 && App.quizIdx < App.quizWords.length) {
+    if (!confirm('Exit quiz? Progress will be lost.')) return;
+  }
+  closeModal('quiz-modal');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FREE READING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderFrTable() {
+  const tbody   = document.getElementById('fr-tbody');
+  const empty   = document.getElementById('fr-empty-hint');
+  const countEl = document.getElementById('fr-vocab-count');
+  if (!tbody) return;
+
+  if (countEl) countEl.textContent = `(${App.frVocab.length} words)`;
+  if (!App.frVocab.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  tbody.innerHTML = App.frVocab.map((v, i) => `
+    <tr>
+      <td style="color:var(--grey-400);font-size:11px;width:28px">${i+1}</td>
+      <td><input type="text" value="${escAttr(v.word)}" placeholder="word" oninput="App.frVocab[${i}].word=this.value"></td>
+      <td><input type="text" value="${escAttr(v.ipa)}" placeholder="/wɜːrd/" oninput="App.frVocab[${i}].ipa=this.value" style="font-family:var(--font-mono);font-size:12px"></td>
+      <td><input type="text" value="${escAttr(v.synonyms)}" placeholder="Definition / synonyms" oninput="App.frVocab[${i}].synonyms=this.value"></td>
+      <td><input type="text" value="${escAttr(v.vietnamese)}" placeholder="Vietnamese" oninput="App.frVocab[${i}].vietnamese=this.value"></td>
+      <td style="width:30px"><button onclick="frRemoveRow(${i})" style="background:var(--red-light);border:none;color:var(--red);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:11px">✕</button></td>
+    </tr>`).join('');
+}
+
+function frAddRow() {
+  App.frVocab.push({word:'', ipa:'', synonyms:'', vietnamese:''});
+  renderFrTable();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#fr-tbody tr');
+    if (rows.length) rows[rows.length-1].querySelector('input')?.focus();
+  }, 50);
+}
+function frRemoveRow(i) { App.frVocab.splice(i, 1); renderFrTable(); }
+function frClearAll()   { App.frVocab = []; renderFrTable(); }
+
+async function frAIExtractVocab() {
+  const passage     = document.getElementById('fr-passage').value.trim();
+  const targetVocab = document.getElementById('fr-target-vocab').value.trim();
+  if (!passage && !targetVocab) { toast('Paste a reading passage or target vocabulary list first.', 'error'); return; }
+  const btn    = document.getElementById('btn-fr-extract');
+  const status = document.getElementById('fr-extract-status');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing…';
+
+  try {
+    if (targetVocab) {
+      // ── Step 1: Parse client-side — tách word / synonym / definition ──
+      const lines = targetVocab.split('\n').map(l => l.trim()).filter(Boolean);
+      const parsed = [];
+      for (const line of lines) {
+        // Strip leading numbering: "71." / "71)" / "71 "
+        let clean = line.replace(/^\d+[\.\)\s]+/, '').trim();
+        if (!clean) continue;
+        let word = '', syn = '';
+        const eqIdx  = clean.indexOf('=');
+        const colIdx = clean.indexOf(':');
+        // prefer = over :; only use : if it appears before position 40
+        let splitIdx = -1;
+        if (eqIdx >= 0 && (colIdx < 0 || eqIdx <= colIdx)) splitIdx = eqIdx;
+        else if (colIdx >= 0 && colIdx < 40) splitIdx = colIdx;
+        if (splitIdx >= 0) {
+          word = clean.slice(0, splitIdx).trim();
+          syn  = clean.slice(splitIdx + 1).trim();
+        } else {
+          word = clean.trim();
+        }
+        if (word) parsed.push({ word, syn });
+      }
+
+      if (!parsed.length) {
+        status.textContent = '⚠ No words found. Check format (e.g.  word= definition).';
+        toast('No words parsed.', 'error');
+        return;
+      }
+
+      // ── Step 2: Hiện ngay với data đã parse ─────────────────────────
+      App.frVocab = parsed.map(p => ({ word: p.word, ipa: '', synonyms: p.syn, vietnamese: '' }));
+      renderFrTable();
+      status.textContent = `✅ Parsed ${parsed.length} words. Đang gọi AI để thêm IPA + Vietnamese…`;
+
+      // ── Step 3: AI enrichment — batch by 30 words, unlimited batches ──
+      const BATCH_SIZE = 30; // safe for token limit per call
+      const allWords = parsed.map(w => w.word);
+      const batches = [];
+      for(let i=0; i<allWords.length; i+=BATCH_SIZE){
+        batches.push(allWords.slice(i, i+BATCH_SIZE));
+      }
+
+      let enrichedCount = 0;
+      for(let b=0; b<batches.length; b++){
+        const bWords = batches[b];
+        const offset = b * BATCH_SIZE;
+        status.textContent = `🤖 AI đang tra ${offset+1}–${offset+bWords.length} / ${allWords.length} từ…`;
+
+        try{
+          const key = getFrKey();
+          let data = null;
+
+          const prompt = `You are a vocabulary dictionary. Return ONLY a valid JSON array, no markdown, no explanation.
+For EVERY word in the list below, return exactly one object with these fields:
+- "word": the word/phrase exactly as given
+- "ipa": British English IPA pronunciation (e.g. /ˈwɜːd/)
+- "vietnamese": concise Vietnamese translation (1-5 words)
+
+CRITICAL: You MUST include ALL ${bWords.length} words. Do not skip any word.
+
+Word list:
+${bWords.join('\n')}
+
+Return ONLY the JSON array. Example: [{"word":"example","ipa":"/ɪɡˈzɑːmpl/","vietnamese":"ví dụ"}]`;
+
+          if(key){
+            const raw = await callGeminiDirect(prompt, 4096);
+            const clean = raw.replace(/```json|```/g,'').trim();
+            data = JSON.parse(clean);
+          } else {
+            const res = await api('vocab.aiExtractVocab', {
+              passage: `__TARGETWORDS__${bWords.join('\n')}`,
+              maxTokens: 4096
+            });
+            if(res?.success) data = res.data;
+          }
+
+          if(Array.isArray(data)){
+            data.forEach((aiWord, j) => {
+              const idx = offset + j;
+              if(idx >= App.frVocab.length) return;
+              if(aiWord.ipa)        App.frVocab[idx].ipa        = aiWord.ipa;
+              if(aiWord.vietnamese) App.frVocab[idx].vietnamese = aiWord.vietnamese;
+            });
+            enrichedCount += data.length;
+            renderFrTable(); // update UI after each batch
+          }
+        }catch(batchErr){
+          console.warn(`Batch ${b+1} failed:`, batchErr.message);
+          status.textContent = `⚠ Batch ${b+1} lỗi, tiếp tục…`;
+        }
+
+        // Small delay between batches to avoid rate limit
+        if(b < batches.length-1) await new Promise(r => setTimeout(r, 600));
+      }
+
+      const enrichMsg = enrichedCount > 0
+        ? `✅ IPA + Vietnamese đã thêm cho ${enrichedCount} từ`
+        : '⚠ AI không khả dụng — IPA/Vietnamese trống, bạn có thể tự điền';
+      status.textContent = `${parsed.length} từ sẵn sàng. ${enrichMsg}`;
+      toast(`${parsed.length} từ sẵn sàng!`, 'success');
+
+    } else {
+      // ── Passage only: let AI extract key vocab ───────────────────────
+      const safePassage = passage.slice(0, 6000);
+      status.textContent = '⏳ AI is scanning the passage for key words…';
+
+      const key = getFrKey();
+      let resData = null;
+
+      if(key){
+        const prompt=`Extract 20-80 key IELTS vocabulary words/phrases from this English passage. Include all important academic and topic-specific words. Return ONLY a JSON array.
+Each item: {"word":"...","ipa":"...","synonyms":"...","vietnamese":"..."}
+IPA: British English IPA. synonyms: brief English definition (max 8 words). vietnamese: concise Vietnamese translation (1-5 words).
+Passage: ${safePassage}
+Return ONLY the JSON array, no markdown, no explanation.`;
+        const raw = await callGeminiDirect(prompt);
+        const clean = raw.replace(/```json|```/g,'').trim();
+        resData = JSON.parse(clean);
+      } else {
+        const res = await api('vocab.aiExtractVocab', { passage: safePassage });
+        if(res?.success) resData = res.data;
+      }
+
+      if(resData?.length){
+        App.frVocab = resData.map(v => ({
+          word: v.word || v.original || '',
+          ipa:  v.ipa || '',
+          synonyms: v.synonyms || '',
+          vietnamese: v.vietnamese || ''
+        }));
+        renderFrTable();
+        status.textContent = `✅ Extracted ${App.frVocab.length} words from passage!`;
+        toast(`Extracted ${App.frVocab.length} words!`, 'success');
+      } else {
+        status.textContent = '⚠ AI could not extract. Paste a Target Vocab list instead.';
+        toast('Extraction failed. Use Target Vocab list.', 'error');
+      }
+    }
+  } catch(e) {
+    status.textContent = '⚠ ' + e.message;
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🤖 AI Extract Vocabulary';
+  }
+}
+
+function frClearStep1() {
+  document.getElementById('fr-passage').value = '';
+  document.getElementById('fr-target-vocab').value = '';
+  document.getElementById('fr-title').value = '';
+  document.getElementById('fr-extract-status').textContent = '';
+}
+
+// ── Gemini API key management ──────────────────────────────────────────
+function saveFrKey(v){
+  v=v.trim();
+  localStorage.setItem('vocab_gemini_key',v);
+  const st=document.getElementById('fr-key-st');
+  if(st){
+    const ok=v.startsWith('AIza')&&v.length>=35;
+    st.textContent=ok?'✓ Key OK':'⚠ Chưa có';
+    st.style.color=ok?'var(--green-600,#16a34a)':'var(--grey-400)';
+  }
+}
+function toggleFrKey(){
+  const inp=document.getElementById('fr-gemini-key');
+  if(inp) inp.type=inp.type==='password'?'text':'password';
+}
+function getFrKey(){
+  return localStorage.getItem('vocab_gemini_key')||'';
+}
+// Init key on page load
+document.addEventListener('DOMContentLoaded',()=>{
+  const k=getFrKey();
+  const inp=document.getElementById('fr-gemini-key');
+  const st=document.getElementById('fr-key-st');
+  if(inp&&k) inp.value=k;
+  if(st){
+    const ok=k.startsWith('AIza')&&k.length>=35;
+    st.textContent=ok?'✓ Key OK':'⚠ Chưa có';
+    st.style.color=ok?'var(--green-600,#16a34a)':'var(--grey-400)';
+  }
+});
+
+// ── Direct Gemini call (bypasses GAS) ─────────────────────────────────
+async function callGeminiDirect(prompt, maxTokens, _retry){
+  const key=getFrKey();
+  if(!key) throw new Error('Chưa có Gemini API key — vui lòng nhập key trước');
+  // Try gemini-2.5-flash first, fall back to gemini-2.0-flash on failure
+  const models = _retry ? ['gemini-2.0-flash','gemini-1.5-flash'] : ['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
+  let lastErr = null;
+  for(const model of models){
+    try{
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{role:'user',parts:[{text:prompt}]}],
+          generationConfig:{maxOutputTokens:maxTokens||8192,temperature:0.1}
+        })
+      });
+      if(res.status===429){
+        // Rate limited — wait 3s then try next model
+        await new Promise(r=>setTimeout(r,3000));
+        lastErr = new Error('Rate limit (429) on '+model);
+        continue;
+      }
+      if(!res.ok){const e=await res.json().catch(()=>({}));lastErr=new Error((e.error?.message)||'HTTP '+res.status+' on '+model);continue;}
+      const d=await res.json();
+      const text=d.candidates?.[0]?.content?.parts?.[0]?.text;
+      if(!text){lastErr=new Error('Empty response from '+model);continue;}
+      return text.trim();
+    }catch(e){lastErr=e;continue;}
+  }
+  throw lastErr||new Error('All Gemini models failed');
+}
+
+function frStartSession() {
+  const valid = App.frVocab.filter(v => v.word?.trim());
+  if (valid.length < 4) { toast('Add at least 4 vocabulary words to start.', 'error'); return; }
+
+  const title     = document.getElementById('fr-title').value.trim() || 'Free Reading';
+  const passage   = document.getElementById('fr-passage').value.trim();
+  const studyTime = parseInt(document.getElementById('fr-study-time').value) || 0;
+  const mode      = document.getElementById('fr-quiz-mode').value || 'mixed';
+
+  // Create a temporary "assignment" object
+  const fakeAsn = {
+    ID: 'FR_' + Date.now(),
+    Title: title,
+    ReadingPassage: passage,
+    VocabularyJSON: JSON.stringify(valid.map(v => ({
+      original: v.word.trim(), ipa: v.ipa||'', synonyms: v.synonyms||'', vietnamese: v.vietnamese||''
+    })))
+  };
+
+  if (studyTime > 0) {
+    // Push temp asn so the pretest can find it
+    App.assignments.push(fakeAsn);
+    App.quizIsReview = false; App.quizReviewId = null;
+
+    // Override pretest "start quiz" button to remove temp asn afterward
+    const origStart = startQuizFromPretest;
+    window._frMode  = {mode, fakeId: fakeAsn.ID};
+
+    openPretest(fakeAsn.ID, Math.ceil(studyTime / 60), null);
+
+    // Replace start button action for Free Reading
+    document.getElementById('start-quiz-btn').onclick = () => {
+      clearInterval(App.pretestTimer);
+      closeModal('pretest-modal');
+      App.assignments = App.assignments.filter(a => a.ID !== fakeAsn.ID);
+      launchQuiz(fakeAsn, false, mode);
+    };
+  } else {
+    launchQuiz(fakeAsn, false, mode);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COPYING WORDS MODAL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openCopyForWord(word) {
+  const p = App.punishment.find(x => x.Word === word);
+  if (p) { openCopyModal(word, parseInt(p.CurrentCount)||0, parseInt(p.TargetCount)||20); return; }
+  // Add to punishment then open
+  const sid = App.user.studentId || App.user.StudentID || '';
+  api('vocab.addPunishment', {studentId: sid, word})
+    .then(() => openCopyModal(word, 0, 20)).catch(() => openCopyModal(word, 0, 20));
+}
+
+function openCopyModal(word, current, target) {
+  App.copyWord    = word;
+  App.copyCurrent = current;
+  App.copyTarget  = target;
+  App.copyTyped   = 0;
+
+  document.getElementById('copy-word-title').textContent = word;
+  document.getElementById('copy-word-big').textContent   = word;
+
+  // Find vocab info
+  let vocabInfo = null;
+  for (const asn of App.assignments) {
+    if (vocabInfo) break;
+    try {
+      const arr = JSON.parse(asn.VocabularyJSON||'[]');
+      vocabInfo = arr.find(v => (v.original||'').toLowerCase() === word.toLowerCase());
+    } catch(e) {}
+  }
+  document.getElementById('copy-ipa').textContent  = vocabInfo?.ipa || '';
+  document.getElementById('copy-viet').textContent = vocabInfo?.vietnamese || '';
+
+  buildCopyGrid();
+  openModal('copy-modal');
+}
+
+function closeCopyModal() { closeModal('copy-modal'); }
+
+function buildCopyGrid() {
+  const remaining = App.copyTarget - App.copyCurrent;
+  const grid = document.getElementById('copy-grid');
+  if (remaining <= 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--green);font-weight:700">
+      ✅ Completed! ${App.copyTarget}/${App.copyTarget} done.</div>`;
+    document.getElementById('copy-save-btn').disabled = true;
+    return;
+  }
+  const toWrite = Math.min(remaining, 20);
+  grid.innerHTML = '';
+  for (let i = 0; i < toWrite; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'typing-cell';
+    cell.innerHTML = `<span class="typing-num">${App.copyCurrent + i + 1}</span>
+      <input type="text" class="typing-input" id="copy-inp-${i}"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        placeholder="${App.copyWord.charAt(0)}…"
+        onpaste="return false" oncopy="return false" oncut="return false" oncontextmenu="return false"
+        oninput="checkCopyInput(this,${i})"
+        onkeydown="if((event.ctrlKey||event.metaKey)&&'vVxX'.includes(event.key)){event.preventDefault();}">`;
+    grid.appendChild(cell);
+  }
+  updateCopyProgress();
+  setTimeout(() => document.getElementById('copy-inp-0')?.focus(), 100);
+}
+
+function checkCopyInput(inp, idx) {
+  const target = App.copyWord;
+  if (inp.value.length > target.length) { inp.value = inp.value.slice(0, target.length); return; }
+  if (inp.value === target) {
+    inp.classList.add('done'); inp.disabled = true; App.copyTyped++;
+    updateCopyProgress();
+    const next = document.getElementById(`copy-inp-${idx+1}`);
+    if (next) setTimeout(() => next.focus(), 50);
+    else { document.getElementById('copy-save-btn').disabled = false; }
+  } else if (inp.value.length >= target.length) {
+    inp.style.borderColor = 'var(--red)';
+    setTimeout(() => { inp.style.borderColor = ''; inp.value = ''; }, 350);
+  }
+}
+
+function updateCopyProgress() {
+  const done = App.copyCurrent + App.copyTyped;
+  const pct  = Math.round((done / App.copyTarget) * 100);
+  document.getElementById('copy-count-lbl').textContent    = `${done} / ${App.copyTarget}`;
+  document.getElementById('copy-progress-label').textContent = `${done} / ${App.copyTarget}`;
+  document.getElementById('copy-pbar').style.width          = pct + '%';
+  if (App.copyTyped > 0) document.getElementById('copy-save-btn').disabled = false;
+}
+
+async function saveCopyProgress() {
+  const btn = document.getElementById('copy-save-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Saving…';
+  const newTotal = App.copyCurrent + App.copyTyped;
+  const sid = App.user.studentId || App.user.StudentID || '';
+  try {
+    const res = await api('vocab.updatePunishment', {studentId: sid, word: App.copyWord, count: newTotal});
+    btn.disabled = false; btn.textContent = '💾 Save Progress';
+    if (res?.success) {
+      const p = App.punishment.find(x => x.Word === App.copyWord);
+      if (p) p.CurrentCount = newTotal;
+      toast(`Saved! ${newTotal}/${App.copyTarget}`, 'success');
+      App.copyCurrent = newTotal; App.copyTyped = 0;
+      if (newTotal >= App.copyTarget) {
+        toast(`🎉 "${App.copyWord}" complete!`, 'success');
+        setTimeout(() => { closeCopyModal(); renderCopying(); }, 1200);
+      } else {
+        buildCopyGrid();
+      }
+    } else { toast('Save failed. ' + (res?.error||''), 'error'); }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '💾 Save Progress';
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════
+// MY HISTORY
+// ══════════════════════════════════════
+var _historyLoaded = false;
+
+function switchHistoryTab(tab) {
+  ['assignment','inclass','free'].forEach(t => {
+    const pane = document.getElementById('htab-' + t);
+    const btn  = document.getElementById('htab-btn-' + t);
+    if (pane) pane.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      const on = t === tab;
+      btn.style.background = on ? '#fff' : 'transparent';
+      btn.style.color      = on ? 'var(--red)' : 'var(--grey-600)';
+      btn.style.boxShadow  = on ? 'var(--shadow-sm)' : 'none';
+    }
+  });
+}
+
+async function loadMyHistory() {
+  if (_historyLoaded) return;
+  _historyLoaded = true;
+  const sid = App.user.studentId || App.user.StudentID || '';
+
+  // Load all 3 in parallel
+  const [asnRes, revRes, frRes] = await Promise.allSettled([
+    api('vocab.getMyAssignmentHistory', { studentId: sid }),
+    api('vocab.getMyInclassHistory',    { studentId: sid }),
+    api('vocab.getMyFreeHistory',       { studentId: sid })
+  ]);
+  renderAssignmentHistory(asnRes.status==='fulfilled' ? (asnRes.value.rows||[]) : []);
+  renderInclassHistory(revRes.status==='fulfilled'    ? (revRes.value.rows||[])  : []);
+  renderFreeHistory(frRes.status==='fulfilled'        ? (frRes.value.rows||[])   : []);
+}
+
+function fmtHistDate(s) {
+  try {
+    if (!s) return '—';
+    const d = new Date(s);
+    if (isNaN(d)) return s;
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}) + ' '
+         + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  } catch(e) { return s||'—'; }
+}
+
+function _histTable(heads, rows) {
+  if (!rows.length) return '<div style="text-align:center;padding:40px;color:var(--grey-400)">Chưa có dữ liệu.</div>';
+  const thCss = 'padding:9px 12px;text-align:left;white-space:nowrap';
+  const tdCss = 'padding:9px 12px;border-bottom:1px solid var(--grey-100)';
+  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead style="background:var(--black);color:#fff"><tr>${heads.map(h=>`<th style="${thCss}">${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.join('')}</tbody>
+  </table></div>`;
+}
+
+function renderAssignmentHistory(rows) {
+  const wrap = document.getElementById('history-assignment-wrap');
+  // Enrich with assignment titles
+  const asnMap = {};
+  (App.assignments||[]).forEach(a => { asnMap[a.ID] = a.Title || a.ID; });
+  wrap.innerHTML = _histTable(
+    ['#','Bài tập','Bắt đầu','Nộp bài','Học từ vựng','Đúng / Tổng','Từ sai'],
+    rows.map((r,i) => {
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+      const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+      const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+      const title = asnMap[r.AssignmentID] || r.AssignmentID || '—';
+      return `<tr>
+        <td style="padding:9px 12px;color:var(--grey-400);border-bottom:1px solid var(--grey-100)">${rows.length-i}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100)"><strong>${esc(title)}</strong></td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.StartedAt)}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.SubmittedAt)}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center">
+          ${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓ Có</span>':'<span style="color:var(--grey-400)">Không</span>'}
+        </td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,8).join(', ')}${wrongs.length>8?'…':''}</td>
+      </tr>`;
+    })
+  );
+}
+
+function renderInclassHistory(rows) {
+  const wrap = document.getElementById('history-inclass-wrap');
+  // Enrich with review session titles
+  const revMap = {};
+  (App.reviewSessions||[]).forEach(r => { revMap[r.ID] = r.Title || r.ID; });
+  wrap.innerHTML = _histTable(
+    ['#','Review','Bắt đầu','Nộp bài','Đúng / Tổng','Từ sai'],
+    rows.map((r,i) => {
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+      const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+      const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+      const title = revMap[r.ReviewID] || r.ReviewID || '—';
+      return `<tr>
+        <td style="padding:9px 12px;color:var(--grey-400);border-bottom:1px solid var(--grey-100)">${rows.length-i}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100)"><strong>${esc(title)}</strong></td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.StartedAt)}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.SubmittedAt)}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);max-width:200px;font-size:11px;color:var(--red)">${wrongs.slice(0,8).join(', ')}${wrongs.length>8?'…':''}</td>
+      </tr>`;
+    })
+  );
+}
+
+function renderFreeHistory(rows) {
+  const wrap = document.getElementById('history-free-wrap');
+  wrap.innerHTML = _histTable(
+    ['#','Topic','Bắt đầu','Nộp bài','Học từ vựng','Đúng / Tổng','Từ sai',''],
+    rows.map((r,i) => {
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||r.WordCount||60);
+      const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+      const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+      const rowEnc = encodeURIComponent(JSON.stringify({
+        timestamp:r.Timestamp||'', startedAt:r.StartedAt||'', submittedAt:r.SubmittedAt||'',
+        studentName:r.FullName||'', studentId:r.StudentID||'', class:r.Class||'',
+        topic:r.Topic||'', score:pct, quizMode:r.QuizMode||'mixed',
+        wordCount:r.WordCount||0, passage:r.ReadingPassage||'',
+        vocabulary: (() => { try{return JSON.parse(r.VocabularyJSON||'[]');}catch(e){return[];} })(),
+        questions:  (() => { try{return JSON.parse(r.QuestionsJSON||'[]');}catch(e){return[];} })(),
+        wrongWords: wrongs
+      }));
+      return `<tr>
+        <td style="padding:9px 12px;color:var(--grey-400);border-bottom:1px solid var(--grey-100)">${rows.length-i}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100)"><strong>${esc(r.Topic||'Free Reading')}</strong></td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.StartedAt||r.Timestamp)}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.SubmittedAt||r.Timestamp)}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center">
+          ${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓ Có</span>':'<span style="color:var(--grey-400)">Không</span>'}
+        </td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);max-width:160px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100)">
+          <a href="vocab-detail.html?row=${rowEnc}" target="_blank"
+            style="font-size:11px;padding:4px 10px;background:transparent;border:1px solid var(--grey-200);border-radius:6px;color:var(--black);text-decoration:none">👁 View</a>
+        </td>
+      </tr>`;
+    })
+  );
+}
+</script>
+</body>
+</html>

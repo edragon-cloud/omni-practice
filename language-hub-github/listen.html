@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LisDictation — Language Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:#C8102E; --red-dark:#9B0B22; --red-light:#F5E6E9; --red-mid:#E8304A;
+  --white:#FFFFFF; --off-white:#FAFAF8; --grey-100:#F4F4F2; --grey-200:#E8E8E4;
+  --grey-400:#BBBBB4; --grey-600:#77776E; --grey-800:#3A3A35; --black:#1A1A16;
+  --gold:#C9A84C; --gold-light:#EFC84A;
+  --green:#1A7A4A; --green-light:#E6F4ED; --green2:#38ef7d;
+  --teal:#0F7B6C; --teal-light:#E0F2EF;
+  --blue:#1565C0; --navy:#063672; --navy2:#04245A;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08); --shadow-md:0 4px 16px rgba(0,0,0,.10); --shadow-lg:0 12px 40px rgba(0,0,0,.14);
+  --radius:12px; --radius-lg:20px; --transition:.2s cubic-bezier(.4,0,.2,1);
+  --font-display:'Playfair Display',serif; --font-body:'DM Sans',sans-serif; --font-mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-body);background:var(--off-white);color:var(--black);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+/* TOPBAR */
+.topbar{background:linear-gradient(90deg,var(--black) 0%,var(--navy2) 45%,var(--red-dark) 100%);height:56px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--gold);flex-shrink:0}
+.topbar-brand{font-family:var(--font-display);color:var(--white);font-size:1rem;white-space:nowrap}
+.topbar-brand em{color:var(--red-mid);font-style:normal}
+.topbar-app{font-size:13px;color:rgba(255,255,255,.4)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.topbar-user{font-size:13px;color:var(--teal);font-weight:600}
+.topbar-back{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 12px;color:rgba(255,255,255,.75);font-size:13px;cursor:pointer;font-family:var(--font-body);font-weight:600;transition:var(--transition)}
+.topbar-back:hover{background:rgba(255,255,255,.2);color:#fff}
+/* ZOOM */
+.zoom-controls{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:8px;padding:3px 8px;border:1px solid rgba(255,255,255,.18)}
+.zoom-controls span{font-size:.72rem;color:rgba(255,255,255,.8);min-width:34px;text-align:center;font-weight:600}
+.zoom-btn{width:22px;height:22px;border:none;border-radius:5px;background:rgba(255,255,255,.18);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+.zoom-btn:hover{background:rgba(255,255,255,.35)}
+.progress-pill{background:rgba(197,160,40,.3);border-radius:999px;padding:3px 12px;font-size:.75rem;font-weight:700;color:var(--gold-light);border:1px solid rgba(197,160,40,.45);white-space:nowrap}
+.score-badge{background:linear-gradient(135deg,var(--gold),#8a6d10);color:#fff;border-radius:999px;padding:4px 13px;font-size:.77rem;font-weight:700}
+/* CARD */
+.card{background:var(--white);border-radius:var(--radius-lg);padding:22px;box-shadow:var(--shadow-sm);border:1px solid var(--grey-200);margin-bottom:18px}
+.card-title{font-family:var(--font-display);font-size:1.05rem;color:var(--black);margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);white-space:nowrap;user-select:none}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.btn-primary{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff}
+.btn-secondary{background:var(--grey-100);color:var(--grey-800);border:1.5px solid var(--grey-200)}
+.btn-teal{background:linear-gradient(135deg,var(--teal),#0a6357);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#8a6d10);color:#fff}
+.btn-blue{background:linear-gradient(135deg,var(--blue),var(--navy));color:#fff}
+.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff}
+.btn-danger{background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn-full{width:100%;justify-content:center}
+/* FORM */
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--grey-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.form-input,.form-select,.form-textarea{width:100%;padding:10px 13px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:14px;color:var(--black);background:var(--white);transition:var(--transition);outline:none}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(200,16,46,.08)}
+.form-row-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{margin-bottom:16px}
+@media(max-width:600px){.form-row-3{grid-template-columns:1fr}.form-row-2{grid-template-columns:1fr}}
+/* BTP PREVIEW */
+.btp-preview{font-size:12px;color:var(--grey-600);margin-top:6px;text-align:center}
+.btp-preview strong{color:var(--red);font-family:var(--font-mono);font-size:13px;letter-spacing:.5px}
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:700}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-grey{background:var(--grey-100);color:var(--grey-600)}
+/* TOAST */
+#toast-wrap{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--black);color:#fff;padding:11px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;max-width:280px;pointer-events:all}
+.toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--gold)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--grey-200);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* ===== SETUP ===== */
+#screen-setup{overflow-y:auto}
+.setup-wrap{max-width:780px;margin:0 auto;padding:24px 18px 60px}
+.setup-hero{background:linear-gradient(90deg,var(--black) 0%,var(--navy2) 50%,var(--red-dark) 100%);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;position:relative;overflow:hidden;border-bottom:2px solid var(--gold)}
+.setup-hero::before{content:'';position:absolute;top:-40%;right:-10%;width:250px;height:250px;background:radial-gradient(circle,rgba(200,16,46,.2),transparent 70%);pointer-events:none}
+.setup-hero h1{font-family:var(--font-display);font-size:1.5rem;color:#fff;position:relative;z-index:1}
+.setup-hero h1 em{color:var(--red-mid);font-style:normal}
+.setup-hero p{color:rgba(255,255,255,.5);font-size:12px;margin-top:3px;position:relative;z-index:1}
+.tab-strip{display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:18px}
+.tab-strip-btn{flex:1;padding:8px;border:none;background:transparent;border-radius:10px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;transition:var(--transition)}
+.tab-strip-btn.active{background:#fff;color:var(--red);box-shadow:var(--shadow-sm)}
+.ai-split-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;background:linear-gradient(135deg,var(--navy2),var(--navy));color:#fff;font-family:var(--font-body);font-size:.84rem;font-weight:700;transition:var(--transition)}
+.ai-split-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(6,54,114,.3)}
+.ai-split-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.split-preview-box{display:none;margin-top:10px;border-radius:var(--radius-lg);border:2px solid var(--red);overflow:hidden;box-shadow:0 4px 14px rgba(200,16,46,.12)}
+.split-preview-header{background:linear-gradient(90deg,var(--navy2),var(--navy));color:#fff;padding:9px 15px;display:flex;align-items:center;justify-content:space-between;font-size:.8rem;font-weight:700}
+.split-preview-header span{color:var(--gold-light)}
+.split-preview-list{max-height:200px;overflow-y:auto;background:#fff;padding:9px 12px;display:flex;flex-direction:column;gap:5px}
+.split-item{display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px;background:#fdf9f5;border:1px solid #ece8e2;font-size:.82rem;color:var(--black);line-height:1.5}
+.split-item .sno{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font-size:.64rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.split-confirm-row{padding:9px 12px;background:#fdf9f5;border-top:1px solid #ece8e2;display:flex;gap:8px}
+.audio-drop{border:2px dashed var(--grey-200);border-radius:var(--radius-lg);padding:24px;text-align:center;cursor:pointer;transition:var(--transition);background:var(--grey-100)}
+.audio-drop:hover,.audio-drop.drag-over{border-color:var(--red);background:var(--red-light)}
+.audio-drop.audio-loaded{border-color:var(--green)!important;background:var(--green-light)!important}
+.audio-drop-icon{font-size:28px;margin-bottom:6px}
+.audio-drop-text{font-size:13px;color:var(--grey-600);font-weight:500}
+.audio-drop-hint{font-size:11px;color:var(--grey-400);margin-top:3px}
+.pct-badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700}
+.pct-badge.high{background:#d1f2eb;color:#0a4a35}.pct-badge.mid{background:#fff3cc;color:#7a5800}.pct-badge.low{background:var(--red-light);color:var(--red-dark)}
+/* ===== VOCAB / STUDY SCREEN ===== */
+#screen-vocab{flex:1;overflow:hidden}
+.vocab-layout{display:flex;flex-direction:column;height:calc(100vh - 56px)}
+.vocab-top{flex:3;background:#fff;padding:12px 18px;overflow-y:auto;border-bottom:3px solid var(--blue);display:flex;flex-direction:column}
+.vocab-top h3{font-size:.87rem;font-weight:700;color:var(--navy2);margin-bottom:8px;padding-bottom:7px;border-bottom:2px solid #e3eaf8;flex-shrink:0}
+.script-text{line-height:1.85;color:#3a3a50;white-space:pre-wrap;flex:1}
+.vocab-audio-bar{display:flex;align-items:center;gap:10px;padding:7px 0 2px;border-top:1px solid #eef0f7;margin-top:8px;flex-shrink:0}
+.vocab-audio-bar label{font-size:.75rem;color:#bbb;white-space:nowrap}
+.vocab-bottom{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;background:#f0f4ff}
+.vocab-bottom-header{display:flex;align-items:center;gap:8px;padding:6px 18px;background:#fff;border-bottom:2px solid #dce4f5;flex-shrink:0;flex-wrap:wrap}
+.vocab-bottom-header h3{font-size:.83rem;font-weight:700;color:#283593}
+.vocab-bottom-body{flex:1;display:flex;gap:0;overflow:hidden}
+.translate-in{flex:1;display:flex;flex-direction:column;padding:7px 7px 7px 18px;gap:4px;overflow:hidden}
+.translate-in label{font-size:.7rem;color:#9aa}
+.translate-in textarea{flex:1;resize:none;padding:7px 9px;border:1.5px solid #d0d8f0;border-radius:8px;font-size:.83rem;font-family:inherit;outline:none;line-height:1.55;transition:border-color .2s}
+.translate-in textarea:focus{border-color:var(--blue)}
+.translate-divider{width:1px;background:#d0d8f0;flex-shrink:0;margin:7px 0}
+.translate-out-col{flex:1;display:flex;flex-direction:column;padding:7px 18px 7px 7px;gap:4px;overflow:hidden}
+.translate-out-col label{font-size:.7rem;color:#9aa}
+.translate-result{flex:1;padding:7px 9px;background:#e8f0fe;border:1.5px solid #b8ccf8;border-radius:8px;font-size:.86rem;line-height:1.6;overflow-y:auto;color:var(--navy2);min-height:0}
+.translate-result.placeholder{color:#a0aac0;font-style:italic}
+/* HEADER COUNTDOWN TIMER */
+.header-timer{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.28);border-radius:12px;padding:5px 14px;border:1.5px solid rgba(255,255,255,.15)}
+.timer-ring{position:relative;width:34px;height:34px;flex-shrink:0}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring-bg{fill:none;stroke:rgba(255,255,255,.12);stroke-width:4}
+.timer-ring-fg{fill:none;stroke:#11998e;stroke-width:4;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear,stroke .4s}
+.timer-digits{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.52rem;font-weight:800;color:#fff;letter-spacing:-.5px;white-space:nowrap}
+.timer-label{font-size:.73rem;color:rgba(255,255,255,.6);white-space:nowrap}
+.timer-label strong{color:#fff;font-size:.85rem}
+.timer-done{color:var(--gold-light)!important}
+/* ===== DICTATION SCREEN ===== */
+#screen-dictation{flex:1;overflow:hidden}
+.dict-layout{display:flex;flex-direction:column;height:calc(100vh - 56px)}
+.dict-progress-row{background:#fff;padding:6px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e8edf8;flex-shrink:0;flex-wrap:wrap;gap:6px}
+.progress-outer{flex:1;max-width:340px;background:#dce4f5;border-radius:999px;height:7px}
+.progress-fill{height:7px;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:999px;transition:width .4s}
+.progress-label{font-size:.72rem;color:var(--grey-600);margin-top:2px}
+.dict-audio-row{background:#fff;padding:6px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e8edf8;flex-shrink:0}
+.dict-audio-row label{font-size:.74rem;color:#bbb;white-space:nowrap}
+.audio-status{font-size:.7rem;padding:2px 9px;border-radius:999px;font-weight:700;display:none}
+.audio-status.paused{background:var(--red-light);color:var(--red-dark);border:1px solid #f5c0c0;display:inline-block}
+.audio-status.playing{background:var(--green-light);color:#0a4a35;border:1px solid #a3e4d7;display:inline-block}
+.sentences-scroll{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px;background:var(--grey-100)}
+/* Sentence blocks */
+.sentence-block{background:#fff;border-radius:13px;padding:16px 20px;box-shadow:0 2px 8px rgba(26,35,126,.07);border-left:4px solid #c8d4ee;transition:border-color .3s,box-shadow .3s}
+.sentence-block.active-block{border-left-color:var(--gold);box-shadow:0 4px 18px rgba(197,160,40,.2);background:#fffef8}
+.sentence-block.completed{border-left-color:var(--green);background:#f8fffc}
+.sb-label{font-size:.68rem;font-weight:700;color:#9aaac8;letter-spacing:.6px;margin-bottom:7px;text-transform:uppercase}
+.sb-result{min-height:22px;line-height:2.1;word-spacing:3px;margin-bottom:7px}
+.sb-result .w-correct{color:var(--green);font-weight:700}
+.sb-result .w-wrong{color:var(--red);text-decoration:line-through;font-weight:700}
+.sb-result .w-missing{color:#e67e22;font-weight:800;letter-spacing:2px}
+.sb-input{width:100%;padding:10px 14px;border:2px solid #d0d8f0;border-radius:10px;outline:none;transition:border .2s;margin-bottom:10px;background:#f8faff;font-family:var(--font-mono);font-size:.9rem;resize:none;overflow:hidden;line-height:1.6;display:block;box-sizing:border-box;min-height:44px}
+.sb-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(21,101,192,.1)}
+.sb-input:disabled{background:#f2f4f8;color:#888}
+.sb-controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.sb-accuracy{font-size:.73rem;color:var(--grey-600);margin-left:auto;font-weight:600}
+.shortcut-hint{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:9px;padding-top:8px;border-top:1px dashed #dce4f5}
+
+/* ── Keyboard Shortcut Welcome Modal ── */
+#shortcut-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+#shortcut-modal .sm-box{background:#fff;border-radius:16px;width:100%;max-width:560px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:smSlideIn .3s ease}
+@keyframes smSlideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#shortcut-modal .sm-header{background:linear-gradient(135deg,#0E0E0C,#1a1a14);padding:22px 28px;display:flex;align-items:center;gap:14px}
+#shortcut-modal .sm-header-icon{font-size:2rem;line-height:1}
+#shortcut-modal .sm-header-text h2{font-family:var(--font-display);font-size:1.15rem;color:#fff;margin-bottom:3px}
+#shortcut-modal .sm-header-text p{font-size:12px;color:rgba(255,255,255,.5);margin:0}
+#shortcut-modal .sm-body{padding:24px 28px}
+#shortcut-modal .sm-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+#shortcut-modal .sm-table tr{border-bottom:1px solid #f0f0ee}
+#shortcut-modal .sm-table tr:last-child{border-bottom:none}
+#shortcut-modal .sm-table td{padding:8px 4px;font-size:13px}
+#shortcut-modal .sm-table td:first-child{color:#555;width:55%;font-weight:500}
+#shortcut-modal .sm-table td:last-child{text-align:right;white-space:nowrap}
+#shortcut-modal .sm-kbd{display:inline-flex !important;visibility:visible !important;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);font-weight:700;color:#283593;margin:1px}
+#shortcut-modal .sm-tip{background:#f8f7f4;border-left:3px solid var(--teal);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#555;line-height:1.6;margin-bottom:18px}
+#shortcut-modal .sm-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#shortcut-modal .sm-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#888;cursor:pointer;user-select:none}
+#shortcut-modal .sm-check input{width:15px;height:15px;cursor:pointer;accent-color:var(--teal)}
+#shortcut-modal .sm-btn{background:linear-gradient(135deg,var(--teal),#0a6357);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-family:var(--font-body);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+#shortcut-modal .sm-btn:hover{opacity:.88}
+.hint-item{display:flex;align-items:center;gap:3px}
+.kbd{display:inline-flex;align-items:center;justify-content:center;background:#f0f3fb;border:1.5px solid #c4cce8;border-bottom:3px solid #a8b4d8;border-radius:5px;padding:2px 7px;font-size:.7rem;font-family:var(--font-mono);font-weight:700;color:#283593;min-width:34px;text-align:center}
+.hint-item span{font-size:.7rem;color:#9aa}
+.sb-reveal{margin-top:9px;padding:11px 14px;background:#fffbeb;border:1.5px solid #f0c040;border-radius:9px;animation:fadeIn .25s ease;display:none}
+.sb-reveal-label{font-size:.7rem;font-weight:700;color:#7a5800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.rv-original{font-size:.9rem;line-height:1.75;color:var(--black);font-style:italic}
+.submit-area{flex-shrink:0;padding:11px 18px;background:#fff;border-top:2px solid #e8edf8;display:none;align-items:center;justify-content:flex-end;gap:12px}
+.submit-area.visible{display:flex}
+/* ===== RESULT SCREEN ===== */
+#screen-result{overflow-y:auto;align-items:center;justify-content:flex-start;padding:32px 18px 60px;background:var(--grey-100);flex-direction:column}
+.result-card{background:#fff;border-radius:var(--radius-lg);padding:36px;max-width:500px;width:100%;box-shadow:var(--shadow-lg);text-align:center;border-top:5px solid var(--gold)}
+.result-card h2{font-family:var(--font-display);font-size:1.8rem;color:var(--navy2);margin-bottom:6px}
+.big-score{font-size:4rem;font-weight:900;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:12px 0;font-family:var(--font-display)}
+.result-stats div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #edf0f8}
+.result-stats .lbl{color:var(--grey-600);font-size:.86rem}
+.result-stats .val{font-weight:700;color:var(--black)}
+.result-actions{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.gpt-panel{margin-top:18px;border-radius:var(--radius-lg);overflow:hidden;border:2px solid #d0d8f0;background:#fff;box-shadow:0 6px 22px rgba(26,35,126,.1);width:100%;max-width:560px}
+.gpt-panel-header{display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--black),#283593);color:#fff;padding:11px 16px;border-bottom:2px solid var(--gold)}
+.gpt-panel-header h4{font-size:.9rem;font-weight:700;flex:1}
+.gpt-badge{background:rgba(197,160,40,.35);border-radius:999px;padding:2px 9px;font-size:.7rem;font-weight:700;color:var(--gold-light);border:1px solid rgba(197,160,40,.5)}
+.gpt-body{padding:16px 20px;font-size:.87rem;line-height:1.8;color:var(--black)}
+.gpt-body h2{font-size:.92rem;font-weight:700;margin:14px 0 5px;color:var(--navy2);border-left:3px solid var(--gold);padding-left:9px}
+.gpt-body ul{margin:4px 0 8px 18px}.gpt-body li{margin-bottom:4px}.gpt-body p{margin-bottom:7px}
+.gpt-loading{display:flex;align-items:center;gap:10px;padding:18px 20px;color:#9aa}
+.gpt-error{padding:12px 18px;color:var(--red);font-size:.82rem}
+/* ===== REVIEW SCREEN ===== */
+#screen-review{overflow-y:auto;background:var(--grey-100);flex-direction:column}
+.review-body{padding:18px;display:flex;flex-direction:column;gap:12px;max-width:860px;margin:0 auto;width:100%}
+.review-block{background:#fff;border-radius:13px;padding:16px 20px;box-shadow:0 2px 8px rgba(26,35,126,.07);border-left:4px solid var(--blue)}
+.rb-label{font-size:.68rem;font-weight:700;color:#9aaac8;letter-spacing:.5px;margin-bottom:5px;text-transform:uppercase}
+.rb-original{font-size:.88rem;color:var(--grey-600);margin-bottom:4px;line-height:1.7}
+.rb-typed{font-size:.86rem;line-height:2;word-spacing:3px}
+.rb-acc{font-size:.73rem;color:var(--grey-600);margin-top:5px;font-weight:600;display:flex;align-items:center;gap:9px}
+.btn-explain{background:linear-gradient(135deg,#283593,var(--blue));color:#fff;border:none;border-radius:7px;padding:3px 11px;font-size:.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:opacity .15s}
+.btn-explain:hover{opacity:.85}.btn-explain:disabled{opacity:.5;cursor:not-allowed}
+.explain-box{margin-top:9px;padding:12px 14px;background:#f0f4ff;border:1.5px solid #b8ccf8;border-left:4px solid var(--blue);border-radius:9px;font-size:.84rem;line-height:1.75;color:var(--black);animation:fadeIn .25s ease}
+/* history */
+.history-card{background:#fff;border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:10px;border-left:4px solid var(--red);box-shadow:var(--shadow-sm)}
+.history-card h4{font-size:.86rem;font-weight:700;color:var(--navy2);margin-bottom:7px}
+.history-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:6px}
+.history-stat{background:var(--grey-100);border-radius:7px;padding:7px 9px;text-align:center}
+.history-stat .hv{font-size:1.1rem;font-weight:800;color:var(--red)}
+.history-stat .hl{font-size:.66rem;color:var(--grey-400);margin-top:1px}
+/* scrollbar */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.04);border-radius:10px}
+::-webkit-scrollbar-thumb{background:#b0b8cc;border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#8892a8;background-clip:padding-box}
+/* Bigger scrollbar only for sentences-scroll */
+.sentences-scroll::-webkit-scrollbar{width:14px}
+.sentences-scroll::-webkit-scrollbar-track{background:#e8eaf0;border-radius:10px;margin:6px 0}
+.sentences-scroll::-webkit-scrollbar-thumb{background:#9098b0;border-radius:10px;border:3px solid #e8eaf0}
+.sentences-scroll::-webkit-scrollbar-thumb:hover{background:#5c6480}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="toast-wrap"></div>
+
+<!-- ===== SETUP SCREEN ===== -->
+<div id="screen-setup" class="screen active">
+  <div class="topbar">
+    <div class="topbar-brand">Language <em>Hub</em></div>
+    <div class="topbar-app">🎧 LisDictation</div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="setup-user-name"></span>
+      <button class="topbar-back" onclick="goHome()">← Dashboard</button>
+    </div>
+  </div>
+  <div class="setup-wrap">
+    <div class="setup-hero">
+      <h1>🎧 Lis<em>Dictation</em></h1>
+      <p>Listen. Read. Type. Improve. — IELTS Listening Practice</p>
+    </div>
+    <div class="tab-strip">
+      <button id="tab-new" class="tab-strip-btn active" onclick="switchTab('new')">🎙️ New Session</button>
+      <button id="tab-history" class="tab-strip-btn" onclick="switchTab('history')">📊 My History</button>
+    </div>
+
+    <!-- NEW SESSION -->
+    <div id="tab-content-new">
+      <!-- Audio -->
+      <div class="card">
+        <div class="card-title">📂 Audio File</div>
+        <div class="audio-drop" id="audio-drop" onclick="document.getElementById('audio-file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+          <div class="audio-drop-icon" id="audio-drop-icon">🎵</div>
+          <div class="audio-drop-text" id="audio-drop-text">Click or drag & drop audio file here</div>
+          <div class="audio-drop-hint">MP3, WAV, OGG, M4A — or paste a Google Drive File ID below</div>
+        </div>
+        <input type="file" id="audio-file-input" accept="audio/*" style="display:none" onchange="handleAudioFile(event)">
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <input type="text" class="form-input" id="drive-file-id" placeholder="Or paste Google Drive File ID (e.g. 1aBcDeFgHi...)" style="font-size:12px;font-family:var(--font-mono)">
+          <button class="btn btn-secondary btn-sm" onclick="loadDriveAudio()" style="white-space:nowrap">Load</button>
+        </div>
+      </div>
+
+      <!-- Script -->
+      <div class="card">
+        <div class="card-title">
+          <span>📝 Listening Script</span>
+          <span style="font-size:11px;color:var(--grey-400);font-weight:400">paste full text, AI will split into sentences</span>
+        </div>
+        <textarea id="raw-script-input" class="form-textarea" rows="5"
+          style="font-size:13px;resize:vertical;min-height:100px;line-height:1.65"
+          placeholder="Paste the full listening script here…"
+          oninput="onScriptInput()"></textarea>
+        <div id="err-script" style="font-size:.76rem;color:var(--red);display:none;margin-top:4px">⚠ Please paste the listening script.</div>
+        <!-- Gemini Key widget -->
+        <div id="lis-key-widget" style="display:none;align-items:center;gap:8px;margin-top:10px;background:#f5f5f0;border:1.5px solid #e0e0d8;border-radius:8px;padding:9px 13px">
+          <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
+          <input type="password" id="lis-gemini-key"
+            style="flex:1;padding:6px 10px;border:1.5px solid #d0d0c8;border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;background:#fff"
+            placeholder="AIza... (free key from aistudio.google.com)"
+            oninput="onLisKeyInput(this.value)"
+            onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
+          <span id="lis-key-status" style="font-size:.68rem;font-weight:700;white-space:nowrap;color:#888">no key</span>
+          <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.68rem;color:#1a3a8c;font-weight:700;white-space:nowrap">Get free key →</a>
+        </div>
+        <button class="ai-split-btn" id="btn-ai-split" onclick="aiSplitScript()" style="display:none">
+          🤖 AI Split into Sentences
+        </button>
+        <div class="split-preview-box" id="split-preview-box">
+          <div class="split-preview-header">
+            ✅ Preview — <span id="split-count">0</span> sentences detected
+            <button onclick="resetSplitPreview()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:.72rem">✕ Re-paste</button>
+          </div>
+          <div class="split-preview-list" id="split-preview-list"></div>
+          <div style="padding:10px 14px 4px">
+            <button onclick="addSplitSentence()" style="width:100%;padding:8px;border:2px dashed rgba(255,255,255,.35);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">＋ Add another sentence</button>
+          </div>
+          <div class="split-confirm-row">
+            <button class="btn btn-primary btn-sm" onclick="confirmSplit()">✅ Use these sentences</button>
+            <button class="btn btn-secondary btn-sm" onclick="resetSplitPreview()">↺ Re-paste script</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Settings -->
+      <div class="card">
+        <div class="card-title">⚙️ Session Settings</div>
+        <!-- Book / Test / Part -->
+        <div class="form-group">
+          <label class="form-label">📚 Book &nbsp;·&nbsp; 🔢 Test &nbsp;·&nbsp; 🎯 Part</label>
+          <div class="form-row-3">
+            <input type="text" class="form-input" id="book-input" placeholder="📚 Book (e.g. Cam16)" oninput="refreshBTPPreview()" autocomplete="off">
+            <input type="text" class="form-input" id="test-input" placeholder="🔢 Test" style="text-align:center" oninput="refreshBTPPreview()" autocomplete="off">
+            <input type="text" class="form-input" id="part-input" placeholder="🎯 Part" style="text-align:center" oninput="refreshBTPPreview()" autocomplete="off">
+          </div>
+          <div class="btp-preview">Preview: <strong id="btp-preview">—</strong></div>
+          <div style="font-size:10px;color:var(--grey-400);margin-top:3px;text-align:center">
+            Example: Cam16 + 1 + 1 → <span style="font-family:var(--font-mono);color:var(--red)">Cam16-1-1</span>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Study Time Before Dictation</label>
+            <select class="form-select" id="study-time-override">
+              <option value="auto" selected>Auto by Part (recommended)</option>
+              <option value="120">2 min (Part 0 / blank)</option>
+              <option value="360">6 min (Part 1)</option>
+              <option value="480">8 min (Part 2)</option>
+              <option value="720">12 min (Part 3 & 4)</option>
+              <option value="0">No study time (skip)</option>
+            </select>
+            <div style="font-size:10px;color:var(--grey-400);margin-top:3px">P1=6min · P2=8min · P3/4=12min · P0/blank=2min</div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Max Replays per Sentence</label>
+            <select class="form-select" id="max-replays">
+              <option value="1">1 replay</option>
+              <option value="2" selected>2 replays</option>
+              <option value="3">3 replays</option>
+              <option value="999">Unlimited</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="startSession()" style="padding:14px;font-size:15px;border-radius:var(--radius-lg)">
+        🚀 Start Practice Session
+      </button>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-content-history" style="display:none">
+      <div class="card">
+        <div class="card-title">
+          <span>📊 Past Sessions</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadHistory()">🔄 Refresh</button>
+        </div>
+        <div id="history-list"><div style="text-align:center;padding:28px;color:var(--grey-400)">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VOCAB / STUDY SCREEN ===== -->
+<div id="screen-vocab" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Language <em>Hub</em></div>
+    <div class="topbar-app">📖 Script & Translate</div>
+    <div class="header-timer" id="header-timer" style="display:none">
+      <div class="timer-ring">
+        <svg width="34" height="34" viewBox="0 0 36 36">
+          <circle class="timer-ring-bg" cx="18" cy="18" r="15"/>
+          <circle class="timer-ring-fg" id="timer-ring-fg" cx="18" cy="18" r="15"/>
+        </svg>
+        <div class="timer-digits" id="timer-digits">—</div>
+      </div>
+      <div class="timer-label" id="timer-label">Study time</div>
+    </div>
+    <div class="topbar-right">
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="changeZoom(-1)">−</button>
+        <span id="zoom-label-vocab">100%</span>
+        <button class="zoom-btn" onclick="changeZoom(+1)">+</button>
+      </div>
+      <span class="topbar-user" id="vocab-user"></span>
+      <span class="progress-pill" id="vocab-pill">0 / 0 sentences</span>
+      <button class="btn btn-primary btn-sm" id="btn-go-dictation" onclick="goToDictation()" disabled style="opacity:.4;cursor:not-allowed">
+        🔒 Start Dictation
+      </button>
+    </div>
+  </div>
+  <div class="vocab-layout">
+    <div class="vocab-top">
+      <h3>📄 Original Script</h3>
+      <div class="script-text" id="full-script-display"></div>
+      <div class="vocab-audio-bar">
+        <label>🎵 Audio:</label>
+        <audio id="vocab-audio-el" controls style="flex:1;height:34px" preload="none"></audio>
+        <span id="vocab-audio-status" style="font-size:.7rem;color:#aaa;margin-left:6px"></span>
+      </div>
+    </div>
+    <div class="vocab-bottom">
+      <div class="vocab-bottom-header">
+        <h3>🌐 Quick Translate — EN → VI</h3>
+        <button class="btn btn-teal btn-sm" onclick="doTranslate()">Translate</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearTranslate()">Clear</button>
+        <span id="translate-status" style="font-size:.7rem;color:#aaa"></span>
+        <span style="font-size:.68rem;color:#ccc">Ctrl+Enter</span>
+      </div>
+      <div class="vocab-bottom-body">
+        <div class="translate-in">
+          <label>English (paste or type)</label>
+          <textarea id="translate-src" placeholder="Paste a word, phrase or sentence here…"
+            onkeydown="if(event.ctrlKey&&event.key==='Enter'){doTranslate();}"></textarea>
+        </div>
+        <div class="translate-divider"></div>
+        <div class="translate-out-col">
+          <label>Vietnamese</label>
+          <div class="translate-result placeholder" id="translate-out">Translation will appear here…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DICTATION SCREEN ===== -->
+<div id="screen-dictation" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" onclick="backToVocab()">← Vocabulary</button>
+    <div class="topbar-app" style="font-size:14px;color:var(--gold-light);font-weight:700">🎙️ Dictation Mode</div>
+    <div class="topbar-right">
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="changeZoom(-1)">−</button>
+        <span id="zoom-label-dict">100%</span>
+        <button class="zoom-btn" onclick="changeZoom(+1)">+</button>
+      </div>
+      <span class="topbar-user" id="dict-user"></span>
+      <span class="score-badge" id="running-score">0 / 0 sentences</span>
+    </div>
+  </div>
+  <div class="dict-layout">
+    <div class="dict-progress-row">
+      <div style="flex:1">
+        <div class="progress-outer"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="progress-label">Sentence 0 / 0</div>
+      </div>
+    </div>
+    <div class="dict-audio-row">
+      <label>🎵</label>
+      <audio id="main-audio-el" controls style="flex:1;min-width:0;height:34px" preload="none"></audio>
+      <span class="audio-status" id="audio-status-pill"></span>
+    </div>
+    <div class="sentences-scroll" id="sentences-scroll"></div>
+    <div class="submit-area" id="submit-area">
+      <span style="font-size:.84rem;color:#aaa">🎉 All sentences completed!</span>
+      <button class="btn btn-danger" id="btn-submit" onclick="submitResults()">🏁 Submit Results</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RESULT SCREEN ===== -->
+<div id="screen-result" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Language <em>Hub</em></div>
+    <div class="topbar-app">🏆 Results</div>
+    <div class="topbar-right">
+      <button class="topbar-back" onclick="goHome()">← Dashboard</button>
+    </div>
+  </div>
+  <div class="result-card">
+    <h2>🎉 Well Done!</h2>
+    <div class="big-score" id="final-score-pct">0%</div>
+    <div class="result-stats" id="result-stats"></div>
+    <p style="color:#bbb;font-size:.8rem;margin-top:10px" id="submit-status">Saving results…</p>
+    <div class="result-actions">
+      <button class="btn btn-blue" onclick="goToReview()">🔍 Review My Answers</button>
+      <button class="btn btn-secondary" onclick="goHome()">← Dashboard</button>
+    </div>
+  </div>
+  <div id="gpt-feedback-panel" class="gpt-panel" style="display:none">
+    <div class="gpt-panel-header">
+      <h4>🤖 AI Coach Feedback (Vietnamese)</h4>
+      <span class="gpt-badge">GPT-4o mini</span>
+    </div>
+    <div id="gpt-feedback-body" class="gpt-loading">
+      <div class="spinner"></div><span>Analyzing your session…</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REVIEW SCREEN ===== -->
+<div id="screen-review" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Language <em>Hub</em></div>
+    <div class="topbar-app">🔍 Review</div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="review-user"></span>
+      <button class="topbar-back" onclick="showScreen('screen-result')">← Back to Result</button>
+    </div>
+  </div>
+  <div class="review-body" id="review-body"></div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const API_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+
+// ── GEMINI KEY HELPERS (Listening Lab) ──
+const LIS_GEMINI_KEY = 'hub_gemini_key'; // shared with Hub dashboard
+function onLisKeyInput(val) {
+  val = val.trim();
+  val ? localStorage.setItem(LIS_GEMINI_KEY, val) : localStorage.removeItem(LIS_GEMINI_KEY);
+  updateLisKeyStatus();
+}
+function getLisGeminiKey() {
+  return (document.getElementById('lis-gemini-key')?.value || '').trim()
+      || localStorage.getItem(LIS_GEMINI_KEY) || '';
+}
+function updateLisKeyStatus() {
+  const el = document.getElementById('lis-key-status');
+  if (!el) return;
+  const key = getLisGeminiKey();
+  if (!key)                    { el.textContent = 'no key';    el.style.color = '#c00'; return; }
+  if (!key.startsWith('AIza')) { el.textContent = '⚠ invalid'; el.style.color = '#c00'; return; }
+  el.textContent = '✅ saved'; el.style.color = '#1a7a4a';
+}
+// Restore key on load
+(function() {
+  const k = localStorage.getItem(LIS_GEMINI_KEY);
+  const inp = document.getElementById('lis-gemini-key');
+  if (k && inp) inp.value = k;
+  updateLisKeyStatus();
+})();
+
+// Direct Gemini call from browser
+async function callGeminiLis(prompt) {
+  const key = getLisGeminiKey();
+  if (!key) throw new Error('Gemini key required. Enter your free key from aistudio.google.com');
+  const resp = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key,
+    {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [{text: prompt}]}],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 512 }
+      })
+    }
+  );
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err?.error?.message || 'Gemini error ' + resp.status);
+  }
+  const data = await resp.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!raw) throw new Error('Gemini returned empty response');
+  return raw.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+}
+
+// ===== STATE =====
+const App = {
+  user:null, token:null,
+  sentences:[], sessionId:'', startTime:null, bookTestPart:'', maxReplays:2,
+  audioBlobUrl:null,
+  totalWords:0, correctWords:0, currentIdx:0,
+  lastCheckedIdx:-1,  // tracks the most recently checked sentence
+  submitted:false, reviewData:[], attemptData:[],
+  splitConfirmed:false, splitSentences:[],
+  cdTimer:null, cdTotal:0, cdLeft:0,
+  zoomLevel:3,
+  zoomSizes:[70,80,90,100,110,120,130,150,170],
+  zoomLabels:['70%','80%','90%','100%','110%','120%','130%','150%','170%'],
+  currentFontSize:'100%',
+  pendingNextIdx:-1,
+};
+
+(function init(){
+  var tok=sessionStorage.getItem('ielts_hub_token');
+  var usr=sessionStorage.getItem('ielts_hub_user');
+  if(!tok||!usr){window.location.href='./index.html';return;}
+  App.token=tok; App.user=JSON.parse(usr);
+  var name=App.user.fullName||App.user.FullName||'';
+  ['setup-user-name','vocab-user','dict-user','review-user'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent='👤 '+name;
+  });
+  loadHistory();
+})();
+
+// ===== API =====
+function api(action,payload){
+  payload=payload||{};
+  return new Promise(function(resolve,reject){
+    var cb='gasCallback_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+    var params='callback='+encodeURIComponent(cb)
+      +'&action='+encodeURIComponent(action)
+      +'&payload='+encodeURIComponent(JSON.stringify(payload))
+      +'&sessionToken='+encodeURIComponent(App.token||'');
+    var script=document.createElement('script');
+    script.src=API_URL+'?'+params;
+    var timer=setTimeout(function(){cleanup();reject(new Error('Timeout'));},35000);
+    window[cb]=function(r){cleanup();resolve(r);};
+    function cleanup(){clearTimeout(timer);delete window[cb];if(script.parentNode)script.parentNode.removeChild(script);}
+    script.onerror=function(){cleanup();reject(new Error('Network error'));};
+    document.head.appendChild(script);
+  });
+}
+function gasRun(action,payload){api(action,payload).catch(function(e){console.warn(action+' failed:',e);});}
+
+// ===== TOAST =====
+function toast(msg,type,dur){
+  type=type||'info';dur=dur||3500;
+  var icons={success:'✓',error:'✕',info:'ℹ'};
+  var el=document.createElement('div');
+  el.className='toast '+type;
+  el.innerHTML='<span>'+icons[type]+'</span><span>'+msg+'</span>';
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(function(){el.remove();},dur);
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+function goHome(){window.location.href='./index.html';}
+
+// ===== TABS =====
+function switchTab(tab){
+  document.getElementById('tab-content-new').style.display=tab==='new'?'block':'none';
+  document.getElementById('tab-content-history').style.display=tab==='history'?'block':'none';
+  document.getElementById('tab-new').classList.toggle('active',tab==='new');
+  document.getElementById('tab-history').classList.toggle('active',tab==='history');
+  if(tab==='history') loadHistory();
+}
+
+// ===== BTP PREVIEW =====
+function refreshBTPPreview(){
+  var book=(document.getElementById('book-input')||{value:''}).value.trim();
+  var test=(document.getElementById('test-input')||{value:''}).value.trim();
+  var part=(document.getElementById('part-input')||{value:''}).value.trim();
+  var preview=document.getElementById('btp-preview'); if(!preview) return;
+  var parts=[book,test,part].filter(Boolean);
+  preview.textContent=parts.length?parts.join('-'):'—';
+}
+
+// ===== AUDIO =====
+function handleDragOver(e){e.preventDefault();document.getElementById('audio-drop').classList.add('drag-over');}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('audio-drop').classList.remove('drag-over');
+  var file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('audio/')) loadAudioFile(file);
+}
+function handleAudioFile(e){var f=e.target.files[0];if(f) loadAudioFile(f);}
+function loadAudioFile(file){
+  var url=URL.createObjectURL(file);
+  if(App.audioBlobUrl) URL.revokeObjectURL(App.audioBlobUrl);
+  App.audioBlobUrl=url;
+  var drop=document.getElementById('audio-drop');
+  drop.classList.add('audio-loaded');
+  document.getElementById('audio-drop-icon').textContent='✅';
+  document.getElementById('audio-drop-text').textContent=file.name;
+  toast('Audio loaded: '+file.name,'success');
+}
+async function loadDriveAudio(){
+  var fileId=document.getElementById('drive-file-id').value.trim();
+  if(!fileId){toast('Enter a Google Drive File ID.','error');return;}
+  var m=fileId.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) fileId=m[1];
+  toast('Loading audio from Drive…','info');
+  document.getElementById('vocab-audio-status').textContent='⏳ Loading…';
+  try{
+    var res=await api('lis.getAudio',{fileId:fileId});
+    if(res&&res.base64){
+      var binary=atob(res.base64);
+      var bytes=new Uint8Array(binary.length);
+      for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      var blob=new Blob([bytes],{type:res.mimeType||'audio/mpeg'});
+      if(App.audioBlobUrl) URL.revokeObjectURL(App.audioBlobUrl);
+      App.audioBlobUrl=URL.createObjectURL(blob);
+      var drop=document.getElementById('audio-drop');
+      drop.classList.add('audio-loaded');
+      document.getElementById('audio-drop-icon').textContent='✅';
+      document.getElementById('audio-drop-text').textContent=res.name||fileId;
+      document.getElementById('vocab-audio-status').textContent='';
+      toast('Audio loaded from Drive!','success');
+    }else{
+      document.getElementById('vocab-audio-status').textContent='⚠ Failed';
+      toast(res&&res.error?res.error:'Could not load audio.','error');
+    }
+  }catch(e){
+    document.getElementById('vocab-audio-status').textContent='⚠ Error';
+    toast('Error: '+e.message,'error');
+  }
+}
+function setAudioSrc(){
+  if(!App.audioBlobUrl) return;
+  ['vocab-audio-el','main-audio-el'].forEach(function(id){
+    var el=document.getElementById(id); if(el){el.src=App.audioBlobUrl;el.load();}
+  });
+}
+function setAudioStatus(state){
+  var pill=document.getElementById('audio-status-pill'); if(!pill) return;
+  pill.className='audio-status '+state;
+  pill.textContent=state==='paused'?'⏸ Paused':'▶ Playing';
+}
+
+// ===== AI SPLIT =====
+var _splitSentences=[];
+var _splitConfirmed=false;
+function onScriptInput(){
+  var val=document.getElementById('raw-script-input').value.trim();
+  var btn=document.getElementById('btn-ai-split');
+  var kw=document.getElementById('lis-key-widget');
+  var box=document.getElementById('split-preview-box');
+  if(kw) kw.style.display=val?'flex':'none';
+  if(btn) btn.style.display=val.length>20?'inline-flex':'none';
+  if(val===''){box.style.display='none';_splitConfirmed=false;_splitSentences=[];}
+}
+async function aiSplitScript(){
+  var script=document.getElementById('raw-script-input').value.trim(); if(!script) return;
+  var btn=document.getElementById('btn-ai-split');
+  var key = getLisGeminiKey();
+  if (!key || !key.startsWith('AIza')) {
+    toast('Please enter your Gemini API key first.', 'error');
+    document.getElementById('lis-gemini-key').focus();
+    document.getElementById('lis-gemini-key').style.borderColor = '#c00';
+    setTimeout(function(){ document.getElementById('lis-gemini-key').style.borderColor = '#d0d0c8'; }, 3000);
+    return;
+  }
+  // ── Normalize unicode apostrophes/quotes BEFORE sending to AI ──
+  // Covers copy-paste from Word, PDF, Pages, Google Docs
+  script = normalizeApostrophes(script);
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Splitting…';
+  try{
+    var prompt = 'You are an IELTS listening script proofreader.\n'
+      + 'Tasks:\n'
+      + '1. Fix ALL spelling errors.\n'
+      + '2. Fix apostrophes: every contraction and possessive MUST use the standard straight apostrophe \' (U+0027).\n'
+      + '   Examples: don\'t, it\'s, I\'m, she\'s, they\'re, Mark\'s, world\'s.\n'
+      + '   Replace any curly/smart apostrophes (\u2018 \u2019 \u02BC) with straight apostrophe \'.\n'
+      + '3. Fix capitalization (first word of sentence, proper nouns).\n'
+      + '4. Split into individual sentences — one sentence per array item.\n'
+      + 'CRITICAL: Include EVERY sentence. Do not skip, merge, or truncate.\n'
+      + 'Return ONLY a valid JSON array of strings. No markdown, no explanation.\n\n'
+      + 'Script:\n' + script;
+    var raw = await callGeminiLis(prompt);
+    var sentences;
+    try {
+      var si = raw.indexOf('['), ei = raw.lastIndexOf(']') + 1;
+      sentences = si >= 0 ? JSON.parse(raw.substring(si, ei)) : null;
+    } catch(pe) { sentences = null; }
+    if (sentences && sentences.length) {
+      // Normalize apostrophes in AI output too (in case AI used curly quotes)
+      _splitSentences = sentences.map(function(s){
+        return normalizeApostrophes(String(s).trim());
+      }).filter(Boolean);
+      renderSplitPreview(_splitSentences);
+      toast('Split into '+_splitSentences.length+' sentences!','success');
+    } else {
+      _splitSentences = smartSplit(script);
+      renderSplitPreview(_splitSentences);
+      toast('AI returned unexpected format — using smart split','info');
+    }
+  }catch(e){
+    toast('AI error: '+e.message,'error');
+  }finally{
+    btn.disabled=false; btn.innerHTML='🤖 AI Split into Sentences';
+  }
+}
+
+// Normalize all apostrophe/quote variants to standard straight apostrophe '
+function normalizeApostrophes(text){
+  return text
+    // Curly/smart single quotes → straight apostrophe
+    .replace(/[\u2018\u2019\u201A\u201B\u02BC\u02BB\u0060\uFF07]/g, "'")
+    // Curly double quotes → straight double quotes
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    // Non-breaking space → regular space
+    .replace(/\u00A0/g, ' ')
+    // Zero-width characters
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
+    // Windows line endings
+    .replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+function smartSplit(text){
+  text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  var raw=text.match(/[^.!?]+[.!?]+(?:[\s\n]|$)|[^.!?\n]+(?:\n|$)/g)||[text];
+  return raw.map(function(s){return s.trim();}).filter(function(s){return s.length>2;});
+}
+function renderSplitPreview(sents){
+  document.getElementById('split-count').textContent=sents.length;
+  var list=document.getElementById('split-preview-list');
+  list.innerHTML=sents.map(function(s,i){
+    return '<div class="split-item" id="split-item-'+i+'" style="display:flex;align-items:flex-start;gap:8px">'
+      +'<div class="sno">'+(i+1)+'</div>'
+      +'<div style="flex:1">'+escHtml(s)+'</div>'
+      +'<button onclick="deleteSplitSentence('+i+')" title="Delete" style="background:rgba(255,255,255,.15);border:none;color:rgba(255,255,255,.7);border-radius:5px;padding:1px 7px;cursor:pointer;font-size:.8rem;flex-shrink:0">✕</button>'
+      +'</div>';
+  }).join('');
+  document.getElementById('split-preview-box').style.display='block';
+  document.getElementById('btn-ai-split').style.display='none';
+}
+function deleteSplitSentence(idx){
+  _splitSentences.splice(idx,1);
+  renderSplitPreview(_splitSentences);
+}
+function addSplitSentence(){
+  var newSent=prompt('Enter new sentence:','');
+  if(newSent&&newSent.trim()){
+    _splitSentences.push(newSent.trim());
+    renderSplitPreview(_splitSentences);
+    // Scroll to bottom of list
+    var list=document.getElementById('split-preview-list');
+    list.scrollTop=list.scrollHeight;
+  }
+}
+function confirmSplit(){
+  _splitConfirmed=true;
+  document.getElementById('split-preview-box').style.display='none';
+  var ta=document.getElementById('raw-script-input'); ta.disabled=true; ta.style.background='#f0f0f0';
+  document.getElementById('btn-ai-split').style.display='none';
+  var badge=document.createElement('div');
+  badge.id='split-badge';
+  badge.style.cssText='margin-top:6px;padding:5px 11px;background:var(--green-light);border-radius:7px;font-size:.78rem;color:#0a4a35;font-weight:700;display:inline-block';
+  badge.textContent='✅ '+_splitSentences.length+' sentences confirmed';
+  document.getElementById('err-script').parentNode.insertBefore(badge,document.getElementById('err-script').nextSibling);
+}
+function resetSplitPreview(){
+  _splitConfirmed=false; _splitSentences=[];
+  document.getElementById('split-preview-box').style.display='none';
+  var ta=document.getElementById('raw-script-input'); ta.disabled=false; ta.style.background='';
+  var badge=document.getElementById('split-badge'); if(badge) badge.remove();
+  document.getElementById('btn-ai-split').style.display='inline-flex';
+}
+
+// ===== STUDY TIMER =====
+function getStudySeconds(partStr,override){
+  if(override!=='auto') return parseInt(override)||0;
+  var p=parseInt(partStr);
+  if(isNaN(p)||p===0) return 120;   // 2 min
+  if(p===1) return 360;             // 6 min
+  if(p===2) return 480;             // 8 min
+  return 720;                        // 12 min (3, 4)
+}
+function startCountdown(secs){
+  App.cdTotal=secs; App.cdLeft=secs;
+  var wrap=document.getElementById('header-timer'); if(wrap) wrap.style.display='flex';
+  var dictBtn=document.getElementById('btn-go-dictation');
+  if(dictBtn){dictBtn.disabled=true;dictBtn.style.opacity='.4';dictBtn.style.cursor='not-allowed';dictBtn.textContent='🔒 Start Dictation';}
+  renderTimer(App.cdLeft);
+  if(App.cdTimer) clearInterval(App.cdTimer);
+  App.cdTimer=setInterval(function(){
+    App.cdLeft--;
+    renderTimer(App.cdLeft);
+    if(App.cdLeft<=0){clearInterval(App.cdTimer);App.cdTimer=null;unlockDictation();}
+  },1000);
+}
+function renderTimer(secs){
+  if(secs<0) secs=0;
+  var m=Math.floor(secs/60),s=secs%60;
+  var txt=m>0?m+':'+String(s).padStart(2,'0'):String(s)+'s';
+  var digits=document.getElementById('timer-digits'); if(digits) digits.textContent=txt;
+  var label=document.getElementById('timer-label');
+  var ring=document.getElementById('timer-ring-fg');
+  var fraction=App.cdTotal>0?App.cdLeft/App.cdTotal:0;
+  if(ring){ring.style.strokeDashoffset=100*(1-fraction);ring.style.stroke=fraction>0.5?'#11998e':fraction>0.2?'#f0c040':'#DB0007';}
+  if(label){
+    if(secs>0){var m2=Math.floor(secs/60),s2=secs%60;label.innerHTML='<strong>'+(m2>0?m2+'m '+String(s2).padStart(2,'0')+'s':s2+'s')+'</strong> to study';}
+    else{label.innerHTML='<span class="timer-done">✅ Ready!</span>';}
+  }
+}
+function unlockDictation(){
+  renderTimer(0);
+  var dictBtn=document.getElementById('btn-go-dictation');
+  if(dictBtn){
+    dictBtn.disabled=false; dictBtn.style.opacity='1'; dictBtn.style.cursor='pointer'; dictBtn.textContent='Start Dictation →';
+    var i=0,pulse=setInterval(function(){
+      dictBtn.style.transform=i%2===0?'scale(1.07)':'scale(1)';
+      if(++i>5){clearInterval(pulse);dictBtn.style.transform='';}
+    },180);
+  }
+  toast('Study time up! You can now start dictation.','success',3000);
+}
+
+// ===== START SESSION =====
+function startSession(){
+  var book=document.getElementById('book-input').value.trim();
+  var test=document.getElementById('test-input').value.trim();
+  var part=document.getElementById('part-input').value.trim();
+  var script=document.getElementById('raw-script-input').value.trim();
+  if(!book||!test){toast('Please enter Book and Test.','error');return;}
+  if(!script){document.getElementById('err-script').style.display='block';return;}
+  document.getElementById('err-script').style.display='none';
+  if(!App.audioBlobUrl){toast('Please load an audio file first.','error');return;}
+  App.bookTestPart=[book,test,part].filter(Boolean).join('-');
+  App.sentences=(_splitConfirmed&&_splitSentences.length>0)?_splitSentences:smartSplit(script);
+  if(!App.sentences.length){toast('No sentences found.','error');return;}
+  App.maxReplays=parseInt(document.getElementById('max-replays').value)||2;
+  App.sessionId=generateSessionId();
+  App.startTime=new Date();
+  App.totalWords=0;App.correctWords=0;App.currentIdx=0;
+  App.submitted=false;App.reviewData=[];App.attemptData=new Array(App.sentences.length);
+  App.pendingNextIdx=-1;
+  setAudioSrc();
+  var va=document.getElementById('vocab-audio-el');
+  if(va){va.addEventListener('play',function(){setAudioStatus('playing');});va.addEventListener('pause',function(){setAudioStatus('paused');});}
+  document.getElementById('full-script-display').textContent=script;
+  document.getElementById('vocab-pill').textContent=App.sentences.length+' sentences';
+  var override=document.getElementById('study-time-override').value;
+  var studySecs=getStudySeconds(part,override);
+  showScreen('screen-vocab');
+  if(studySecs>0){
+    startCountdown(studySecs);
+    setTimeout(function(){var va2=document.getElementById('vocab-audio-el');if(va2) va2.play().catch(function(){});},500);
+  }else{
+    unlockDictation();
+  }
+}
+
+// ===== TRANSLATE =====
+function doTranslate(){
+  var text=document.getElementById('translate-src').value.trim(); if(!text) return;
+  var statusEl=document.getElementById('translate-status');
+  var outEl=document.getElementById('translate-out');
+  statusEl.textContent='⏳'; outEl.textContent=''; outEl.classList.add('placeholder');
+  fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=en|vi')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var result=data&&data.responseData&&data.responseData.translatedText;
+      if(result){outEl.textContent=result;outEl.classList.remove('placeholder');statusEl.textContent='✓';}
+      else{outEl.textContent='(no result)';statusEl.textContent='';}
+    }).catch(function(){outEl.textContent='⚠ Failed.';statusEl.textContent='';});
+}
+function clearTranslate(){
+  document.getElementById('translate-src').value='';
+  var outEl=document.getElementById('translate-out');
+  outEl.textContent='Translation will appear here…'; outEl.classList.add('placeholder');
+  document.getElementById('translate-status').textContent='';
+}
+
+// ===== GO TO DICTATION =====
+function backToVocab(){audioPause();App.pendingNextIdx=-1;showScreen('screen-vocab');}
+function goToDictation(){
+  if(App.cdTimer){clearInterval(App.cdTimer);App.cdTimer=null;}
+  audioPause();
+  App.currentIdx=0;App.totalWords=0;App.correctWords=0;App.lastCheckedIdx=-1;
+  App.submitted=false;App.reviewData=[];App.pendingNextIdx=-1;
+  App.attemptData=new Array(App.sentences.length);
+  App.startTime=new Date();
+  document.getElementById('sentences-scroll').innerHTML='';
+  document.getElementById('submit-area').classList.remove('visible');
+  appendSentenceBlock(0);
+  updateProgress(); updateScore();
+  showScreen('screen-dictation');
+  // Show keyboard shortcut guide on first entry
+  setTimeout(function(){showShortcutModal();},300);
+  setTimeout(function(){var inp=document.querySelector('.sb-input:not(:disabled)');if(inp) inp.focus();},120);
+  // Auto-save session start → teacher sees "In Progress" immediately
+  api('lis.startSession',{
+    sessionId:      App.sessionId,
+    bookTestPart:   App.bookTestPart,
+    startingTime:   formatDateTime(App.startTime),
+    totalSentences: App.sentences.length
+  }).catch(function(){});
+  // Periodic progress update every 60s
+  if(App._progressTimer) clearInterval(App._progressTimer);
+  App._progressTimer=setInterval(function(){
+    if(App.submitted){clearInterval(App._progressTimer);App._progressTimer=null;return;}
+    recalcScore();
+    var acc=App.totalWords>0?Math.min(100,Math.round(App.correctWords/App.totalWords*100))+'%':'0%';
+    api('lis.updateProgress',{
+      sessionId:      App.sessionId,
+      sentencesDone:  App.currentIdx,
+      totalSentences: App.sentences.length,
+      totalWords:     App.totalWords,
+      correctWords:   App.correctWords,
+      accuracy:       acc
+    }).catch(function(){});
+  },60000);
+}
+
+// ===== SENTENCE BLOCKS =====
+function appendSentenceBlock(idx){
+  // Guard: prevent duplicate blocks for same idx
+  if(document.getElementById('block-'+idx)) return;
+  var container=document.getElementById('sentences-scroll');
+  var block=document.createElement('div');
+  block.className='sentence-block active-block'; block.id='block-'+idx;
+  var fsz=App.currentFontSize||'100%';
+  var hintHtml=(idx===0)?
+    '<div class="shortcut-hint">'+
+    '<div class="hint-item"><span class="kbd">Enter</span><span>Check</span></div>'+
+    '<div class="hint-item"><span class="kbd">⇧+Enter</span><span>Next</span></div>'+
+    '<div class="hint-item"><span class="kbd">⇧+Space</span><span>Play/Pause</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+,</span><span>−3s</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+.</span><span>+3s</span></div>'+
+    '<div class="hint-item"><span class="kbd">↑</span><span>Edit last</span></div>'+
+    '<div class="hint-item"><span class="kbd">Ctrl+Alt+R</span><span>Reset</span></div>'+
+    '</div>':'';
+  block.innerHTML=
+    '<div class="sb-label">SENTENCE '+(idx+1)+' / '+App.sentences.length+'</div>'+
+    '<div class="sb-result" id="result-'+idx+'" style="font-size:'+fsz+'"></div>'+
+    '<textarea class="sb-input" id="input-'+idx+'" rows="1"'+
+    ' placeholder="🎧 Listen carefully, then type what you hear…"'+
+    ' autocomplete="off" spellcheck="false" style="font-size:'+fsz+'"'+
+    ' onkeydown="handleInputKey(event,'+idx+')"'+
+    ' oninput="autoGrow(this)"'+
+    ' onpaste="return blockPaste(event)"'+
+    ' ondrop="return false" oncontextmenu="return false"></textarea>'+
+    '<div class="sb-controls">'+
+    '<button class="btn btn-primary btn-sm" id="check-btn-'+idx+'" onclick="checkSentence('+idx+')">'+
+    '✅ <strong>Check</strong> <span style="opacity:.55;font-size:.82em">(Enter)</span></button>'+
+    '<button class="btn btn-sm btn-blue" id="edit-btn-'+idx+'" onclick="editSentence('+idx+')" style="display:none">✏️ <strong>Edit</strong></button>'+
+    '<button class="btn btn-sm btn-gold" id="reveal-btn-'+idx+'" onclick="toggleReveal('+idx+')" style="display:none">🔍 Check Full Answer</button>'+
+    '<button class="btn btn-secondary btn-sm" onclick="resetSentence('+idx+')">↺ Reset</button>'+
+    '<span class="sb-accuracy" id="acc-'+idx+'"></span>'+
+    '</div>'+
+    '<div class="sb-reveal" id="reveal-'+idx+'">'+
+    '<div class="sb-reveal-label">✅ Original sentence:</div>'+
+    '<div id="reveal-text-'+idx+'"></div>'+
+    '</div>'+
+    hintHtml;
+  container.appendChild(block);
+  setTimeout(function(){block.scrollIntoView({behavior:'smooth',block:'center'});},80);
+}
+function autoGrow(el){
+  el.style.height='auto';
+  el.style.height=(el.scrollHeight)+'px';
+}
+function handleInputKey(e,idx){
+  if(e.key==='Enter'){e.preventDefault();var btn=document.getElementById('check-btn-'+idx);if(btn&&!btn.disabled) checkSentence(idx);}
+}
+function blockPaste(e){
+  e.preventDefault();
+  var inp=e.target; inp.style.borderColor='#e74c3c'; inp.style.animation='shake .3s';
+  setTimeout(function(){inp.style.borderColor='';inp.style.animation='';},500);
+  return false;
+}
+
+// ===== CHECK SENTENCE =====
+function checkSentence(idx){
+  var btn=document.getElementById('check-btn-'+idx);
+  var inputEl=document.getElementById('input-'+idx);
+  if(!btn||btn.disabled) return;
+  App.lastCheckedIdx = idx;  // remember which sentence was just checked
+  audioPause();
+  var origWords=tokenize(App.sentences[idx]);
+  var studWords=tokenize(inputEl.value);
+  var diff=lcsDiffHtml(origWords,studWords);
+  var correct=diff.correct;
+  document.getElementById('result-'+idx).innerHTML=diff.html;
+  var pct=origWords.length>0?Math.round(correct/origWords.length*100):0;
+  document.getElementById('acc-'+idx).textContent=correct+'/'+origWords.length+' words ('+pct+'%)';
+
+  inputEl.disabled=true; btn.disabled=true;
+  var editBtn=document.getElementById('edit-btn-'+idx);
+  var revealBtn=document.getElementById('reveal-btn-'+idx);
+  // Edit: show only when there are errors (any mistake → can re-type)
+  if(editBtn) editBtn.style.display = pct < 100 ? 'inline-flex' : 'none';
+  // Reveal full answer: only when struggling (< 80%)
+  if(revealBtn) revealBtn.style.display = pct < 80 ? 'inline-flex' : 'none';
+
+  App.reviewData[idx]={typed:inputEl.value,origWords:origWords,studWords:studWords,correct:correct,total:origWords.length};
+  var isEdit=App.attemptData[idx]&&App.attemptData[idx].a1Text!==undefined;
+  if(!isEdit){
+    App.attemptData[idx]={a1Text:inputEl.value,a1Correct:correct,a1Total:origWords.length,a1Time:nowStr(),viewedAnswer:false};
+    gasRun('lis.saveAttempt',buildAttemptPayload(idx,1));
+  }else{
+    App.attemptData[idx].a2Text=inputEl.value;
+    App.attemptData[idx].a2Correct=correct;
+    App.attemptData[idx].a2Total=origWords.length;
+    App.attemptData[idx].a2Time=nowStr();
+    gasRun('lis.saveAttempt',buildAttemptPayload(idx,2));
+  }
+
+  // Only advance to next sentence if 100% correct
+  if(pct === 100){
+    var block=document.getElementById('block-'+idx);
+    block.classList.remove('active-block'); block.classList.add('completed');
+    updateScore(); App.currentIdx++; updateProgress();
+    if(App.currentIdx<App.sentences.length){
+      App.pendingNextIdx=App.currentIdx;
+    }else{
+      App.pendingNextIdx=-1;
+      document.getElementById('submit-area').classList.add('visible');
+      document.getElementById('sentences-scroll').scrollTo({top:999999,behavior:'smooth'});
+    }
+  } else {
+    // Wrong — keep input DISABLED, show Edit button to re-type
+    // Student must press Edit (button or ↑ key) to unlock
+    updateScore();
+    var accEl=document.getElementById('acc-'+idx);
+    if(accEl) accEl.textContent=correct+'/'+origWords.length+' words ('+pct+'%) — fix errors and try again';
+  }
+}
+// ── LCS word diff helper (shared by check / reset / edit) ──
+function lcsCorrectCount(origWords, studWords){
+  var m=origWords.length,n=studWords.length,dp=[],i,j;
+  for(i=0;i<=m;i++){dp[i]=[];for(j=0;j<=n;j++)dp[i][j]=0;}
+  for(i=1;i<=m;i++) for(j=1;j<=n;j++)
+    dp[i][j]=origWords[i-1]===studWords[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+  return dp[m][n]; // LCS length = number of correctly matched words
+}
+function lcsDiffHtml(origWords, studWords){
+  var m=origWords.length,n=studWords.length,dp=[],i,j;
+  for(i=0;i<=m;i++){dp[i]=[];for(j=0;j<=n;j++)dp[i][j]=0;}
+  for(i=1;i<=m;i++) for(j=1;j<=n;j++)
+    dp[i][j]=origWords[i-1]===studWords[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+  var ops=[];i=m;j=n;
+  while(i>0||j>0){
+    if(i>0&&j>0&&origWords[i-1]===studWords[j-1]){ops.unshift({t:'m',o:origWords[i-1],s:studWords[j-1]});i--;j--;}
+    else if(j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])){ops.unshift({t:'x',s:studWords[j-1]});j--;}
+    else{ops.unshift({t:'h',o:origWords[i-1]});i--;}
+  }
+  var html='',correct=0;
+  ops.forEach(function(op){
+    if(op.t==='m'){html+='<span class="w-correct">'+escHtml(op.s)+'</span> ';correct++;}
+    else if(op.t==='x'){html+='<span class="w-wrong">'+escHtml(op.s)+'</span> ';}
+    else{var stars='';for(var k=0;k<op.o.length;k++)stars+='*';html+='<span class="w-missing">'+stars+'</span> ';}
+  });
+  return {html:html.trim(), correct:correct};
+}
+
+
+function buildAttemptPayload(idx,attemptNo){
+  var ad=App.attemptData[idx]||{};
+  // Send normalized text so GAS ErrorFlat won't flag capitalization/punctuation differences
+  var normTarget=normalize(App.sentences[idx]);
+  var p={sessionId:App.sessionId,sentenceNo:idx+1,bookTestPart:App.bookTestPart,targetText:normTarget,timestamp:nowStr(),attemptNo:attemptNo};
+  if(attemptNo===1){p.a1Text=normalize(ad.a1Text||'');p.a1Correct=ad.a1Correct||0;p.a1Total=ad.a1Total||0;}
+  else{p.a2Text=normalize(ad.a2Text||'');p.a2Correct=ad.a2Correct||0;p.a2Total=ad.a2Total||0;p.a1CorrectOrig=ad.a1Correct||0;}
+  return p;
+}
+
+// ===== RESET / EDIT / REVEAL =====
+function resetSentence(idx){
+  var btn=document.getElementById('check-btn-'+idx);
+  var inputEl=document.getElementById('input-'+idx);
+  var block=document.getElementById('block-'+idx);
+  var wasChecked=btn&&btn.disabled;
+  if(wasChecked){
+    var origWords=tokenize(App.sentences[idx]);
+    var studWords=tokenize(inputEl.value);
+    App.reviewData[idx]=null;
+    updateScore();
+    if(idx===App.currentIdx-1){
+      App.currentIdx--; updateProgress();
+      document.querySelectorAll('[id^="block-"]').forEach(function(el){if(parseInt(el.id.replace('block-',''))>idx) el.remove();});
+      document.getElementById('submit-area').classList.remove('visible');
+      App.reviewData[idx]=null; App.attemptData[idx]=undefined;
+    }
+  }
+  inputEl.disabled=false; inputEl.value=''; autoGrow(inputEl); if(btn) btn.disabled=false;
+  ['edit-btn-','reveal-btn-'].forEach(function(p){var e=document.getElementById(p+idx);if(e) e.style.display='none';});
+  var rev=document.getElementById('reveal-'+idx); if(rev) rev.style.display='none';
+  document.getElementById('result-'+idx).innerHTML=''; document.getElementById('acc-'+idx).textContent='';
+  block.classList.remove('completed'); block.classList.add('active-block'); inputEl.focus();
+}
+function editSentence(idx){
+  var btn=document.getElementById('check-btn-'+idx);
+  var editBtn=document.getElementById('edit-btn-'+idx);
+  var inputEl=document.getElementById('input-'+idx);
+  var block=document.getElementById('block-'+idx);
+  // Only allow edit if sentence was checked AND had errors (edit button visible)
+  if(!editBtn || editBtn.style.display==='none') return;
+  var savedText=inputEl.value;
+  var origWords=tokenize(App.sentences[idx]);
+  var studWords=tokenize(savedText);
+  App.reviewData[idx]=null;
+  updateScore();
+  document.getElementById('result-'+idx).innerHTML=''; document.getElementById('acc-'+idx).textContent='';
+  inputEl.disabled=false; inputEl.value=savedText; btn.disabled=false;
+  if(editBtn) editBtn.style.display='none';
+  var revBtn=document.getElementById('reveal-btn-'+idx); if(revBtn) revBtn.style.display='none';
+  var revPanel=document.getElementById('reveal-'+idx); if(revPanel) revPanel.style.display='none';
+  block.classList.remove('completed'); block.classList.add('active-block');
+  // If this sentence hadn't advanced currentIdx yet (wrong answer), don't decrement
+  // If it had been completed (correct = currentIdx advanced past it), decrement back
+  if(idx===App.currentIdx-1){
+    App.currentIdx--; updateProgress();
+    document.getElementById('submit-area').classList.remove('visible');
+    App.reviewData[idx]=null;
+  } else if(idx===App.currentIdx){
+    // Sentence was wrong — currentIdx never advanced. Just re-enable, no counter change.
+    App.reviewData[idx]=null;
+    updateProgress();
+    document.getElementById('submit-area').classList.remove('visible');
+  }
+  autoGrow(inputEl);
+  inputEl.focus(); var len=inputEl.value.length; inputEl.setSelectionRange(len,len);
+  inputEl.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function toggleReveal(idx){
+  var panel=document.getElementById('reveal-'+idx);
+  var btn=document.getElementById('reveal-btn-'+idx);
+  var inputEl=document.getElementById('input-'+idx);
+  var checkBtn=document.getElementById('check-btn-'+idx);
+  if(!panel) return;
+  var showing=panel.style.display!=='none';
+  if(showing){
+    panel.style.display='none';
+    if(btn) btn.textContent='🔍 Check Full Answer';
+  } else {
+    var textEl=document.getElementById('reveal-text-'+idx);
+    if(textEl) textEl.innerHTML='<div class="rv-original">'+escHtml(App.sentences[idx])+'</div>';
+    panel.style.display='block';
+    if(btn) btn.textContent='🔍 Hide Answer';
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    // Clear input and re-enable for fresh attempt
+    if(inputEl){ inputEl.disabled=false; inputEl.value=''; inputEl.focus(); }
+    if(checkBtn) checkBtn.disabled=false;
+    document.getElementById('result-'+idx).innerHTML='';
+    document.getElementById('acc-'+idx).textContent='';
+    if(App.attemptData[idx]&&!App.attemptData[idx].viewedAnswer){
+      App.attemptData[idx].viewedAnswer=true;
+      gasRun('lis.logViewedAnswer',{sessionId:App.sessionId,sentenceNo:idx+1});
+    }
+    // Auto-hide answer when student starts typing
+    if(inputEl){
+      inputEl.addEventListener('input', function hideOnType(){
+        panel.style.display='none';
+        if(btn) btn.textContent='🔍 Check Full Answer';
+        inputEl.removeEventListener('input', hideOnType);
+      });
+    }
+  }
+}
+
+// ===== AUDIO CONTROLS =====
+function getAudio(){return document.getElementById('main-audio-el');}
+function audioPause(){
+  ['vocab-audio-el','main-audio-el'].forEach(function(id){var el=document.getElementById(id);if(el) el.pause();});
+  setAudioStatus('paused');
+}
+window.addEventListener('load',function(){
+  var a=document.getElementById('main-audio-el'); if(!a) return;
+  a.addEventListener('play',function(){setAudioStatus('playing');});
+  a.addEventListener('pause',function(){setAudioStatus('paused');});
+});
+
+// ===== KEYBOARD SHORTCUTS =====
+// Final shortcut design (safe across Windows/Mac/Vietnamese IME):
+// ┌─────────────────────┬──────────────────────┐
+// │ Play/Pause          │ Shift+Space           │
+// │ Check answer        │ Enter                 │
+// │ Next sentence       │ Shift+Enter           │
+// │ −3 seconds          │ Ctrl+[  (or Alt+[)    │
+// │ +3 seconds          │ Ctrl+]  (or Alt+])    │
+// │ Edit last sentence  │ ↑ (when not typing)   │
+// │ Speed −0.25×        │ Alt+[                 │
+// │ Speed +0.25×        │ Alt+]                 │
+// │ Reset sentence      │ Ctrl+Alt+R            │
+// └─────────────────────┴──────────────────────┘
+document.addEventListener('keydown',function(e){
+  // ── Zoom: always intercept (Ctrl+/−) ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='+'||e.key==='='||e.key==='NumpadAdd')){e.preventDefault();changeZoom(+1);return;}
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='-'||e.key==='NumpadSubtract')){e.preventDefault();changeZoom(-1);return;}
+
+  // ── Always block Alt+Arrow browser Back/Forward ──
+  if(e.altKey&&!e.ctrlKey&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();return;}
+
+  var onDict=document.getElementById('screen-dictation').classList.contains('active');
+  if(!onDict) return;
+
+  var activeEl=document.activeElement;
+  var isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')&&!activeEl.disabled;
+
+  // ── Shift+Space → Play/Pause audio ──
+  // Safe: Shift+Space is not used by macOS/Windows system shortcuts
+  // When isTyping: Shift+Space types a space in some languages → skip only if IME active
+  // We allow it even when typing since audio control is primary use case here
+  if(e.shiftKey&&e.key===' '&&!e.ctrlKey&&!e.altKey){
+    e.preventDefault();
+    var aSP=getAudio(); if(!aSP||!aSP.src) return;
+    if(aSP.paused){aSP.play().catch(function(){}); setAudioStatus('playing');}
+    else{aSP.pause(); setAudioStatus('paused');}
+    return;
+  }
+
+  // ── Shift+Enter → advance to next sentence (after checking) ──
+  if(e.shiftKey&&e.key==='Enter'&&!e.ctrlKey&&!e.altKey){
+    e.preventDefault();
+    var aNA=getAudio(); if(!aNA||!aNA.src) return;
+    if(aNA.paused){aNA.play().catch(function(){}); setAudioStatus('playing');}
+    if(App.pendingNextIdx>=0&&App.pendingNextIdx<App.sentences.length){
+      var newIdxSE=App.pendingNextIdx; App.pendingNextIdx=-1;
+      appendSentenceBlock(newIdxSE);
+      setTimeout(function(){
+        var nextSE=document.getElementById('input-'+newIdxSE);
+        if(nextSE){nextSE.scrollIntoView({behavior:'smooth',block:'center'});nextSE.focus();}
+      },150);
+    }
+    return;
+  }
+
+  // ── Ctrl+, → −3 seconds (safe across all browsers/OS) ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key===','){
+    e.preventDefault(); var aL=getAudio(); if(aL) aL.currentTime=Math.max(0,aL.currentTime-3); return;
+  }
+  // ── Ctrl+. → +3 seconds ──
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key==='.'){
+    e.preventDefault(); var aR=getAudio(); if(aR) aR.currentTime+=3; return;
+  }
+
+  // Speed control removed — use browser/OS media controls instead
+
+  // ── ↑ ArrowUp → Edit the sentence just checked (if it had errors) ──
+  if(e.key==='ArrowUp'&&!isTyping&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){
+    e.preventDefault();
+    // Use lastCheckedIdx — edit button is visible only when there were errors
+    if(App.lastCheckedIdx >= 0){
+      var eb=document.getElementById('edit-btn-'+App.lastCheckedIdx);
+      if(eb && eb.style.display!=='none'){
+        editSentence(App.lastCheckedIdx);
+      }
+    }
+    return;
+  }
+
+  // ── Ctrl+Alt+R → Reset current sentence ──
+  if((e.ctrlKey||e.metaKey)&&e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='r'){
+    e.preventDefault(); if(App.currentIdx>0) resetSentence(App.currentIdx-1); return;
+  }
+});
+
+
+
+// ===== PROGRESS & SCORE =====
+function updateProgress(){
+  var done=Math.min(App.currentIdx,App.sentences.length);
+  var pct=App.sentences.length>0?Math.round(done/App.sentences.length*100):0;
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-label').textContent='Sentence '+done+' / '+App.sentences.length;
+}
+function recalcScore(){
+  // Recompute totalWords/correctWords from scratch using reviewData — avoids drift from reset/edit
+  var tw=0, cw=0;
+  for(var i=0;i<App.sentences.length;i++){
+    var rd=App.reviewData[i];
+    if(rd){tw+=rd.total||0; cw+=rd.correct||0;}
+  }
+  App.totalWords=tw; App.correctWords=cw;
+}
+function updateScore(){
+  recalcScore();
+  var done=Math.min(App.currentIdx,App.sentences.length);
+  document.getElementById('running-score').textContent=done+' / '+App.sentences.length+' sentences';
+}
+
+
+// ── Session stats summary HTML ──
+function buildStatsSummary(totalSents,perfectSents,totalWords,correctWords,totalTypos,viewedCount,accuracy){
+  return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">'+
+    '<span style="background:#eaf6ee;color:#1a6b3a;border-radius:6px;padding:4px 10px;font-size:.82rem;font-weight:700">'+totalSents+' sentences</span>'+
+    '<span style="background:#eaf6ee;color:#1a6b3a;border-radius:6px;padding:4px 10px;font-size:.82rem;font-weight:700">'+correctWords+'/'+totalWords+' words</span>'+
+    '<span style="background:#eaf6ee;color:#1a6b3a;border-radius:6px;padding:4px 10px;font-size:.82rem;font-weight:700">'+accuracy+'% accuracy</span>'+
+    '<span style="background:#eaf6ee;color:#1a6b3a;border-radius:6px;padding:4px 10px;font-size:.82rem;font-weight:700">'+perfectSents+'/'+totalSents+' perfect</span>'+
+    (totalTypos>0?'<span style="background:#fef3e2;color:#92400e;border-radius:6px;padding:4px 10px;font-size:.82rem;font-weight:700">'+totalTypos+' word errors</span>':'')+
+    (viewedCount>0?'<span style="background:#fce8e8;color:#991b1b;border-radius:6px;padding:4px 10px;font-size:.82rem;font-weight:700">'+viewedCount+' answers revealed</span>':'')+
+  '</div>';
+}
+
+// ===== SUBMIT =====
+async function submitResults(){
+  if(App.submitted) return;
+  App.submitted=true; document.getElementById('btn-submit').disabled=true; audioPause();
+  if(App._progressTimer){clearInterval(App._progressTimer);App._progressTimer=null;}
+  var submitTime=new Date();
+  var accuracy=App.totalWords>0?Math.min(100,Math.round(App.correctWords/App.totalWords*100)):0;
+  var completed=Math.min(App.currentIdx,App.sentences.length);
+  var startStr=formatDateTime(App.startTime);
+  var submitStr=formatDateTime(submitTime);
+  document.getElementById('final-score-pct').textContent=accuracy+'%';
+  document.getElementById('result-stats').innerHTML=
+    '<div><span class="lbl">Full Name</span><span class="val">'+escHtml(App.user.fullName||App.user.FullName||'')+'</span></div>'+
+    '<div><span class="lbl">Book–Test–Part</span><span class="val">'+escHtml(App.bookTestPart)+'</span></div>'+
+    '<div><span class="lbl">Starting Time</span><span class="val">'+startStr+'</span></div>'+
+    '<div><span class="lbl">Submitting Time</span><span class="val">'+submitStr+'</span></div>'+
+    '<div><span class="lbl">Sentences Done</span><span class="val">'+completed+' / '+App.sentences.length+'</span></div>'+
+    '<div><span class="lbl">Total Words</span><span class="val">'+App.totalWords+'</span></div>'+
+    '<div><span class="lbl">Correct Words</span><span class="val">'+App.correctWords+'</span></div>'+
+    '<div><span class="lbl">Accuracy</span><span class="val">'+accuracy+'%</span></div>'+
+    '<div><span class="lbl">Session ID</span><span class="val" style="font-size:.7rem;color:#bbb">'+App.sessionId+'</span></div>';
+  showScreen('screen-result');
+  var durationMs=submitTime-App.startTime;
+  var durationMin=Math.floor(durationMs/60000),durationSec=Math.floor((durationMs%60000)/1000);
+  var durationStr=durationMin+'m '+durationSec+'s';
+  var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,totalSentences:App.sentences.length,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId};
+  try{
+    var res=await api('lis.saveResult',payload);
+    document.getElementById('submit-status').textContent=res&&res.success?'✅ Saved!':'⚠ Save failed.';
+  }catch(e){document.getElementById('submit-status').textContent='⚠ Save failed.';}
+  var panel=document.getElementById('gpt-feedback-panel'); panel.style.display='block';
+  // Build session summary for concise feedback
+  var totalSents=App.sentences.length;
+  var perfectSents=0, totalTypos=0, viewedCount=0;
+  var gptSents=[];
+  for(var i=0;i<App.sentences.length;i++){
+    var rd=App.reviewData[i]||{correct:0,total:1};
+    var ad=App.attemptData[i]||{};
+    var errors=Math.max(0,(rd.total||0)-(rd.correct||0));
+    totalTypos+=errors;
+    if(errors===0) perfectSents++;
+    if(ad.viewedAnswer) viewedCount++;
+    gptSents.push({sentNo:i+1,target:App.sentences[i],attempt1:ad.a1Text||'',attempt2:ad.a2Text||null,errors:errors,total:rd.total||0,viewedAnswer:!!(ad.viewedAnswer)});
+  }
+  try{
+    var gemKey=getLisGeminiKey();
+    var bodyEl=document.getElementById('gpt-feedback-body');
+    if(!gemKey){
+      // No Gemini key — show plain stats only
+      bodyEl.className='gpt-body';
+      bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy);
+    } else {
+      bodyEl.className='gpt-loading'; bodyEl.textContent='Generating summary…';
+      var errSents=gptSents.filter(function(s){return s.errors>0;}).slice(0,8);
+      var errLines=errSents.map(function(s){
+        return 'S'+s.sentNo+': target="'+s.target+'" | typed="'+(s.attempt2||s.attempt1)+'" | errors='+s.errors+'/'+s.total;
+      }).join('\n');
+      var prompt='You are a dictation teacher. Give a SHORT summary in 3-5 bullet points. NO long paragraphs.\n\n'+
+        'Stats: '+totalSents+' sentences, '+App.correctWords+'/'+App.totalWords+' words correct ('+accuracy+'%), '+
+        perfectSents+' perfect sentences, '+totalTypos+' word errors, '+viewedCount+' answers revealed.\n\n'+
+        (errLines?'Sample errors:\n'+errLines+'\n\n':'')+
+        'Rules:\n- One-line overall verdict\n- 2-3 specific error patterns (e.g. missing articles, wrong prepositions)\n- ONE practical tip\n- Max 80 words total. No praise.';
+      var raw=await callGeminiLis(prompt);
+      var text=raw&&raw.candidates&&raw.candidates[0]&&raw.candidates[0].content&&raw.candidates[0].content.parts&&raw.candidates[0].content.parts[0]?raw.candidates[0].content.parts[0].text:'';
+      if(text){
+        bodyEl.className='gpt-body';
+        bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy)+markdownToHtml(text);
+      } else {
+        bodyEl.className='gpt-body';
+        bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy);
+      }
+    }
+  }catch(e){
+    var bodyEl=document.getElementById('gpt-feedback-body');
+    bodyEl.className='gpt-body';
+    bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy);
+  }
+}
+
+// ===== REVIEW =====
+function goToReview(){
+  var body=document.getElementById('review-body'); body.innerHTML='';
+  var fsz=App.currentFontSize||'100%';
+  for(var i=0;i<App.sentences.length;i++){
+    var rd=App.reviewData[i];
+    var block=document.createElement('div'); block.className='review-block';
+    var html='',accText='—',hasErrors=false;
+    if(rd){
+      var pct=rd.total>0?Math.round(rd.correct/rd.total*100):0;
+      accText=rd.correct+'/'+rd.total+' words ('+pct+'%)'; hasErrors=rd.correct<rd.total;
+      var rdiff=lcsDiffHtml(rd.origWords,rd.studWords); html=rdiff.html;
+    }else{html='<span style="color:#ccc;font-style:italic">Not attempted</span>';}
+    var explainBtn='',typedText=rd?rd.typed:'';
+    if(hasErrors&&typedText) explainBtn='<button class="btn-explain" onclick="explainSentence('+i+',this)" data-target="'+escHtml(App.sentences[i])+'" data-typed="'+escHtml(typedText)+'">🤖 Explain errors</button>';
+    block.innerHTML='<div class="rb-label">Sentence '+(i+1)+'</div>'+
+      '<div class="rb-original" style="font-size:'+fsz+'"><strong>Original:</strong> '+escHtml(App.sentences[i])+'</div>'+
+      '<div class="rb-typed" style="font-size:'+fsz+'">'+html.trim()+'</div>'+
+      '<div class="rb-acc"><span>'+accText+'</span>'+explainBtn+'</div>'+
+      '<div class="explain-box" id="explain-'+i+'" style="display:none"></div>';
+    body.appendChild(block);
+  }
+  showScreen('screen-review');
+}
+async function explainSentence(idx,btn){
+  var box=document.getElementById('explain-'+idx);
+  if(box.style.display==='block'){box.style.display='none';btn.textContent='🤖 Explain errors';return;}
+  var targetText=btn.getAttribute('data-target');
+  var typedText=btn.getAttribute('data-typed');
+  box.style.display='block'; box.innerHTML='<span style="color:#aaa;font-size:.8rem">⏳ Loading…</span>';
+  btn.disabled=true; btn.textContent='⏳ Loading…';
+  try{
+    var res=await api('lis.explainSentence',{targetText:targetText,studentText:typedText,sentenceNo:idx+1});
+    btn.disabled=false;
+    if(res&&res.success&&res.text){btn.textContent='🤖 Hide explanation';box.innerHTML=res.text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');}
+    else{btn.textContent='🤖 Explain errors';box.innerHTML='<span style="color:var(--red)">⚠ Could not load.</span>';}
+  }catch(e){btn.disabled=false;btn.textContent='🤖 Explain errors';box.innerHTML='<span style="color:var(--red)">⚠ '+e.message+'</span>';}
+}
+
+// ===== HISTORY =====
+async function loadHistory(){
+  var listEl=document.getElementById('history-list'); if(!listEl) return;
+  listEl.innerHTML='<div style="text-align:center;padding:22px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 8px"></div>Loading…</div>';
+  try{
+    var fullName=App.user&&(App.user.fullName||App.user.FullName)||'';
+    var res=await api('lis.getHistory',{fullName:fullName});
+    if(!res||!res.sessions||!res.sessions.length){listEl.innerHTML='<div style="text-align:center;padding:28px;color:var(--grey-400)">No past sessions yet.</div>';return;}
+    listEl.innerHTML=res.sessions.map(function(s){
+      var acc=parseInt(s.accuracy)||0;
+      var cls=acc>=80?'high':acc>=60?'mid':'low';
+      return '<div class="history-card">'+
+        '<h4>📅 '+escHtml(s.startingTime||'')+' &nbsp;·&nbsp; <span style="color:var(--navy)">'+escHtml(s.bookTestPart||'Practice')+'</span></h4>'+
+        '<div class="history-stat-row">'+
+        '<div class="history-stat"><div class="hv">'+(s.sentencesDone||'?')+'</div><div class="hl">Sentences</div></div>'+
+        '<div class="history-stat"><div class="hv" style="color:var(--navy)">'+(s.totalWords||0)+'</div><div class="hl">Words</div></div>'+
+        '<div class="history-stat"><div class="hv"><span class="pct-badge '+cls+'">'+acc+'%</span></div><div class="hl">Accuracy</div></div>'+
+        '</div>'+
+        '<div style="font-size:.74rem;color:var(--grey-600)">✅ Correct: <strong>'+(s.correctWords||0)+'</strong></div>'+
+        '</div>';
+    }).join('');
+  }catch(e){listEl.innerHTML='<div style="text-align:center;padding:28px;color:var(--red)">Error loading history.</div>';}
+}
+
+// ===== ZOOM =====
+function changeZoom(delta){
+  App.zoomLevel=Math.max(0,Math.min(App.zoomSizes.length-1,App.zoomLevel+delta));
+  var sz=App.zoomSizes[App.zoomLevel]+'%';
+  var lbl=App.zoomLabels[App.zoomLevel];
+  App.currentFontSize=sz;
+  var fsd=document.getElementById('full-script-display'); if(fsd) fsd.style.fontSize=sz;
+  document.querySelectorAll('.sb-input,.sb-result,.rb-typed,.rb-original').forEach(function(e){e.style.fontSize=sz;});
+  ['zoom-label-vocab','zoom-label-dict'].forEach(function(id){var el=document.getElementById(id);if(el) el.textContent=lbl;});
+}
+
+// ===== UTILS =====
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function normalize(text){
+  return String(text||'')
+    .toLowerCase()
+    // Normalize apostrophe variants
+    .replace(/[\u2019\u2018\u201B\u02BC\u02BB\u0060\uFF07]/g,"'")
+    // Remove ellipsis and multiple dots (can't type on keyboard)
+    .replace(/\u2026/g,' ').replace(/\.{2,}/g,' ')
+    // Remove currency & special symbols not on standard keyboards
+    // (£ € $ ¥ ¢ © ® ™ ° # @ & * ~ ^ + = | < > %)
+    .replace(/[\u00A3\u20AC\$\u00A5\u00A2\u00A9\u00AE\u2122\u00B0#@&*~^+=|<>%]/g,'')
+    // Remove common punctuation
+    .replace(/[.,!?;:"()\[\]{}\-\u2013\u2014\/\\\_]/g,'')
+    // Remove standalone apostrophes
+    .replace(/(^|\s)'|'(\s|$)/g,' ')
+    // Collapse whitespace
+    .replace(/\s+/g,' ').trim();
+}
+function tokenize(text){return normalize(text).split(' ').filter(Boolean);}
+function nowStr(){return new Date().toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
+function formatDateTime(d){var dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yyyy=d.getFullYear(),hh=String(d.getHours()).padStart(2,'0'),min=String(d.getMinutes()).padStart(2,'0');return dd+'-'+mm+'-'+yyyy+' @ '+hh+':'+min;}
+function generateSessionId(){var now=new Date();return now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+String(now.getSeconds()).padStart(2,'0')+'-'+Math.random().toString(36).substr(2,4).toUpperCase();}
+function markdownToHtml(md){return md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g,'').replace(/\n{2,}/g,'</p><p>').replace(/\n/g,'<br>').replace(/^(.)/,'<p>$1').replace(/(.)$/,'$1</p>');}
+</script>
+
+<!-- ══ KEYBOARD SHORTCUT WELCOME MODAL ══ -->
+<div id="shortcut-modal" style="display:none">
+  <div class="sm-box">
+    <div class="sm-header">
+      <div class="sm-header-icon">⌨️</div>
+      <div class="sm-header-text">
+        <h2>Keyboard Shortcuts</h2>
+        <p>Keyboard shortcuts for faster dictation practice</p>
+      </div>
+    </div>
+    <div class="sm-body">
+      <div class="sm-tip">
+        💡 Use <strong>Shift+Space</strong> to Play/Pause — keeps both hands on keyboard, no mouse needed.
+      </div>
+      <table class="sm-table">
+        <tr>
+          <td>▶ Play / ⏸ Pause</td>
+          <td><span class="sm-kbd">Shift</span><span class="sm-kbd">Space</span></td>
+        </tr>
+        <tr>
+          <td>✅ Check answer</td>
+          <td><span class="sm-kbd">Enter</span></td>
+        </tr>
+        <tr>
+          <td>⏭ Next sentence</td>
+          <td><span class="sm-kbd">Shift</span><span class="sm-kbd">Enter</span></td>
+        </tr>
+        <tr>
+          <td>⏪ Seek −3s</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">,</span></td>
+        </tr>
+        <tr>
+          <td>⏩ Seek +3s</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">.</span></td>
+        </tr>
+        <tr>
+          <td>✏️ Edit last sentence</td>
+          <td><span class="sm-kbd">↑</span> <small style="color:#aaa">(when not typing)</small></td>
+        </tr>
+        <tr>
+          <td>🔄 Reset sentence</td>
+          <td><span class="sm-kbd">Ctrl</span><span class="sm-kbd">Alt</span><span class="sm-kbd">R</span></td>
+        </tr>
+      </table>
+      <div class="sm-footer">
+        <label class="sm-check">
+          <input type="checkbox" id="sm-dont-show"> Không hiển thị lại
+        </label>
+        <button class="sm-btn" onclick="closeShortcutModal()">Đã hiểu, bắt đầu →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showShortcutModal(){
+  if(localStorage.getItem('lis_skip_shortcuts')==='1') return;
+  document.getElementById('shortcut-modal').style.display='flex';
+}
+function closeShortcutModal(){
+  if(document.getElementById('sm-dont-show').checked){
+    localStorage.setItem('lis_skip_shortcuts','1');
+  }
+  document.getElementById('shortcut-modal').style.display='none';
+}
+// Close on backdrop click
+document.getElementById('shortcut-modal').addEventListener('click',function(e){
+  if(e.target===this) closeShortcutModal();
+});
+</script>
+
+</body>
+</html>
