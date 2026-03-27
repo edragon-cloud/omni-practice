@@ -1,972 +1,1362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fluentalk — Language Hub</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--red:#C8102E;--red-d:#9B0B22;--red-l:#FEF2F2;--white:#fff;--bg:#F0F4FA;--g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;--g400:#94A3B8;--g500:#64748B;--g600:#475569;--g800:#1E293B;--g900:#0F172A;--gold:#D97706;--gold-l:#FEF3C7;--green:#059669;--green-l:#ECFDF5;--green-d:#047857;--blue:#1D4ED8;--blue-l:#EFF6FF;--blue-m:#3B82F6;--teal:#0F766E;--navy:#1E3A5F;--navy2:#0F2847;--purple:#7C3AED;--purple-l:#F5F3FF;--sh:0 1px 3px rgba(0,0,0,.08);--shm:0 4px 16px rgba(0,0,0,.10);--shl:0 12px 40px rgba(0,0,0,.16);--r:10px;--rl:16px;--rx:24px;--tr:.18s cubic-bezier(.4,0,.2,1);--f:'Inter',sans-serif;--fm:'JetBrains Mono',monospace}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}
-body{font-family:var(--f);background:var(--bg);color:var(--g900);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.screen{display:none;flex-direction:column;min-height:100vh}.screen.active{display:flex;animation:fUp .2s ease}
-@keyframes fUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+:root{
+  --red:#C8102E;--red-dark:#9B0B22;--red-light:#FEF2F2;
+  --white:#fff;--bg:#F0F4FA;
+  --g100:#F4F6FA;--g200:#E2E8F0;--g400:#94A3B8;--g600:#64748B;--g800:#334155;--black:#0F172A;
+  --gold:#D97706;--gold-light:#FEF3C7;
+  --green:#059669;--green-light:#ECFDF5;--green-dark:#047857;
+  --blue:#1D4ED8;--blue-light:#EFF6FF;--blue-mid:#3B82F6;
+  --teal:#0F766E;--navy:#1E3A5F;--navy2:#0F2847;
+  --purple:#7C3AED;--purple-light:#F5F3FF;
+  --sh:0 1px 3px rgba(0,0,0,.08);--shm:0 4px 16px rgba(0,0,0,.10);--shl:0 12px 40px rgba(0,0,0,.16);
+  --r:10px;--rl:16px;--rx:20px;--tr:.18s cubic-bezier(.4,0,.2,1);
+  --f:'Inter',sans-serif;--fm:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex;animation:fUp .2s ease}
+@keyframes fUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
 /* TOPBAR */
-.topbar{background:linear-gradient(90deg,var(--navy2),var(--navy) 55%,var(--red-d));height:54px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:200;border-bottom:2px solid rgba(201,168,76,.4);flex-shrink:0}
-.tb-brand{font-weight:800;font-size:.95rem;color:#fff}.tb-brand em{color:#FCD34D;font-style:normal}
-.tb-app{font-size:12px;color:rgba(255,255,255,.35)}.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topbar{background:linear-gradient(90deg,var(--navy2),var(--navy) 55%,var(--red-dark));height:54px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:200;border-bottom:2px solid rgba(201,168,76,.5);flex-shrink:0}
+.tb-brand{font-weight:700;font-size:.95rem;color:#fff}
+.tb-brand em{color:#FCD34D;font-style:normal}
+.tb-app{font-size:12px;color:rgba(255,255,255,.38)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .tb-user{font-size:12px;color:#67E8F9;font-weight:600}
-.tb-btn{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.8);font-size:12px;cursor:pointer;font-family:var(--f);font-weight:600;transition:var(--tr)}
-.tb-btn:hover{background:rgba(255,255,255,.2);color:#fff}.tb-btn.danger{background:rgba(220,38,38,.25);border-color:rgba(220,38,38,.5);color:#fca5a5}
-/* LAYOUT */
+.tb-back{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.78);font-size:12px;cursor:pointer;font-family:var(--f);font-weight:600;transition:var(--tr)}
+.tb-back:hover{background:rgba(255,255,255,.2);color:#fff}
 .main{flex:1;padding:20px 16px;max-width:820px;width:100%;margin:0 auto}
+.card{background:var(--white);border-radius:var(--rl);padding:18px;box-shadow:var(--sh);border:1.5px solid var(--g200);margin-bottom:14px}
+
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border:none;border-radius:var(--r);font-family:var(--f);font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr);white-space:nowrap;text-decoration:none}
-.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.14)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border:none;border-radius:var(--r);font-family:var(--f);font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr);white-space:nowrap}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.14)}
+.btn:disabled{opacity:.42;cursor:not-allowed;transform:none!important}
 .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover:not(:disabled){background:#1e40af}
-.btn-red{background:var(--red);color:#fff}.btn-red:hover:not(:disabled){background:var(--red-d)}
-.btn-green{background:var(--green);color:#fff}.btn-gold{background:var(--gold);color:#fff}
-.btn-grey{background:var(--g200);color:var(--g800)}.btn-grey:hover:not(:disabled){background:var(--g300)}
+.btn-red{background:var(--red);color:#fff}.btn-green{background:var(--green);color:#fff}
+.btn-gold{background:var(--gold);color:#fff}.btn-grey{background:var(--g200);color:var(--g800)}
+.btn-grey:hover:not(:disabled){background:#CBD5E1}
 .btn-purple{background:var(--purple);color:#fff}
-.btn-outline{background:transparent;border:1.5px solid var(--g200);color:var(--g800)}.btn-outline:hover:not(:disabled){border-color:var(--blue-m);color:var(--blue)}
+.btn-outline{background:transparent;border:1.5px solid var(--g200);color:var(--g800)}
+.btn-outline:hover:not(:disabled){border-color:var(--blue-mid);color:var(--blue)}
 .btn-full{width:100%}.btn-sm{padding:6px 13px;font-size:12px}.btn-lg{padding:13px 26px;font-size:15px;border-radius:var(--rl)}
-/* KEY BANNER */
-.key-banner{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #FCD34D;border-radius:var(--rl);padding:14px 16px;margin-bottom:18px}
-.key-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
-.key-row input{flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #FCD34D;border-radius:var(--r);font-family:var(--fm);font-size:12px;outline:none;background:#fff}
-.key-row input:focus{border-color:var(--gold)}
-.kst{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;flex-shrink:0}
-.kst-ok{background:var(--green-l);color:var(--green-d)}.kst-bad{background:var(--red-l);color:var(--red-d)}.kst-none{background:var(--g200);color:var(--g500)}
-/* SECTION LABEL */
-.sec-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g500);margin-bottom:10px}
-/* MODE GRID */
-.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.mode-tile{background:var(--white);border:2px solid var(--g200);border-radius:var(--rl);padding:22px 14px;cursor:pointer;transition:var(--tr);text-align:center}
-.mode-tile:hover{border-color:var(--blue-m);transform:translateY(-2px);box-shadow:var(--shm)}.mode-tile.sel{border-color:var(--blue);background:var(--blue-l)}
-.mt-icon{font-size:2rem;margin-bottom:8px}.mt-title{font-weight:700;font-size:.95rem;color:var(--g900)}.mt-sub{font-size:11px;color:var(--g500);margin-top:3px}.mode-tile.sel .mt-title{color:var(--blue)}
-/* SUB GRID */
-.sub-grid{border:2px dashed var(--blue-m);border-radius:var(--rl);padding:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;background:rgba(59,130,246,.025)}
-@media(max-width:600px){.sub-grid{grid-template-columns:1fr 1fr}}
-.sub-tile{background:var(--white);border:1.5px solid var(--g200);border-radius:var(--r);padding:14px 8px;cursor:pointer;transition:var(--tr);text-align:center}
-.sub-tile:hover{border-color:var(--blue-m);background:var(--blue-l)}.sub-tile.sel{border-color:var(--blue);background:var(--blue-l)}
-.st-icon{font-size:1.4rem}.st-title{font-weight:700;font-size:.82rem;color:var(--g900);margin-top:4px}.st-sub{font-size:10px;color:var(--g500);margin-top:1px}.sub-tile.sel .st-title{color:var(--blue)}
-/* ROUND GRID */
-.round-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.round-tile{border:2px solid var(--g200);background:var(--white);border-radius:var(--r);padding:12px 10px;cursor:pointer;text-align:center;transition:var(--tr)}
-.round-tile:hover{border-color:var(--gold)}.round-tile.sel{border-color:var(--gold);background:var(--gold-l)}
-.rt-icon{font-size:1.5rem;margin-bottom:4px}.rt-title{font-size:13px;font-weight:700;color:var(--g900)}.rt-sub{font-size:11px;color:var(--g500);margin-top:2px}.round-tile.sel .rt-title{color:var(--gold)}
+.btn-danger{background:#dc2626;color:#fff}
+
+/* HOME */
+.apikey-wrap{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #FCD34D;border-radius:var(--rl);padding:14px 16px;margin-bottom:18px}
+.apikey-wrap input{padding:7px 11px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:var(--fm);font-size:13px;outline:none;background:#fff;transition:var(--tr);min-width:0}
+.apikey-wrap input:focus{border-color:var(--gold)}
+.key-st{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px}
+.key-ok{background:var(--green-light);color:var(--green-dark)}.key-bad{background:var(--red-light);color:var(--red-dark)}
+.sec-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);margin-bottom:10px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.mode-tile{background:var(--white);border:2px solid var(--g200);border-radius:var(--rl);padding:20px 14px;cursor:pointer;transition:var(--tr);text-align:center}
+.mode-tile:hover{border-color:var(--blue-mid);transform:translateY(-2px);box-shadow:var(--shm)}
+.mode-tile.sel{border-color:var(--blue);background:var(--blue-light)}
+.mt-icon{font-size:1.9rem;margin-bottom:6px}
+.mt-title{font-weight:700;font-size:.92rem;color:var(--black)}
+.mt-sub{font-size:11px;color:var(--g600);margin-top:2px}
+.mode-tile.sel .mt-title{color:var(--blue)}
+.sub-grid{border:2px dashed var(--blue-mid);border-radius:var(--rl);padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;background:rgba(29,78,216,.025)}
+.sub-grid.purple{border-color:#A78BFA;background:rgba(124,58,237,.025)}
+.sub-grid.green{border-color:var(--green);background:rgba(5,150,105,.025)}
+.sub-tile{background:var(--white);border:1.5px solid var(--g200);border-radius:var(--r);padding:13px 10px;cursor:pointer;transition:var(--tr);text-align:center}
+.sub-tile:hover{border-color:var(--blue-mid);background:var(--blue-light)}
+.sub-tile.sel{border-color:var(--blue);background:var(--blue-light)}
+.st-icon{font-size:1.3rem}.st-title{font-weight:700;font-size:.85rem;color:var(--black);margin-top:3px}
+.st-sub{font-size:11px;color:var(--g600);margin-top:1px}
+.sub-tile.sel .st-title{color:var(--blue)}
+
+/* LIVE badge */
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.06em;vertical-align:middle}
+.live-badge::before{content:'';width:6px;height:6px;background:#fff;border-radius:50%;animation:livePulse 1s infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}
+
 /* SETUP */
 .setup-hdr{background:linear-gradient(135deg,var(--teal),var(--blue));border-radius:var(--rl);padding:18px;margin-bottom:16px;color:#fff;display:flex;align-items:center;gap:12px}
-.setup-hdr-icon{font-size:2rem;width:50px;height:50px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.setup-hdr-title{font-size:1.1rem;font-weight:700}.setup-hdr-sub{font-size:12px;opacity:.7;margin-top:2px}
-.qblock{background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rl);padding:14px;margin-bottom:12px}
-.qblock-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--red);margin-bottom:8px}
-.qta{width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:var(--f);font-size:13.5px;resize:vertical;min-height:80px;outline:none;background:#fff;color:var(--g900);line-height:1.6;transition:var(--tr)}
-.qta:focus{border-color:var(--blue-m);box-shadow:0 0 0 3px rgba(59,130,246,.08)}.ta-hint{font-size:11px;color:var(--g400);margin-top:4px}
-.kw-block{background:var(--gold-l);border:1.5px solid #FCD34D;border-radius:var(--rl);padding:14px;margin-bottom:12px}
-.kw-block-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);margin-bottom:8px}
-.kw-inp{width:100%;padding:8px 12px;border:1.5px solid #FCD34D;border-radius:var(--r);font-family:var(--f);font-size:13px;outline:none;background:#fff;transition:var(--tr)}
+.setup-hdr-icon{font-size:1.9rem;width:46px;height:46px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.setup-hdr-title{font-size:1.15rem;font-weight:700}
+.setup-hdr-sub{font-size:12px;opacity:.72;margin-top:1px}
+.qcard{background:var(--g100);border-radius:var(--rl);padding:13px;margin-bottom:11px;border:1.5px solid var(--g200)}
+.qlbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:7px}
+.qta{width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:var(--f);font-size:14px;resize:vertical;min-height:60px;outline:none;background:#fff;transition:var(--tr);color:var(--black);line-height:1.6}
+.qta:focus{border-color:var(--blue-mid)}
+.kw-box{background:var(--gold-light);border:1.5px solid #FCD34D;border-radius:var(--r);padding:11px;margin-top:9px}
+.kw-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.kw-lbl span{font-weight:400;text-transform:none;letter-spacing:0;color:var(--g600);font-size:11px}
+.kw-row{display:flex;gap:6px;margin-bottom:7px}
+.kw-inp{flex:1;padding:6px 11px;border:1.5px solid #FCD34D;border-radius:var(--r);font-family:var(--f);font-size:13px;outline:none;background:#fff}
 .kw-inp:focus{border-color:var(--gold)}
-/* SESSION */
-.prog-hdr{display:flex;justify-content:space-between;font-size:12px;color:var(--g500);font-weight:500;margin-bottom:6px}
-.prog-bar{height:3px;background:var(--g200);border-radius:2px;overflow:hidden;margin-bottom:18px}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue-m),var(--teal));border-radius:2px;transition:width .5s ease}
-.q-box{background:linear-gradient(135deg,#192a56,#0f172a);border-radius:var(--rl);padding:20px 18px;margin-bottom:14px;position:relative;overflow:hidden}
-.q-box::before{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;background:rgba(255,255,255,.03);border-radius:50%}
-.q-box-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:7px}
-.q-box-txt{font-size:1.05rem;color:#fff;line-height:1.75;font-weight:500}
-.q-box-num{position:absolute;top:12px;right:12px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:99px}
-.q-part-badge{position:absolute;top:12px;right:76px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:10px;font-weight:600;padding:2px 10px;border-radius:99px}
-/* PREP COUNTDOWN */
-.prep-box{background:var(--gold-l);border:1.5px solid #FCD34D;border-radius:var(--r);padding:10px 14px;margin-bottom:13px;display:flex;align-items:center;gap:12px}
-.prep-cd{font-family:var(--fm);font-size:1.3rem;font-weight:700;color:var(--gold);min-width:40px}
-.prep-prog{flex:1;height:4px;background:#FCD34D;border-radius:2px;overflow:hidden}
-.prep-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .1s linear}
-/* HINTS TOGGLE */
-.kw-toggle{width:100%;padding:9px 14px;background:var(--gold-l);border:1.5px solid #FCD34D;border-radius:var(--r);font-family:var(--f);font-size:13px;font-weight:600;color:var(--gold);cursor:pointer;text-align:left;margin-bottom:8px;transition:var(--tr);display:flex;align-items:center;gap:8px}
-.kw-toggle:hover{background:#fde68a}
-.kw-pills{display:none;flex-wrap:wrap;gap:6px;padding:10px 12px;background:var(--gold-l);border:1.5px solid #FCD34D;border-radius:var(--r);margin-bottom:12px}
-.kw-pills.vis{display:flex}.kw-pill{background:#fff;border:1.5px solid #FCD34D;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:600;color:var(--gold)}
-/* RECORDING */
-.rec-wrap{background:var(--g100);border:2px dashed var(--g200);border-radius:var(--rl);padding:24px 16px;text-align:center;transition:var(--tr);margin-bottom:12px}
-.rec-wrap.rec-on{border-color:var(--red);background:var(--red-l)}.rec-wrap.rec-dn{border-color:var(--green);background:var(--green-l);border-style:solid}
-.rec-orb{width:64px;height:64px;border-radius:50%;background:var(--g200);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:26px;cursor:pointer;transition:var(--tr);border:3px solid transparent;user-select:none}
-.rec-orb.act{background:var(--red);border-color:var(--red-d);animation:orbP 1s infinite}.rec-orb.dn{background:var(--green);border-color:var(--green-d)}
-@keyframes orbP{0%,100%{box-shadow:0 0 0 6px rgba(200,16,46,.1)}50%{box-shadow:0 0 0 16px rgba(200,16,46,.04)}}
-.wvf{display:flex;align-items:center;justify-content:center;gap:3px;height:26px;margin:5px 0}
+.kw-chips{display:flex;flex-wrap:wrap;gap:5px;min-height:18px}
+.kwchip{background:#fff;border:1.5px solid #FCD34D;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--gold);display:inline-flex;align-items:center;gap:4px}
+.kwchip-x{cursor:pointer;color:var(--g400);font-size:13px}.kwchip-x:hover{color:var(--red)}
+.kw-empty{font-size:11px;color:var(--g400);font-style:italic}
+
+/* SESSION (IELTS record mode) */
+.prog-hdr{display:flex;justify-content:space-between;font-size:12px;color:var(--g600);font-weight:500;margin-bottom:6px}
+.prog-bar{height:3px;background:var(--g200);border-radius:2px;overflow:hidden;margin-bottom:16px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue-mid),var(--teal));border-radius:2px;transition:width .4s ease}
+.q-box{background:linear-gradient(135deg,#192a56,#0f172a);border-radius:var(--rl);padding:20px 18px;margin-bottom:14px;position:relative}
+.q-box-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:6px}
+.q-box-txt{font-size:1.05rem;color:#fff;line-height:1.7;font-weight:500}
+.q-tts{position:absolute;top:12px;right:50px;width:32px;height:32px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.18);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:var(--tr)}
+.q-tts:hover{background:rgba(255,255,255,.2)}
+.q-tts.spk{background:rgba(59,130,246,.45);border-color:var(--blue-mid);animation:ttsp 1s infinite}
+@keyframes ttsp{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.3)}50%{box-shadow:0 0 0 7px rgba(59,130,246,0)}}
+.q-num{position:absolute;top:12px;right:12px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px}
+.prep-box{background:var(--gold-light);border:1.5px solid #FCD34D;border-radius:var(--r);padding:9px 13px;margin-bottom:13px;display:flex;align-items:center;gap:10px}
+.prep-cd{font-family:var(--fm);font-size:1.2rem;font-weight:700;color:var(--gold)}
+.prep-progbar{flex:1;height:4px;background:#FCD34D;border-radius:2px;overflow:hidden}
+.prep-pfill{height:100%;background:var(--gold);border-radius:2px;transition:width .1s linear}
+.kw-hint-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}
+.kwbtn{padding:9px 12px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr);text-align:center;border:1.5px solid var(--g200);background:var(--white)}
+.kwbtn:hover{border-color:var(--blue-mid)}.kwbtn.on{background:var(--gold-light);border-color:#FCD34D;color:var(--gold)}
+.kw-display{background:var(--gold-light);border:1.5px solid #FCD34D;border-radius:var(--r);padding:9px 13px;margin-bottom:13px;display:none;flex-wrap:wrap;gap:5px;align-items:center}
+.kw-display.vis{display:flex}
+.kw-pill{background:#fff;border:1.5px solid #FCD34D;border-radius:99px;padding:3px 11px;font-size:12px;font-weight:600;color:var(--gold)}
+.rec-area{background:var(--g100);border:2px dashed var(--g200);border-radius:var(--rl);padding:26px 18px;text-align:center;transition:var(--tr);margin-bottom:13px}
+.rec-area.recg{border-color:var(--red);background:var(--red-light)}
+.rec-area.done{border-color:var(--green);background:var(--green-light);border-style:solid}
+.rec-btn{width:60px;height:60px;border-radius:50%;background:var(--g200);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:24px;cursor:pointer;transition:var(--tr);border:3px solid transparent;user-select:none}
+.rec-btn.act{background:var(--red);border-color:var(--red-dark);animation:rp 1s infinite}
+.rec-btn.dn{background:var(--green);border-color:var(--green-dark)}
+@keyframes rp{0%,100%{box-shadow:0 0 0 5px rgba(200,16,46,.1)}50%{box-shadow:0 0 0 13px rgba(200,16,46,.04)}}
+.wvf{display:flex;align-items:center;justify-content:center;gap:3px;height:28px;margin:5px 0}
 .wb{width:4px;height:5px;background:var(--red);border-radius:2px}
-.rec-on .wb{animation:wv .5s infinite alternate}
-@keyframes wv{from{height:5px}to{height:20px}}
-.wb:nth-child(2){animation-delay:.08s}.wb:nth-child(3){animation-delay:.16s}.wb:nth-child(4){animation-delay:.08s}.wb:nth-child(5){animation-delay:.22s}.wb:nth-child(6){animation-delay:.04s}.wb:nth-child(7){animation-delay:.14s}
-.rec-st{font-size:13px;font-weight:600;color:var(--g500)}.rec-timer{font-family:var(--fm);font-size:1.2rem;font-weight:700;color:var(--red);margin:3px 0;display:none}
-.t-prev{background:#fff;border:1.5px solid var(--g200);border-radius:var(--r);padding:10px 13px;font-size:13px;line-height:1.65;color:var(--g800);font-style:italic;min-height:38px;margin-bottom:12px;display:none}
-.t-prev.vis{display:block}
-/* SIM TIMER */
-.sim-timer{background:var(--navy2);border-radius:var(--r);padding:10px 14px;margin-bottom:13px;display:flex;align-items:center;gap:12px}
-.sim-tv{font-family:var(--fm);font-size:1.1rem;font-weight:700;color:#FCD34D;min-width:50px}
-.sim-tp{flex:1;height:4px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}
-.sim-tf{height:100%;background:#FCD34D;border-radius:2px;transition:width .5s linear}
-.sim-ptag{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:99px;flex-shrink:0}
-/* CEFR CHAT */
-.chat-wrap{flex:1;display:flex;flex-direction:column;max-width:820px;width:100%;margin:0 auto}
-.level-bar{background:var(--white);border-bottom:1.5px solid var(--g200);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.lchip{padding:4px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid var(--g200);color:var(--g500);background:var(--white);transition:var(--tr)}
-.lchip.active{background:var(--navy2);border-color:var(--navy);color:#fff}.lchip.done{background:var(--green);border-color:var(--green-d);color:#fff}
-.lsep{color:var(--g300);font-size:12px}
-.chat-body{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
-.msg-row{display:flex;gap:10px;align-items:flex-end}
-.msg-row.ai{align-self:flex-start;max-width:80%}.msg-row.user{align-self:flex-end;flex-direction:row-reverse;max-width:80%}
-.msg-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.ai .msg-av{background:linear-gradient(135deg,var(--navy2),var(--blue-m))}.user .msg-av{background:linear-gradient(135deg,var(--green),var(--teal))}
-.msg-bub{padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.65;position:relative}
-.ai .msg-bub{background:var(--white);border:1.5px solid var(--g200);border-bottom-left-radius:4px;color:var(--g900)}
-.user .msg-bub{background:linear-gradient(135deg,var(--blue),var(--blue-m));color:#fff;border-bottom-right-radius:4px}
-.typing-cur{display:inline-block;width:2px;height:14px;background:var(--blue-m);border-radius:1px;margin-left:2px;animation:blink .7s infinite;vertical-align:text-bottom}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.lvl-badge{display:inline-block;background:var(--gold-l);border:1px solid #FCD34D;color:var(--gold);font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
-.chat-footer{background:var(--white);border-top:1.5px solid var(--g200);padding:12px 16px;flex-shrink:0}
-.chat-fi{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
-.chat-mic-row{display:flex;align-items:center;gap:10px}
-.mic-orb{width:56px;height:56px;border-radius:50%;background:var(--g200);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:var(--tr);border:3px solid transparent;flex-shrink:0}
-.mic-orb.listening{background:var(--red);border-color:var(--red-d);animation:orbP 1s infinite}
-.mic-orb.processing{background:var(--blue);border-color:#1e40af;animation:spin .8s linear infinite}
-.mic-st{font-size:13px;font-weight:600;color:var(--g500);flex:1}
-.chat-stats{display:flex;gap:16px;font-size:12px;color:var(--g400)}
-.chat-stats span{font-weight:700;color:var(--g900);font-family:var(--fm)}
+.recg .wb{animation:wv .5s infinite alternate}
+@keyframes wv{from{height:5px}to{height:22px}}
+.wb:nth-child(2){animation-delay:.08s}.wb:nth-child(3){animation-delay:.16s}.wb:nth-child(4){animation-delay:.08s}.wb:nth-child(5){animation-delay:.22s}.wb:nth-child(6){animation-delay:.04s}.wb:nth-child(7){animation-delay:.12s}
+.rec-status{font-size:13px;font-weight:600;color:var(--g600)}
+.rec-timer{font-family:var(--fm);font-size:1.25rem;font-weight:700;color:var(--red);margin:3px 0}
+.rec-hint{font-size:11px;color:var(--g400);margin-top:3px}
+
+/* ══ LIVE SESSION SCREEN ══ */
+.live-container{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;max-width:700px;width:100%;margin:0 auto}
+.live-orb-wrap{position:relative;margin-bottom:28px}
+.live-orb{width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#0f2847);display:flex;align-items:center;justify-content:center;position:relative;transition:var(--tr)}
+.live-orb.ai-speaking{animation:orbPulse 1.2s ease-in-out infinite}
+.live-orb.listening{animation:orbListen .8s ease-in-out infinite}
+@keyframes orbPulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.4),0 0 0 0 rgba(59,130,246,.2)}50%{box-shadow:0 0 0 20px rgba(59,130,246,.15),0 0 0 40px rgba(59,130,246,.05)}}
+@keyframes orbListen{0%,100%{box-shadow:0 0 0 0 rgba(200,16,46,.4),0 0 0 0 rgba(200,16,46,.2)}50%{box-shadow:0 0 0 18px rgba(200,16,46,.15),0 0 0 36px rgba(200,16,46,.05)}}
+.live-orb-icon{font-size:3rem;user-select:none}
+.live-status-ring{position:absolute;inset:-8px;border-radius:50%;border:2px solid transparent;transition:var(--tr)}
+.live-orb.ai-speaking .live-status-ring{border-color:var(--blue-mid)}
+.live-orb.listening .live-status-ring{border-color:var(--red)}
+.live-orb.idle .live-status-ring{border-color:var(--g200)}
+.live-state-text{font-size:14px;font-weight:600;color:var(--g600);margin-bottom:8px;min-height:22px;text-align:center}
+.live-transcript{background:var(--g100);border-radius:var(--rl);padding:14px 16px;width:100%;max-width:560px;min-height:80px;margin-bottom:20px;font-size:14px;line-height:1.7;color:var(--g800)}
+.live-transcript .ai-line{color:var(--blue);font-weight:500;margin-bottom:4px}
+.live-transcript .user-line{color:var(--g800);margin-bottom:4px}
+.live-stats-bar{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+.live-stat{text-align:center}
+.live-stat-val{font-family:var(--fm);font-size:1.3rem;font-weight:700;color:var(--black)}
+.live-stat-lbl{font-size:11px;color:var(--g600);text-transform:uppercase;letter-spacing:.06em}
+.live-level-chips{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+.llc{padding:4px 14px;border-radius:99px;font-size:12px;font-weight:700;border:2px solid var(--g200);color:var(--g600);background:var(--white);transition:var(--tr)}
+.llc.act{background:var(--navy2);border-color:var(--navy);color:#fff}
+.llc.dn{background:var(--green);border-color:var(--green-dark);color:#fff}
+.live-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%;max-width:500px}
+
 /* GRADING */
-.grade-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}
-.g-spinner{width:48px;height:48px;border:3px solid var(--g200);border-top-color:var(--blue-m);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+.grading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;text-align:center}
+.spinner{width:46px;height:46px;border:3px solid var(--g200);border-top-color:var(--blue-mid);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.gstep{font-size:13px;color:var(--g500);padding:5px 0;display:flex;gap:10px;align-items:flex-start;max-width:380px;margin:0 auto}
-.gstep-dot{width:20px;height:20px;border-radius:50%;background:var(--g200);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
-.gstep.done .gstep-dot{background:var(--green);color:#fff}.gstep.now .gstep-dot{background:var(--blue-m);color:#fff;animation:spin .8s linear infinite}
+.gsteps{max-width:420px;margin:18px auto 0;text-align:left}
+.gstep{font-size:13px;color:var(--g600);padding:4px 0;display:flex;gap:8px;align-items:flex-start}
+.gstep .dot{width:18px;height:18px;border-radius:50%;background:var(--g200);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:2px}
+.gstep.done .dot{background:var(--green);color:#fff}
+.gstep.now .dot{background:var(--blue-mid);color:#fff;animation:spin .8s linear infinite}
+
 /* RESULTS */
-.res-hero{background:linear-gradient(135deg,var(--navy2),#000);border-radius:var(--rx);padding:26px 22px;margin-bottom:18px;text-align:center;border:1.5px solid rgba(255,255,255,.07)}
-.res-tag{display:inline-block;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:10px;font-weight:700;padding:3px 12px;border-radius:99px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
-.res-score{font-size:3.4rem;font-weight:800;color:#FCD34D;font-family:var(--fm);line-height:1}
-.res-label{font-size:12px;color:rgba(255,255,255,.35);margin:6px 0 16px;letter-spacing:.05em;text-transform:uppercase}
-.crit-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.crit-box{background:rgba(255,255,255,.07);border-radius:10px;padding:12px 6px;text-align:center}
-.crit-score{font-size:1.25rem;font-weight:700;color:#fff;font-family:var(--fm)}.crit-name{font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
-/* REPORT */
-.rpt-card{background:var(--white);border:1.5px solid var(--g200);border-radius:var(--rl);padding:18px;margin-bottom:14px;box-shadow:var(--sh)}
-.rpt-body{font-size:13.5px;line-height:1.85;color:var(--g800)}
-.rpt-body h3{font-size:.9rem;font-weight:700;color:var(--g900);margin:16px 0 8px;padding-bottom:4px;border-bottom:1.5px solid var(--g200)}
-.rpt-body h3:first-child{margin-top:0}
-.rpt-body table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px;border-radius:var(--r);overflow:hidden}
-.rpt-body th{background:var(--navy2);color:#fff;padding:8px 10px;text-align:left;font-weight:600}
-.rpt-body td{padding:8px 10px;border-bottom:1px solid var(--g200);vertical-align:top}
-.rpt-body tr:nth-child(even) td{background:rgba(0,0,0,.02)}
-.rpt-body ul{padding-left:18px;margin:6px 0}.rpt-body li{margin-bottom:4px}
-.rpt-body strong{color:var(--g900)}.rpt-body blockquote{border-left:3px solid var(--blue-m);padding:6px 12px;background:var(--blue-l);border-radius:4px;margin:6px 0;font-size:13px}
-.rpt-body hr{border:none;border-top:1.5px solid var(--g200);margin:14px 0}
-/* Q ACCORDION */
-.qacc{border:1.5px solid var(--g200);border-radius:var(--rl);overflow:hidden;margin-bottom:10px;box-shadow:var(--sh)}
-.qacc-hdr{background:var(--g100);padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:var(--tr)}.qacc-hdr:hover{background:var(--g200)}
-.qa-num{width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.qa-qtext{flex:1;font-weight:600;font-size:13px;color:var(--g900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qa-band{background:var(--g900);color:#FCD34D;font-family:var(--fm);font-size:11px;font-weight:700;padding:2px 11px;border-radius:99px;flex-shrink:0}
+.res-hero{background:linear-gradient(135deg,var(--navy2),#000);border-radius:var(--rx);padding:24px 20px;margin-bottom:18px;text-align:center;border:1.5px solid rgba(255,255,255,.07)}
+.res-score{font-size:3.2rem;font-weight:700;color:#FCD34D;font-family:var(--fm);line-height:1}
+.res-label{font-size:12px;color:rgba(255,255,255,.4);margin:5px 0 14px}
+.crit-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.crit-box{background:rgba(255,255,255,.07);border-radius:9px;padding:11px 5px;text-align:center}
+.crit-score{font-size:1.25rem;font-weight:700;color:#fff;font-family:var(--fm)}
+.crit-name{font-size:10px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+.rpt-box{background:var(--g100);border-radius:var(--rl);padding:16px;border:1px solid var(--g200);font-size:13.5px;line-height:1.8;color:var(--g800)}
+.rpt-box h3{font-size:.9rem;font-weight:700;color:var(--black);margin:14px 0 7px;padding-bottom:3px;border-bottom:1.5px solid var(--g200)}
+.rpt-box h3:first-child{margin-top:0}
+.rpt-box table{width:100%;border-collapse:collapse;margin:7px 0;font-size:12.5px}
+.rpt-box th{background:var(--navy2);color:#fff;padding:7px 9px;text-align:left;font-weight:600}
+.rpt-box td{padding:7px 9px;border-bottom:1px solid var(--g200);vertical-align:top}
+.rpt-box tr:nth-child(even) td{background:rgba(0,0,0,.02)}
+.rpt-box ul{padding-left:16px;margin:5px 0}.rpt-box li{margin-bottom:3px}
+.rpt-box strong{color:var(--black)}.rpt-box p{margin-bottom:7px}
+.qacc{border:1.5px solid var(--g200);border-radius:var(--rl);overflow:hidden;margin-bottom:10px}
+.qacc-hdr{background:var(--g100);padding:11px 15px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:var(--tr)}
+.qacc-hdr:hover{background:var(--g200)}
+.qa-n{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-qp{flex:1;font-weight:600;font-size:13px;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qa-bp{background:var(--black);color:#FCD34D;font-family:var(--fm);font-size:11px;font-weight:700;padding:2px 11px;border-radius:99px;flex-shrink:0}
 .qa-cv{color:var(--g400);font-size:11px;flex-shrink:0}
-.qacc-body{display:none;padding:14px;border-top:1px solid var(--g200)}.qacc-body.open{display:block}
-.qs-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--g500);margin-bottom:5px;margin-top:11px}.qs-lbl:first-child{margin-top:0}
-.qs-ans{background:var(--g100);border-radius:7px;padding:9px 12px;font-size:13px;line-height:1.7;font-style:italic;color:var(--g800)}
-.qs-corr{background:var(--green-l);border-left:3px solid var(--green);border-radius:7px;padding:9px 12px;font-size:13px;line-height:1.7}
-.qs-sugg{background:var(--blue-l);border-left:3px solid var(--blue-m);border-radius:7px;padding:9px 12px;font-size:13px;line-height:1.7}
+.qacc-body{display:none;padding:14px;border-top:1px solid var(--g200)}
+.qacc-body.open{display:block}
+.qs-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--g600);margin-bottom:5px;margin-top:11px}
+.qs-lbl:first-child{margin-top:0}
+.qs-student{background:var(--g100);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7;font-style:italic;color:var(--g800)}
+.qs-corr{background:var(--green-light);border-left:3px solid var(--green);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7}
+.qs-sugg{background:var(--blue-light);border-left:3px solid var(--blue-mid);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7}
+.qa-sg{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
+.qa-sr{background:var(--g100);border-radius:7px;padding:7px 11px;display:flex;align-items:center;justify-content:space-between}
+.qa-sn{font-size:11px;color:var(--g600);font-weight:600}
+.qa-sv{font-family:var(--fm);font-weight:700;font-size:13px}
+.qa-sc{font-size:11px;color:var(--g400);margin-left:5px;font-weight:400}
+
+/* LIVE results summary card */
+.live-summary{border:1.5px solid var(--g200);border-radius:var(--rl);padding:16px;margin-bottom:14px;background:var(--g100)}
+.live-sum-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--g200)}
+.live-sum-row:last-child{border-bottom:none}
+.live-sum-lbl{font-size:13px;color:var(--g600);font-weight:500}
+.live-sum-val{font-family:var(--fm);font-weight:700;font-size:14px;color:var(--black)}
+
 /* TOAST */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--g900);color:#fff;padding:11px 20px;border-radius:var(--rl);font-size:13px;font-weight:600;box-shadow:var(--shl);z-index:9999;display:none;max-width:340px;text-align:center}
-#toast.show{display:block;animation:fUp .2s ease}
+#toast-wrap{position:fixed;top:14px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--black);color:#fff;padding:10px 14px;border-radius:var(--r);font-size:12px;font-weight:500;box-shadow:var(--shl);display:flex;align-items:center;gap:7px;animation:si .22s ease;max-width:280px;pointer-events:auto}
+.toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--gold)}
+@keyframes si{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+
+@media(max-width:560px){.crit-grid{grid-template-columns:repeat(2,1fr)}.mode-grid,.sub-grid,.kw-hint-row,.qa-sg{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div id="toast-wrap"></div>
 
-<!-- S-home -->
+<!-- ══════════════════════════════════════════════
+     HOME
+══════════════════════════════════════════════ -->
 <div class="screen active" id="S-home">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app">/ Fluentalk</span><div class="tb-right"><span class="tb-user" id="u-home"></span><button class="tb-btn" onclick="location.href='index.html'">← Hub</button></div></div>
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app">/ Fluentalk</span>
+    <div class="tb-right">
+      <span class="tb-user" id="u-home"></span>
+      <button class="tb-back" onclick="goHub()">← Dashboard</button>
+    </div>
+  </div>
   <div class="main">
-    <div class="key-banner">
-      <div style="font-size:13px;font-weight:700;color:var(--gold)">🔑 Gemini API Key <span style="font-weight:400;color:var(--g500);font-size:12px">— miễn phí tại <a href="https://aistudio.google.com" target="_blank" style="color:var(--gold)">aistudio.google.com</a></span></div>
-      <div class="key-row"><input type="password" id="gkey-inp" placeholder="AIzaSy…" oninput="saveKey(this.value)"><span class="kst kst-none" id="gkey-st">⚪ Chưa nhập</span><button class="btn btn-sm btn-outline" onclick="testKey()">Test</button></div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:1.3rem;font-weight:700;margin-bottom:3px">🎙️ Fluentalk</div>
+      <div style="font-size:13px;color:var(--g600)">AI speaking coach — IELTS &amp; CEFR practice</div>
     </div>
-    <div class="sec-lbl">Chọn chế độ</div>
-    <div class="mode-grid">
-      <div class="mode-tile" id="mt-ielts" onclick="selMode('ielts')"><div class="mt-icon">🎓</div><div class="mt-title">IELTS Speaking</div><div class="mt-sub">Part 1 · 2 · 3 · Simulation</div></div>
-      <div class="mode-tile" id="mt-cefr" onclick="selMode('cefr')"><div class="mt-icon">💬</div><div class="mt-title">CEFR Adaptive</div><div class="mt-sub">A1 → B2 · AI tự điều chỉnh</div></div>
-    </div>
-    <div id="ielts-subs" style="display:none">
-      <div class="sec-lbl">Chọn Part</div>
-      <div class="sub-grid">
-        <div class="sub-tile" id="st-p1" onclick="selPart('p1')"><div class="st-icon">1️⃣</div><div class="st-title">Part 1</div><div class="st-sub">~4 phút</div></div>
-        <div class="sub-tile" id="st-p2" onclick="selPart('p2')"><div class="st-icon">2️⃣</div><div class="st-title">Part 2</div><div class="st-sub">~3 phút</div></div>
-        <div class="sub-tile" id="st-p3" onclick="selPart('p3')"><div class="st-icon">3️⃣</div><div class="st-title">Part 3</div><div class="st-sub">~5 phút</div></div>
-        <div class="sub-tile" id="st-sim" onclick="selPart('sim')"><div class="st-icon">🏁</div><div class="st-title">Simulation</div><div class="st-sub">Full 15 phút</div></div>
+
+    <!-- API KEY -->
+    <div class="apikey-wrap">
+      <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🔑 Gemini API Key (Google AI Studio)</div>
+      <div style="font-size:11px;color:var(--g600);margin-bottom:8px">Key lưu trên thiết bị của bạn. Miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue);font-weight:600">aistudio.google.com</a></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input id="key-inp" type="password" placeholder="AIza…" style="flex:1;min-width:160px" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='var(--g200)'" onkeydown="if(event.key==='Enter')saveKey()">
+        <button class="btn btn-gold btn-sm" onclick="saveKey()">Lưu</button>
+        <button class="btn btn-grey btn-sm" onclick="toggleKV()">👁</button>
+        <span id="key-st" class="key-st key-bad">⚠ Chưa có</span>
       </div>
-      <div id="round-sel" style="display:none">
-        <div class="sec-lbl">Lần luyện</div>
-        <div class="round-grid">
-          <div class="round-tile" id="rt-hints" onclick="selRound('hints')"><div class="rt-icon">💡</div><div class="rt-title">With Hints</div><div class="rt-sub">Xem keywords gợi ý</div></div>
-          <div class="round-tile" id="rt-nohints" onclick="selRound('nohints')"><div class="rt-icon">🧠</div><div class="rt-title">Without Hints</div><div class="rt-sub">Tự nói độc lập</div></div>
+    </div>
+
+    <!-- TOP MODES -->
+    <div class="sec-lbl">🎯 Select Practice Mode</div>
+    <div class="mode-grid">
+      <div class="mode-tile" id="mt-ielts" onclick="pickTop('ielts')">
+        <div class="mt-icon">📋</div>
+        <div class="mt-title">IELTS Speaking</div>
+        <div class="mt-sub">Parts 1, 2, 3 &amp; Simulation</div>
+      </div>
+      <div class="mode-tile" id="mt-cefr" onclick="pickTop('cefr')">
+        <div class="mt-icon">💬</div>
+        <div class="mt-title">CEFR Adaptive</div>
+        <div class="mt-sub">A1→B2 · <span class="live-badge">LIVE</span></div>
+      </div>
+    </div>
+
+    <!-- IELTS sub-modes -->
+    <div id="ielts-subs" style="display:none">
+      <div class="sub-grid">
+        <div class="sub-tile" id="st-part1" onclick="pickSub('part1')">
+          <div class="st-icon">📝</div><div class="st-title">Part 1</div><div class="st-sub">Introduction (5 q.)</div>
+        </div>
+        <div class="sub-tile" id="st-part2" onclick="pickSub('part2')">
+          <div class="st-icon">🗣️</div><div class="st-title">Part 2</div><div class="st-sub">Long Turn (1 cue card)</div>
+        </div>
+        <div class="sub-tile" id="st-part3" onclick="pickSub('part3')">
+          <div class="st-icon">💡</div><div class="st-title">Part 3</div><div class="st-sub">Discussion (4 q.)</div>
+        </div>
+        <div class="sub-tile" id="st-full" onclick="toggleFullSub()">
+          <div class="st-icon">🎭</div><div class="st-title">Full Simulation</div><div class="st-sub">Complete test ▾</div>
         </div>
       </div>
-      <button class="btn btn-primary btn-lg btn-full" id="go-btn" onclick="goSetup()" style="display:none">▶ Tiếp tục</button>
-    </div>
-    <div id="cefr-sub" style="display:none">
-      <div style="background:linear-gradient(135deg,var(--purple-l),#fff);border:1.5px solid #C4B5FD;border-radius:var(--rl);padding:16px;margin-bottom:14px">
-        <div style="font-weight:700;color:var(--purple);margin-bottom:6px">💬 CEFR Adaptive — AI tự chọn level</div>
-        <div style="font-size:13px;color:var(--g500);line-height:1.7">AI hỏi từ A1 → B2. Sau mỗi 3 câu, AI <em>âm thầm</em> đánh giá và tự điều chỉnh độ khó. Không cần chuẩn bị — cứ nói tự nhiên!</div>
+      <div id="full-sub-opts" style="display:none">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);margin:8px 0 7px">Full Simulation options:</div>
+        <div class="sub-grid purple">
+          <div class="sub-tile" id="st-custom" onclick="pickSub('custom')">
+            <div class="st-icon">✍️</div><div class="st-title">Custom Questions</div><div class="st-sub">Add your own questions</div>
+          </div>
+          <div class="sub-tile" id="st-forecast" onclick="pickSub('forecast')">
+            <div class="st-icon">📊</div><div class="st-title">Forecast Test</div><div class="st-sub">Paste question bank</div>
+          </div>
+        </div>
+        <!-- IELTS Live Simulation -->
+        <div class="sub-grid green" style="margin-top:0">
+          <div class="sub-tile" id="st-ielts-live" onclick="pickSub('ielts-live')" style="grid-column:1/-1">
+            <div class="st-icon">🎙️</div>
+            <div class="st-title">IELTS Live Simulation <span class="live-badge">LIVE</span></div>
+            <div class="st-sub">Add questions → Gemini conducts exam in real-time voice</div>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-purple btn-lg btn-full" onclick="startCEFR()">▶ Bắt đầu CEFR Chat</button>
     </div>
-    <div style="margin-top:20px;text-align:center"><a href="speak-detail.html" class="btn btn-outline">📊 My History</a></div>
+
+    <!-- CEFR area -->
+    <div id="cefr-area" style="display:none">
+      <div class="card">
+        <div style="font-size:13px;color:var(--g600);margin-bottom:6px;line-height:1.7">
+          🔄 <strong>Real-time voice conversation</strong> powered by <strong>Gemini Live API</strong>. Bắt đầu tại A1 — AI tự động điều chỉnh độ khó theo trình độ của bạn.
+        </div>
+        <div style="font-size:12px;color:var(--g400);margin-bottom:14px">Cần microphone permission. Nói chuyện tự nhiên như gọi điện thoại.</div>
+        <button class="btn btn-purple btn-lg btn-full" onclick="startLiveSession('cefr')">🚀 Bắt đầu CEFR Live Chat</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- S-setup -->
+<!-- ══════════════════════════════════════════════
+     SETUP (IELTS Parts 1/2/3 & Full Custom)
+══════════════════════════════════════════════ -->
 <div class="screen" id="S-setup">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app" id="setup-tb">/ Setup</span><div class="tb-right"><span class="tb-user" id="u-setup"></span><button class="tb-btn" onclick="SS('S-home')">← Back</button></div></div>
-  <div class="main">
-    <div class="setup-hdr"><div class="setup-hdr-icon" id="setup-icon">1️⃣</div><div><div class="setup-hdr-title" id="setup-title">IELTS Part 1</div><div class="setup-hdr-sub">AI hỏi từng câu · Ghi âm · Nhận xét sau khi xong</div></div></div>
-    <div id="setup-multi">
-      <div class="qblock"><div class="qblock-lbl">📋 Câu hỏi (mỗi câu 1 dòng)</div><textarea class="qta" id="ta-qs" rows="5" placeholder="Do you like your hometown?&#10;What do you do in your free time?&#10;Do you prefer the city or countryside?"></textarea><div class="ta-hint">Paste danh sách câu hỏi. AI sẽ hỏi tuần tự.</div></div>
-      <div class="qblock" style="background:#fff;border-color:var(--g200)"><div class="qblock-lbl" style="color:var(--g500)">📝 Sample Answer (tuỳ chọn)</div><textarea class="qta" id="ta-sample" rows="4" placeholder="Paste câu trả lời mẫu để AI đối chiếu khi feedback…"></textarea></div>
-      <div class="kw-block"><div class="kw-block-lbl">💡 Keywords gợi ý (cách nhau dấu phẩy)</div><input class="kw-inp" id="ta-kw" placeholder="enjoy, typically, neighbourhood, prefer, actually…"><div class="ta-hint" style="color:var(--gold)">Chỉ hiện khi chọn "With Hints".</div></div>
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app" id="setup-tb">/ Setup</span>
+    <div class="tb-right">
+      <span class="tb-user" id="u-setup"></span>
+      <button class="tb-back" onclick="SS('S-home')">← Back</button>
     </div>
-    <div id="setup-p2" style="display:none">
-      <div class="qblock"><div class="qblock-lbl">🃏 Cue Card</div><textarea class="qta" id="ta-cue" rows="7" placeholder="Describe a person who has influenced you.&#10;You should say:&#10;  — who this person is&#10;  — how you know them&#10;  — what they did&#10;And explain why they influenced you."></textarea></div>
-      <div class="qblock" style="background:#fff;border-color:var(--g200)"><div class="qblock-lbl" style="color:var(--g500)">📝 Sample Answer (tuỳ chọn)</div><textarea class="qta" id="ta-sample-p2" rows="5" placeholder="Câu trả lời mẫu tham khảo…"></textarea></div>
-      <div class="kw-block"><div class="kw-block-lbl">💡 Keywords gợi ý</div><input class="kw-inp" id="ta-kw-p2" placeholder="influence, career, advice, meaningful, long-term…"></div>
-    </div>
-    <button class="btn btn-primary btn-lg btn-full" onclick="startIELTS()">▶ Bắt đầu luyện tập</button>
   </div>
-</div>
-
-<!-- S-sim-setup -->
-<div class="screen" id="S-sim-setup">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app">/ Simulation Setup</span><div class="tb-right"><span class="tb-user" id="u-simstp"></span><button class="tb-btn" onclick="SS('S-home')">← Back</button></div></div>
   <div class="main">
-    <div class="setup-hdr" style="background:linear-gradient(135deg,var(--red-d),var(--navy2))"><div class="setup-hdr-icon">🏁</div><div><div class="setup-hdr-title">Full IELTS Simulation</div><div class="setup-hdr-sub">15 phút · Part 2 có 60s chuẩn bị · Không gợi ý</div></div></div>
-    <div class="qblock"><div class="qblock-lbl">1️⃣ Part 1 — Câu hỏi (mỗi câu 1 dòng)</div><textarea class="qta" id="sim-q1" rows="5" placeholder="Do you like your hometown?&#10;What do you do in your free time?&#10;Do you enjoy learning English?&#10;Tell me about your family."></textarea></div>
-    <div class="qblock"><div class="qblock-lbl">2️⃣ Part 2 — Cue Cards (paste 1–3 cue card, cách nhau 1 dòng trống — AI random 1)</div><textarea class="qta" id="sim-q2" rows="7" placeholder="Describe a place you enjoy visiting.&#10;You should say: where it is, how often you go…&#10;&#10;Describe a person who inspires you.&#10;You should say: who they are, how you know them…"></textarea></div>
-    <div class="qblock"><div class="qblock-lbl">3️⃣ Part 3 — Câu hỏi (AI chọn phù hợp topic Part 2)</div><textarea class="qta" id="sim-q3" rows="6" placeholder="Why do people enjoy travelling?&#10;Do you think tourism benefits local communities?&#10;How has travel changed in recent years?&#10;What makes a place worth visiting?"></textarea></div>
-    <button class="btn btn-red btn-lg btn-full" onclick="startSim()">🏁 Bắt đầu Simulation</button>
-  </div>
-</div>
-
-<!-- S-session -->
-<div class="screen" id="S-session">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app" id="sess-tb">/ Part 1</span><div class="tb-right"><span class="tb-user" id="u-sess"></span><button class="tb-btn danger" onclick="confirmEnd()">⏹ End</button></div></div>
-  <div class="main">
-    <div class="prog-hdr"><span id="prog-txt">Câu 1</span><span id="prog-pct">0%</span></div>
-    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="q-box"><div class="q-box-lbl" id="q-lbl">QUESTION</div><div class="q-box-txt" id="q-txt">…</div><div class="q-box-num" id="q-num">1</div><div class="q-part-badge" id="q-pbadge" style="display:none"></div></div>
-    <div id="prep-wrap" style="display:none"><div class="prep-box"><span style="font-size:12px;font-weight:600;color:var(--gold)">⏱ Chuẩn bị:</span><span class="prep-cd" id="prep-cd">1:00</span><div class="prep-prog"><div class="prep-fill" id="prep-fill" style="width:100%"></div></div></div></div>
-    <div id="kw-bar" style="display:none"><button class="kw-toggle" onclick="toggleKw()"><span id="kw-icon">💡</span><span id="kw-lbl">Xem Keywords gợi ý</span></button><div class="kw-pills" id="kw-pills"></div></div>
-    <div class="rec-wrap" id="rec-wrap"><div class="rec-orb" id="rec-orb" onclick="toggleRec()">🎤</div><div class="wvf"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div><div class="rec-st" id="rec-st">Nhấn mic để ghi âm</div><div class="rec-timer" id="rec-timer">0:00</div></div>
-    <div class="t-prev" id="t-prev"></div>
-    <div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-grey btn-full" onclick="skipQ()">⏭ Bỏ qua</button><button class="btn btn-green btn-full" id="next-btn" disabled onclick="nextQ()">Câu tiếp →</button></div>
-    <div id="submit-wrap" style="display:none;margin-bottom:14px"><button class="btn btn-red btn-lg btn-full" onclick="submitAll()">✅ Hoàn tất &amp; Nhận Feedback</button></div>
-  </div>
-</div>
-
-<!-- S-sim -->
-<div class="screen" id="S-sim">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app">/ Simulation</span><div class="tb-right"><span class="tb-user" id="u-sim"></span><button class="tb-btn danger" onclick="confirmEndSim()">⏹ End</button></div></div>
-  <div class="main">
-    <div class="sim-timer"><span style="font-size:12px;color:rgba(255,255,255,.45)">⏱ Còn</span><span class="sim-tv" id="sim-time">15:00</span><div class="sim-tp"><div class="sim-tf" id="sim-tf" style="width:100%"></div></div><span class="sim-ptag" id="sim-ptag">Part 1</span></div>
-    <div id="sim-prep-wrap" style="display:none"><div class="prep-box"><span style="font-size:12px;font-weight:600;color:var(--gold)">⏱ Chuẩn bị Part 2:</span><span class="prep-cd" id="sim-prep-cd">1:00</span><div class="prep-prog"><div class="prep-fill" id="sim-prep-fill" style="width:100%"></div></div></div></div>
-    <div class="q-box"><div class="q-box-lbl" id="sim-q-lbl">QUESTION</div><div class="q-box-txt" id="sim-q-txt">…</div><div class="q-box-num" id="sim-q-num">1</div></div>
-    <div class="rec-wrap" id="sim-rec-wrap"><div class="rec-orb" id="sim-rec-orb" onclick="simToggleRec()">🎤</div><div class="wvf"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div><div class="rec-st" id="sim-rec-st">Nhấn mic để ghi âm</div><div class="rec-timer" id="sim-rec-timer">0:00</div></div>
-    <div class="t-prev" id="sim-t-prev"></div>
-    <div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-grey btn-full" onclick="simSkip()">⏭ Bỏ qua</button><button class="btn btn-green btn-full" id="sim-next-btn" disabled onclick="simNext()">Câu tiếp →</button></div>
-    <div id="sim-submit-wrap" style="display:none;margin-bottom:14px"><button class="btn btn-red btn-lg btn-full" onclick="simSubmit()">✅ Nộp bài &amp; Nhận Feedback</button></div>
-  </div>
-</div>
-
-<!-- S-cefr -->
-<div class="screen" id="S-cefr">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app">/ CEFR Chat</span><div class="tb-right"><span class="tb-user" id="u-cefr"></span><button class="tb-btn danger" onclick="endCEFR()">⏹ Kết thúc</button></div></div>
-  <div class="chat-wrap">
-    <div class="level-bar">
-      <div class="lchip" id="ll-A1">A1</div><div class="lsep">›</div>
-      <div class="lchip" id="ll-A2">A2</div><div class="lsep">›</div>
-      <div class="lchip" id="ll-B1">B1</div><div class="lsep">›</div>
-      <div class="lchip" id="ll-B2">B2</div>
-      <div style="margin-left:auto;font-size:12px;color:var(--g400)" id="cefr-td">0:00</div>
-    </div>
-    <div class="chat-body" id="chat-body"></div>
-    <div class="chat-footer">
-      <div class="chat-fi">
-        <div class="chat-stats">Câu: <span id="cs-q">0</span> &nbsp;|&nbsp; Level: <span id="cs-lv">A1</span> &nbsp;|&nbsp; Thời gian: <span id="cs-t">0:00</span></div>
-        <div class="chat-mic-row"><div class="mic-orb" id="cefr-mic" onclick="cefrToggleMic()">🎤</div><div class="mic-st" id="cefr-mic-st">Chờ AI hỏi câu hỏi…</div></div>
+    <div class="setup-hdr">
+      <div class="setup-hdr-icon" id="s-icon">📝</div>
+      <div>
+        <div class="setup-hdr-title" id="s-title">Part 1 Setup</div>
+        <div class="setup-hdr-sub" id="s-sub">Add your questions and key words</div>
       </div>
     </div>
+    <div id="setup-qs"></div>
+    <!-- Mode selector: Record (graded later) vs Live (real-time voice) -->
+    <div style="background:var(--g100);border-radius:var(--rl);padding:13px 14px;margin-bottom:12px;border:1.5px solid var(--g200)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);margin-bottom:9px">Chọn chế độ luyện:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#fff;border:2px solid var(--blue);border-radius:var(--r);padding:10px 12px;text-align:center;cursor:pointer" id="mode-opt-record" onclick="setSetupMode('record')">
+          <div style="font-size:1.2rem">🎤</div>
+          <div style="font-weight:700;font-size:12px;color:var(--blue);margin-top:3px">Record Mode</div>
+          <div style="font-size:11px;color:var(--g600);margin-top:1px">Ghi âm → AI chấm điểm sau</div>
+        </div>
+        <div style="background:#fff;border:2px solid var(--g200);border-radius:var(--r);padding:10px 12px;text-align:center;cursor:pointer" id="mode-opt-live" onclick="setSetupMode('live')">
+          <div style="font-size:1.2rem">🔴</div>
+          <div style="font-weight:700;font-size:12px;color:var(--g600);margin-top:3px">Live Mode <span class="live-badge">LIVE</span></div>
+          <div style="font-size:11px;color:var(--g600);margin-top:1px">Nói chuyện thật với AI</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:9px;margin-bottom:24px">
+      <button class="btn btn-outline" onclick="SS('S-home')" style="flex:0 0 auto">← Back</button>
+      <button class="btn btn-primary btn-lg" style="flex:1" id="btn-start-sess" onclick="startFromSetup()">🚀 Start Session</button>
+    </div>
   </div>
 </div>
 
-<!-- S-grading -->
-<div class="screen" id="S-grading">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app">/ Đang chấm…</span><div class="tb-right"><span class="tb-user" id="u-grade"></span></div></div>
-  <div class="grade-wrap"><div class="g-spinner"></div><div style="font-size:1.05rem;font-weight:700;color:var(--g900);margin-bottom:6px" id="g-title">Đang xử lý…</div><div style="font-size:13px;color:var(--g500);margin-bottom:22px">Đừng tắt trình duyệt</div><div id="g-steps" style="margin-top:16px;width:100%;max-width:380px"></div></div>
-</div>
-
-<!-- S-results -->
-<div class="screen" id="S-results">
-  <div class="topbar"><span class="tb-brand">Language <em>Hub</em></span><span class="tb-app">/ Kết quả</span><div class="tb-right"><span class="tb-user" id="u-res"></span><button class="tb-btn" onclick="again()">🔄 Luyện lại</button></div></div>
+<!-- FORECAST -->
+<div class="screen" id="S-forecast">
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app">/ Forecast Test</span>
+    <div class="tb-right"><button class="tb-back" onclick="SS('S-home')">← Back</button></div>
+  </div>
   <div class="main">
-    <div class="res-hero"><div class="res-tag" id="res-tag">IELTS SPEAKING</div><div class="res-score" id="res-score">—</div><div class="res-label" id="res-label">Overall Band Score</div><div class="crit-row" id="crit-row"></div></div>
-    <div class="rpt-card" id="rpt-card" style="display:none"><div class="sec-lbl" style="margin-bottom:10px">📊 Báo cáo AI (streaming)</div><div class="rpt-body" id="rpt-body"></div></div>
-    <div id="qa-sec" style="margin-bottom:14px"><div class="sec-lbl" style="margin-bottom:10px">🎙 Chi tiết từng câu</div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px"><button class="btn btn-primary btn-full" onclick="again()">🔄 Luyện lại</button><a href="speak-detail.html" class="btn btn-outline btn-full">📊 My History</a></div>
+    <div class="setup-hdr">
+      <div class="setup-hdr-icon">📊</div>
+      <div><div class="setup-hdr-title">Forecast Test</div><div class="setup-hdr-sub">Paste question bank — random selection</div></div>
+    </div>
+    <div class="card">
+      <div class="sec-lbl" style="margin-bottom:8px">Questions (one per line)</div>
+      <textarea id="fc-bank" rows="10" placeholder="Can you tell me about your hometown?&#10;Describe a person who has influenced you…" style="width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:var(--f);font-size:13px;resize:vertical;outline:none;line-height:1.7" onfocus="this.style.borderColor='var(--blue-mid)'" onblur="this.style.borderColor='var(--g200)'"></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <span style="font-size:13px;font-weight:600;color:var(--g800)">Số câu chọn:</span>
+        <select id="fc-count" style="padding:5px 10px;border:1.5px solid var(--g200);border-radius:var(--r);font-family:var(--f);outline:none">
+          <option value="3">3</option><option value="5" selected>5</option><option value="8">8</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-lg btn-full" onclick="startForecast()">🎲 Random &amp; Start</button>
   </div>
 </div>
 
-<div id="toast"></div>
+<!-- ══════════════════════════════════════════════
+     IELTS SESSION (record mode)
+══════════════════════════════════════════════ -->
+<div class="screen" id="S-session">
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app" id="sess-tb">/ Speaking</span>
+    <div class="tb-right">
+      <span class="tb-user" id="u-sess"></span>
+      <button class="tb-back" onclick="confirmEnd()">⏹ End</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="prog-hdr"><span id="prog-txt">Question 1</span><span id="prog-pct">0%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="q-box">
+      <div class="q-box-lbl" id="q-lbl">QUESTION</div>
+      <div class="q-box-txt" id="q-txt">Loading…</div>
+      <div class="q-tts" id="tts-btn" onclick="replayQ()" title="Listen again">🔊</div>
+      <div class="q-num" id="q-num">1</div>
+    </div>
+    <div id="prep-wrap" style="display:none">
+      <div class="prep-box">
+        <span style="font-size:12px;font-weight:600;color:var(--gold)">⏱ Prep:</span>
+        <span class="prep-cd" id="prep-cd">1:00</span>
+        <div class="prep-progbar"><div class="prep-pfill" id="prep-pfill" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div id="kw-bar" class="kw-hint-row" style="display:none">
+      <div class="kwbtn" id="hints-btn" onclick="toggleHints()">🙈 Hints hidden</div>
+      <div class="kwbtn" id="words-btn" onclick="toggleWords()">💡 Show my key words</div>
+    </div>
+    <div id="hints-disp" class="kw-display"></div>
+    <div id="words-disp" class="kw-display"></div>
+    <div class="rec-area" id="rec-area">
+      <div class="rec-btn" id="rec-btn" onclick="toggleRec()">🎤</div>
+      <div class="wvf" id="wvf"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+      <div class="rec-status" id="rec-st">Tap mic to start recording</div>
+      <div class="rec-timer" id="rec-time" style="display:none">0:00</div>
+      <div class="rec-hint" id="rec-hint">Tap mic again to stop</div>
+    </div>
+    <div id="submit-wrap" style="display:none;margin-bottom:14px">
+      <button class="btn btn-green btn-lg btn-full" onclick="submitAll()">✅ Submit All &amp; Get Results</button>
+    </div>
+    <button class="btn btn-outline btn-full" id="replay-btn" onclick="replayQ()" disabled style="margin-bottom:22px">🔊 Replay Question</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LIVE SESSION (CEFR + IELTS Live)
+══════════════════════════════════════════════ -->
+<div class="screen" id="S-live">
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app" id="live-tb">/ CEFR Live</span>
+    <div class="tb-right">
+      <span class="tb-user" id="u-live"></span>
+      <button class="tb-back btn-danger" onclick="endLive()">⏹ End</button>
+    </div>
+  </div>
+  <div class="live-container">
+    <!-- CEFR level bar -->
+    <div id="live-cefr-levels" style="display:none">
+      <div class="live-level-chips" style="margin-bottom:12px">
+        <div class="llc" id="ll-A1">A1</div>
+        <span style="color:var(--g400);font-size:13px">›</span>
+        <div class="llc" id="ll-A2">A2</div>
+        <span style="color:var(--g400);font-size:13px">›</span>
+        <div class="llc" id="ll-B1">B1</div>
+        <span style="color:var(--g400);font-size:13px">›</span>
+        <div class="llc" id="ll-B2">B2</div>
+      </div>
+    </div>
+
+    <!-- Orb -->
+    <div class="live-orb-wrap">
+      <div class="live-orb idle" id="live-orb">
+        <div class="live-status-ring"></div>
+        <div class="live-orb-icon" id="live-orb-icon">🤖</div>
+      </div>
+    </div>
+
+    <!-- State text -->
+    <div class="live-state-text" id="live-state">Connecting…</div>
+
+    <!-- Transcript scroll -->
+    <div class="live-transcript" id="live-transcript">
+      <div style="font-size:12px;color:var(--g400);text-align:center">Conversation will appear here…</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="live-stats-bar">
+      <div class="live-stat">
+        <div class="live-stat-val" id="ls-time">0:00</div>
+        <div class="live-stat-lbl">Duration</div>
+      </div>
+      <div class="live-stat">
+        <div class="live-stat-val" id="ls-qs">0</div>
+        <div class="live-stat-lbl">Questions</div>
+      </div>
+      <div class="live-stat" id="ls-level-wrap" style="display:none">
+        <div class="live-stat-val" id="ls-level">A1</div>
+        <div class="live-stat-lbl">Current Level</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="live-controls">
+      <button id="live-mic-btn" class="btn btn-red btn-lg" style="flex:1" onclick="_cefrToggleMic()">🎤 Nhấn để nói</button>
+      <button class="btn btn-danger btn-lg" style="flex:1" onclick="endLive()">⏹ End &amp; Get Results</button>
+    </div>
+    <div style="font-size:11px;color:var(--g400);margin-top:10px;text-align:center">AI hỏi → bạn nhấn 🎤 để trả lời → nhấn ⏹ để dừng ghi âm</div>
+  </div>
+</div>
+
+<!-- GRADING -->
+<div class="screen" id="S-grading">
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app">/ Processing…</span>
+    <div class="tb-right"><span class="tb-user" id="u-grad"></span></div>
+  </div>
+  <div class="grading-wrap">
+    <div class="spinner"></div>
+    <div style="font-size:1.05rem;font-weight:700;margin-bottom:5px" id="g-title">Generating report…</div>
+    <div style="font-size:13px;color:var(--g600)">Please wait…</div>
+    <div class="gsteps" id="g-steps"></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="screen" id="S-results">
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app">/ Results</span>
+    <div class="tb-right">
+      <span class="tb-user" id="u-res"></span>
+      <button class="tb-back" onclick="goHub()">← Dashboard</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="res-hero">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:3px" id="res-mode">IELTS SPEAKING</div>
+      <div class="res-score" id="res-sc">—</div>
+      <div class="res-label" id="res-lb">Overall Band Score</div>
+      <div class="crit-grid" id="res-crit"></div>
+    </div>
+    <!-- Live session summary (shown for CEFR/IELTS Live) -->
+    <div class="live-summary" id="live-sum" style="display:none">
+      <div class="live-sum-row"><span class="live-sum-lbl">🕐 Start time</span><span class="live-sum-val" id="sum-start">—</span></div>
+      <div class="live-sum-row"><span class="live-sum-lbl">🏁 End time</span><span class="live-sum-val" id="sum-end">—</span></div>
+      <div class="live-sum-row"><span class="live-sum-lbl">⏱ Duration</span><span class="live-sum-val" id="sum-dur">—</span></div>
+      <div class="live-sum-row"><span class="live-sum-lbl">❓ Questions answered</span><span class="live-sum-val" id="sum-qs">—</span></div>
+    </div>
+    <div class="card" id="rpt-card" style="display:none">
+      <div class="sec-lbl" style="margin-bottom:12px">📋 Examiner's Report</div>
+      <div class="rpt-box" id="rpt-body"></div>
+    </div>
+    <div id="qa-list"><div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:28px">
+      <button class="btn btn-primary btn-lg" style="flex:1" onclick="again()">🔄 Practice Again</button>
+      <button class="btn btn-grey btn-lg" style="flex:1" onclick="goHub()">🏠 Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GoogleGenAI, Modality } from 'https://esm.sh/@google/genai@latest';
+window._GoogleGenAI = GoogleGenAI;
+window._Modality = Modality;
+</script>
 <script>
-// ── CONFIG ──────────────────────────────────────────────────────────
+// ── CONFIG ────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
-const GM_MODEL = 'gemini-2.0-flash';
-const GM_BASE  = `https://generativelanguage.googleapis.com/v1beta/models/${GM_MODEL}`;
+const GM_REST  = 'gemini-2.0-flash';
+const GM_LIVE  = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
-// CEFR System Prompt (from proposal, cleaned up)
-const CEFR_SYS = `ROLE: You are a warm, professional CEFR Speaking Examiner for Dong Nai University students.
-GOAL: Conduct a natural conversation while SILENTLY assessing the student's level (A1→B2) and adapting question difficulty.
-
-ADAPTIVE LOGIC (INTERNAL — never say this aloud):
-1. A1 (Breakthrough): Topics: name, age, family, food, colours, pets. STAY/DROP if: < 5 words, basic nouns only.
-2. A2 (Waystage): Topics: daily routines, hobbies, shopping, local area. STAY if: simple sentences, struggles with past/future tense.
-3. B1 (Threshold): Topics: experiences, events, dreams, brief opinions. STRUGGLE indicator: long pauses, repeats basic vocab, fails to use "because / although / which".
-4. B2 (Vantage): Topics: abstract ideas, technology, society, complex arguments. STRUGGLE: can't sustain monologue, grammar breakdown on non-personal topics.
-
-LOWERING CRITERIA — subtly pivot back one level if:
-- Response significantly shorter than expected (< 8 words for B1+).
-- More than 3 fundamental errors (S-V agreement, basic tenses) in one turn.
-- Student says "I don't know" or uses only simple words (good, bad, happy, like, go) exclusively.
-
-RESPONSE RULES:
-- Ask ONE question at a time. Natural, conversational, encouraging tone.
-- DO NOT correct, evaluate, or give feedback during the chat — only ask questions.
-- Do NOT repeat any question already asked.
-- English only.
-
-OUTPUT FORMAT — ALWAYS return this exact JSON (no markdown, no extra text):
-{"current_level":"A1","assessment":"brief internal note on student performance","question":"Your next natural question here"}`;
-
-// ── STATE ──────────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────
 const S = {
-  user:null, mode:null, part:null, round:null,
-  questions:[], sampleAnswer:'', keywords:[],
-  recordings:[], currentQ:0, startTime:null,
-  // Sim
-  simAllQs:[], simRecs:[], simCurrentQ:0,
-  simTotalSec:900, simElapsed:0, simInterval:null, simCue:'',
-  // CEFR
-  cefrHistory:[], cefrAskedQs:[], cefrLevel:'A1',
-  cefrQCount:0, cefrElapsedSec:0, cefrTimerInt:null,
-  cefrLevelCounts:{A1:0,A2:0,B1:0,B2:0}, cefrRecording:false,
-  _cefrQ:'',
-  // MediaRecorder
-  mr:null, chunks:[], recTI:null, recSec:0,
+  user:null, tok:null, gkey:null,
+  // IELTS record mode
+  mode:null, qs:[], recs:[], idx:0, t0:null,
+  mr:null, chunks:[], isRec:false, recSec:0, recTm:null,
+  // TTS
+  ttsAu:null, ttsBusy:false,
+  prepTm:null, prepLeft:60,
+  hintsVis:false, wordsVis:false,
+  // Live session (CEFR + IELTS Live)
+  liveWs:null, liveCtx:null, liveSrc:null,       // WebSocket + AudioContext + MediaStreamSource
+  liveProcessor:null, liveStream:null,
+  liveMode:null,      // 'cefr' | 'ielts-live'
+  liveStartTime:null, liveEndTime:null,
+  liveQCount:0, liveCefrLevel:'A1',
+  liveTranscript:[],  // [{role:'ai'|'user', text}]
+  liveIeltQs:[],      // for ielts-live: question bank from setup
+  liveTimerTm:null,
+  liveDurationSec:0,
 };
+const KW={};
+let ttsCache={}, _ttsId=0;
 
-// ── INIT ───────────────────────────────────────────────────────────
-window.onload = () => {
-  const tok = sessionStorage.getItem('ielts_hub_token');
-  const usr = sessionStorage.getItem('ielts_hub_user');
-  if (!tok||!usr) { location.href='index.html'; return; }
-  S.user = JSON.parse(usr);
-  const name = S.user.fullName||S.user.email||'Student';
-  document.querySelectorAll('[id^="u-"]').forEach(e=>e.textContent=name);
-  const k = localStorage.getItem('hub_gemini_key')||'';
-  document.getElementById('gkey-inp').value = k;
-  updateKBadge(k);
-};
-function saveKey(v){ localStorage.setItem('hub_gemini_key',v.trim()); updateKBadge(v.trim()); }
-function updateKBadge(k){
-  const el=document.getElementById('gkey-st');
-  if(k&&k.startsWith('AIza')&&k.length>25){el.className='kst kst-ok';el.textContent='✓ Key OK';}
-  else if(k){el.className='kst kst-bad';el.textContent='⚠ Invalid';}
-  else{el.className='kst kst-none';el.textContent='⚪ Chưa nhập';}
-}
-async function testKey(){
-  const k=gk(); if(!k){toast('Nhập key trước!');return;}
-  toast('Đang test…');
-  try{ const r=await callGemini('Respond with just: OK'); toast('✓ Gemini hoạt động: '+r.substring(0,20),'ok'); }
-  catch(e){ toast('⚠ '+e.message,'err'); }
-}
-function gk(){ return localStorage.getItem('hub_gemini_key')||''; }
-function requireKey(){ if(!gk()){toast('Vui lòng nhập Gemini API Key!');return false;} return true; }
-function SS(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function toast(msg,type='info'){
-  const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.style.background=type==='ok'?'var(--green-d)':type==='err'?'var(--red-d)':'var(--g900)';
-  el.classList.add('show'); clearTimeout(toast._t);
-  toast._t=setTimeout(()=>el.classList.remove('show'),3000);
+// ── INIT ──────────────────────────────────────────────────────────────
+(function(){
+  const tok=sessionStorage.getItem('ielts_hub_token'), usr=sessionStorage.getItem('ielts_hub_user');
+  if(!tok||!usr){location.href='./index.html';return;}
+  S.tok=tok; S.user=JSON.parse(usr);
+  const n=S.user.fullName||S.user.FullName||'';
+  document.querySelectorAll('#u-home,#u-setup,#u-sess,#u-live,#u-grad,#u-res').forEach(e=>e.textContent='👤 '+n);
+  const k=localStorage.getItem('fl_key');
+  if(k){S.gkey=k;document.getElementById('key-inp').value=k;kSt(true);}
+})();
+
+function goHub(){location.href='./index.html';}
+function SS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function toast(m,t,d){t=t||'info';d=d||3400;const el=document.createElement('div');el.className='toast '+t;el.innerHTML=`<span>${{success:'✓',error:'✕',info:'ℹ'}[t]||'ℹ'}</span><span>${m}</span>`;document.getElementById('toast-wrap').appendChild(el);setTimeout(()=>el.remove(),d);}
+function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v.startsWith('AIza')){toast('Key phải bắt đầu bằng "AIza"','error');return;}S.gkey=v;localStorage.setItem('fl_key',v);kSt(true);toast('API key đã lưu ✓','success');}
+function toggleKV(){const i=document.getElementById('key-inp');i.type=i.type==='password'?'text':'password';}
+function kSt(ok){const e=document.getElementById('key-st');e.textContent=ok?'✓ Key OK':'⚠ Chưa có';e.className='key-st '+(ok?'key-ok':'key-bad');}
+function needKey(){if(!S.gkey){toast('Vui lòng nhập Gemini API key','error',4000);document.getElementById('key-inp').focus();return false;}return true;}
+
+// ── GAS JSONP ─────────────────────────────────────────────────────────
+function gasCall(action,payload){
+  return new Promise((res,rej)=>{
+    const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const p='callback='+encodeURIComponent(cb)+'&action='+encodeURIComponent(action)
+      +'&payload='+encodeURIComponent(JSON.stringify(payload||{}))
+      +'&sessionToken='+encodeURIComponent(S.tok||'');
+    const sc=document.createElement('script');sc.src=GAS_URL+'?'+p;
+    const tm=setTimeout(()=>{cleanup();rej(new Error('Timeout'));},65000);
+    window[cb]=r=>{cleanup();res(r);};
+    function cleanup(){clearTimeout(tm);delete window[cb];sc.parentNode&&sc.parentNode.removeChild(sc);}
+    sc.onerror=()=>{cleanup();rej(new Error('Network error'));};
+    document.head.appendChild(sc);
+  });
 }
 
-// ── MODE/PART/ROUND ────────────────────────────────────────────────
-function selMode(m){
-  S.mode=m; S.part=null; S.round=null;
+// ── GEMINI REST — via Official SDK (no CORS issue) ───────────────────
+async function gem(sys, usr, mx) {
+  mx = mx || 1024;
+  // Wait for SDK to be available
+  let waited = 0;
+  while (!window._GoogleGenAI && waited < 8000) {
+    await new Promise(r => setTimeout(r, 100)); waited += 100;
+  }
+  if (!window._GoogleGenAI) throw new Error('SDK not loaded');
+  if (!S.gkey) throw new Error('No API key');
+  const ai = new window._GoogleGenAI({ apiKey: S.gkey });
+  const response = await ai.models.generateContent({
+    model: GM_REST,
+    contents: usr,
+    config: {
+      systemInstruction: sys,
+      maxOutputTokens: mx,
+      temperature: 0.45
+    }
+  });
+  const text = response.text;
+  if (!text) throw new Error('Empty response');
+  return text.trim();
+}
+
+// ── TTS via GAS ───────────────────────────────────────────────────────
+let ttsId=0;
+async function speakQ(text){
+  if(!text)return;
+  if(S.ttsAu){try{S.ttsAu.onended=null;S.ttsAu.onerror=null;S.ttsAu.pause();S.ttsAu.currentTime=0;}catch(e){}S.ttsAu=null;}
+  const myId=++ttsId;
+  const btn=document.getElementById('tts-btn');if(btn)btn.classList.add('spk');
+  try{
+    let src=ttsCache[text];
+    if(!src){const res=await gasCall('speak.getTTS',{text:text.substring(0,300),voice:'nova'});if(myId!==ttsId)return;if(!res.success||!res.audio)throw new Error('TTS failed');src='data:audio/mpeg;base64,'+res.audio;ttsCache[text]=src;}
+    if(myId!==ttsId)return;
+    const au=new Audio(src);S.ttsAu=au;
+    await new Promise(resolve=>{au.onended=()=>{if(myId===ttsId&&btn)btn.classList.remove('spk');resolve();};au.onerror=()=>{if(btn)btn.classList.remove('spk');resolve();};au.play().catch(resolve);});
+  }catch(e){if(btn)btn.classList.remove('spk');}
+}
+function replayQ(){speakQ(S.qs[S.idx]&&S.qs[S.idx].question);}
+
+// ── HOME NAV ──────────────────────────────────────────────────────────
+function pickTop(m){
   document.querySelectorAll('.mode-tile').forEach(t=>t.classList.remove('sel'));
   document.getElementById('mt-'+m).classList.add('sel');
   document.getElementById('ielts-subs').style.display=m==='ielts'?'block':'none';
-  document.getElementById('cefr-sub').style.display=m==='cefr'?'block':'none';
+  document.getElementById('cefr-area').style.display=m==='cefr'?'block':'none';
   document.querySelectorAll('.sub-tile').forEach(t=>t.classList.remove('sel'));
-  document.getElementById('round-sel').style.display='none';
-  document.getElementById('go-btn').style.display='none';
+  document.getElementById('full-sub-opts').style.display='none';
 }
-function selPart(p){
-  S.part=p; S.round=null;
+function toggleFullSub(){
+  const o=document.getElementById('full-sub-opts');const open=o.style.display!=='none';
+  o.style.display=open?'none':'block';
+  document.getElementById('st-full').classList.toggle('sel',!open);
+}
+function pickSub(sub){
   document.querySelectorAll('.sub-tile').forEach(t=>t.classList.remove('sel'));
-  document.getElementById('st-'+p).classList.add('sel');
-  if(p==='sim'){document.getElementById('round-sel').style.display='none';document.getElementById('go-btn').style.display='block';document.getElementById('go-btn').textContent='🏁 Vào Simulation Setup';}
-  else{document.getElementById('round-sel').style.display='block';document.getElementById('go-btn').style.display='none';document.querySelectorAll('.round-tile').forEach(t=>t.classList.remove('sel'));}
-}
-function selRound(r){
-  S.round=r;
-  document.querySelectorAll('.round-tile').forEach(t=>t.classList.remove('sel'));
-  document.getElementById('rt-'+r).classList.add('sel');
-  document.getElementById('go-btn').style.display='block';
-  document.getElementById('go-btn').textContent=r==='hints'?'💡 Luyện với gợi ý →':'🧠 Luyện không gợi ý →';
-}
-function goSetup(){
-  if(!requireKey()) return;
-  if(!S.part){toast('Chọn Part trước!');return;}
-  if(S.part==='sim'){SS('S-sim-setup');return;}
-  if(!S.round){toast('Chọn lần luyện!');return;}
-  const icons={p1:'1️⃣',p2:'2️⃣',p3:'3️⃣'}, labels={p1:'Part 1',p2:'Part 2',p3:'Part 3'};
-  document.getElementById('setup-tb').textContent='/ '+labels[S.part]+' Setup';
-  document.getElementById('setup-icon').textContent=icons[S.part];
-  document.getElementById('setup-title').textContent='IELTS '+labels[S.part]+' — Setup';
-  document.getElementById('setup-multi').style.display=S.part==='p2'?'none':'block';
-  document.getElementById('setup-p2').style.display=S.part==='p2'?'block':'none';
-  SS('S-setup');
+  const el=document.getElementById('st-'+sub);if(el)el.classList.add('sel');
+  if(sub==='forecast'){SS('S-forecast');return;}
+  S.mode=sub;buildSetup(sub);SS('S-setup');
 }
 
-// ── GEMINI API ─────────────────────────────────────────────────────
-async function callGemini(prompt, system=''){
-  const body={contents:[{parts:[{text:prompt}]}]};
-  if(system) body.systemInstruction={parts:[{text:system}]};
-  const r=await fetch(`${GM_BASE}:generateContent?key=${gk()}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Gemini error '+r.status);}
+// ── SETUP ─────────────────────────────────────────────────────────────
+const PCFG={
+  part1:{icon:'📝',title:'Part 1 Setup',n:5,isLive:false},
+  part2:{icon:'🗣️',title:'Part 2 Setup',n:1,isLive:false},
+  part3:{icon:'💡',title:'Part 3 Setup',n:4,isLive:false},
+  custom:{icon:'✍️',title:'Custom Questions',n:3,isLive:false},
+  full:{icon:'🎭',title:'Full Simulation Setup',n:0,isLive:false},
+  'ielts-live':{icon:'🎙️',title:'IELTS Live Simulation',n:0,isLive:true},
+};
+const DQS={
+  part1:['Can you tell me about your hometown?','What do you like to do in your free time?','Do you prefer spending time indoors or outdoors? Why?','How important is learning English in your country?','What kind of music do you enjoy listening to?'],
+  part2:['Describe a person who has greatly influenced you.\nYou should say:\n- who this person is\n- how you know them\n- what qualities they have\n- and explain why they have influenced you so much.'],
+  part3:['How important is it for young people to have role models?','Do you think family influence is stronger than peer influence?','How has social media changed the way people interact?','What role does education play in shaping a person\'s character?'],
+};
+
+function buildSetup(sub){
+  _setupMode='record';
+  const cfg=PCFG[sub]||PCFG.part1;
+  document.getElementById('setup-tb').textContent='/ '+cfg.title;
+  document.getElementById('s-icon').textContent=cfg.icon;
+  document.getElementById('s-title').textContent=cfg.title;
+  const isLive=cfg.isLive;
+  document.getElementById('s-sub').textContent=isLive?'Add questions — Gemini will conduct the exam in real-time':'Add your questions and key words';
+  document.getElementById('btn-start-sess').textContent=isLive?'🎙️ Start Live Exam':'🚀 Start Session';
+  const wrap=document.getElementById('setup-qs');wrap.innerHTML='';
+  if(sub==='full'){buildFullSetup(wrap,false);return;}
+  if(sub==='ielts-live'){buildIeltsLiveSetup(wrap);return;}
+  const dqs=DQS[sub]||[];
+  for(let i=0;i<(cfg.n||3);i++)wrap.appendChild(mkQCard(sub,i,dqs[i]||'',isLive));
+  // Add Question button for ALL modes
+  const ab=document.createElement('button');
+  ab.className='btn btn-outline btn-sm';
+  ab.style.cssText='margin-bottom:12px;width:100%;border-style:dashed';
+  ab.innerHTML='＋ Add another question';
+  ab.onclick=()=>{const c=wrap.querySelectorAll('.qcard').length;wrap.insertBefore(mkQCard(sub,c,'',isLive),ab);};
+  wrap.appendChild(ab);
+}
+function buildFullSetup(wrap,isLive){
+  [{lbl:'📝 Part 1 (5 questions)',sub:'fp1',dqs:DQS.part1,n:5},{lbl:'🗣️ Part 2 (1 cue card)',sub:'fp2',dqs:DQS.part2,n:1},{lbl:'💡 Part 3 (4 questions)',sub:'fp3',dqs:DQS.part3,n:4}].forEach(sec=>{
+    const h=document.createElement('div');h.className='sec-lbl';h.style.margin='14px 0 9px';h.textContent=sec.lbl;wrap.appendChild(h);
+    for(let i=0;i<sec.n;i++)wrap.appendChild(mkQCard(sec.sub,i,sec.dqs[i]||'',isLive));
+  });
+}
+function buildIeltsLiveSetup(wrap){
+  const info=document.createElement('div');
+  info.className='card';info.style.marginBottom='14px';
+  info.innerHTML=`<div style="font-size:13px;color:var(--g600);line-height:1.7">
+    <strong>Cách hoạt động:</strong> Gemini sẽ đóng vai Examiner IELTS và chỉ hỏi <em>đúng các câu hỏi bạn thêm vào</em> theo thứ tự Part 1 → Part 2 → Part 3. Cuộc trò chuyện diễn ra hoàn toàn bằng giọng nói real-time.
+  </div>`;
+  wrap.appendChild(info);
+  buildFullSetup(wrap,true);
+}
+
+function mkQCard(prefix,idx,defQ,isLive){
+  const key=prefix+'_'+idx;KW[key]=[];
+  const d=document.createElement('div');d.className='qcard';
+  d.innerHTML=`<div class="qlbl">Question ${idx+1}</div>
+    <textarea class="qta" id="qt-${key}" rows="2" placeholder="Enter question…">${defQ}</textarea>`
+    +(isLive?'':`<div class="kw-box">
+      <div class="kw-lbl">💡 KEY WORDS <span>(từ muốn dùng khi nói)</span></div>
+      <div class="kw-row"><input class="kw-inp" id="ki-${key}" type="text" placeholder="Nhập từ khoá + Enter"><button class="btn btn-gold btn-sm" onclick="addKW('${prefix}','${idx}')">+</button></div>
+      <div class="kw-chips" id="kc-${key}"><span class="kw-empty">Chưa có từ nào</span></div>
+    </div>`);
+  setTimeout(()=>{const inp=document.getElementById('ki-'+key);if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addKW(prefix,idx);}};},30);
+  return d;
+}
+function addKW(p,i){const key=p+'_'+i;const inp=document.getElementById('ki-'+key);const v=inp.value.trim();if(!v)return;KW[key]=KW[key]||[];KW[key].push(v);inp.value='';renderKW(key);}
+function removeKW(key,i){KW[key].splice(i,1);renderKW(key);}
+function renderKW(key){const w=document.getElementById('kc-'+key);if(!w)return;const a=KW[key]||[];w.innerHTML=a.length?a.map((x,i)=>`<div class="kwchip">${x}<span class="kwchip-x" onclick="removeKW('${key}',${i})">×</span></div>`).join(''):'<span class="kw-empty">Chưa có từ nào</span>';}
+
+function collectQs(sub){
+  const qs=[];
+  function grab(prefix,n,lbl){
+    for(let i=0;i<n;i++){const key=prefix+'_'+i;const el=document.getElementById('qt-'+key);if(!el)continue;const q=el.value.trim();if(!q)continue;qs.push({question:q,keywords:KW[key]||[],partLabel:lbl||''});}
+  }
+  if(sub==='full'||sub==='ielts-live'){grab('fp1',5,'Part 1');grab('fp2',1,'Part 2');grab('fp3',4,'Part 3');}
+  else{const n=document.getElementById('setup-qs').querySelectorAll('.qcard').length;grab(sub,n,'');}
+  return qs;
+}
+
+// ── SETUP MODE SELECTOR (Record vs Live) ─────────────────────────────
+let _setupMode = 'record'; // 'record' | 'live'
+function setSetupMode(m){
+  _setupMode = m;
+  const rEl = document.getElementById('mode-opt-record');
+  const lEl = document.getElementById('mode-opt-live');
+  if(!rEl||!lEl) return;
+  if(m==='record'){
+    rEl.style.borderColor='var(--blue)';
+    rEl.querySelector('div:nth-child(2)').style.color='var(--blue)';
+    lEl.style.borderColor='var(--g200)';
+    lEl.querySelector('div:nth-child(2)').style.color='var(--g600)';
+    document.getElementById('btn-start-sess').textContent='🚀 Start Session';
+    document.getElementById('btn-start-sess').className='btn btn-primary btn-lg';
+    document.getElementById('btn-start-sess').style.flex='1';
+  } else {
+    lEl.style.borderColor='var(--red)';
+    lEl.querySelector('div:nth-child(2)').style.color='var(--red)';
+    rEl.style.borderColor='var(--g200)';
+    rEl.querySelector('div:nth-child(2)').style.color='var(--g600)';
+    document.getElementById('btn-start-sess').textContent='🎙️ Start Live Session';
+    document.getElementById('btn-start-sess').className='btn btn-red btn-lg';
+    document.getElementById('btn-start-sess').style.flex='1';
+  }
+}
+
+// ── START FROM SETUP ──────────────────────────────────────────────────
+function startFromSetup(){
+  if(!needKey())return;
+  const qs=collectQs(S.mode);
+  if(!qs.length){toast('Vui lòng nhập ít nhất 1 câu hỏi','error');return;}
+  // Live mode for Part 1/2/3/full — pass questions to Gemini Live as examiner script
+  if(_setupMode==='live'||S.mode==='ielts-live'){
+    S.liveIeltQs=qs;
+    startLiveSession('ielts-live');
+    return;
+  }
+  launch(S.mode,qs);
+}
+function startForecast(){
+  if(!needKey())return;
+  const lines=document.getElementById('fc-bank').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length<2){toast('Nhập ít nhất 2 câu hỏi','error');return;}
+  const n=parseInt(document.getElementById('fc-count').value)||5;
+  const picked=lines.sort(()=>Math.random()-.5).slice(0,n).map(q=>({question:q,keywords:[],partLabel:''}));
+  S.mode='forecast';launch('forecast',picked);
+}
+
+// ── LAUNCH IELTS RECORD SESSION ───────────────────────────────────────
+function launch(mode,qs){
+  S.mode=mode;S.qs=qs;S.recs=qs.map(q=>({question:q.question,audioBlob:null,audioBase64:null,mimeType:null}));
+  S.idx=0;S.t0=new Date().toISOString();
+  const lbl={part1:'/ IELTS Part 1',part2:'/ IELTS Part 2',part3:'/ IELTS Part 3',full:'/ Full Simulation',custom:'/ Custom Practice',forecast:'/ Forecast Test'};
+  document.getElementById('sess-tb').textContent=lbl[mode]||'/ Speaking';
+  updProg();SS('S-session');loadQ(0);
+}
+
+async function loadQ(idx){
+  const qo=S.qs[idx];if(!qo)return;
+  if(S.ttsAu){try{S.ttsAu.onended=null;S.ttsAu.onerror=null;S.ttsAu.pause();S.ttsAu.currentTime=0;}catch(e){}S.ttsAu=null;}ttsId++;
+  document.getElementById('q-txt').textContent=qo.question;
+  document.getElementById('q-num').textContent=idx+1;
+  const lblMap={part1:'IELTS PART 1',part2:'IELTS PART 2 — LONG TURN',part3:'IELTS PART 3',full:qo.partLabel?'IELTS '+qo.partLabel.toUpperCase():'IELTS',custom:'QUESTION',forecast:'QUESTION'};
+  document.getElementById('q-lbl').textContent=(lblMap[S.mode]||'QUESTION')+' — Q'+(idx+1);
+  updProg();resetRecUI();document.getElementById('replay-btn').disabled=true;setupKWUI(qo);
+  if(S.mode==='part2'||(S.mode==='full'&&qo.partLabel==='Part 2'))startPrep();
+  else{document.getElementById('prep-wrap').style.display='none';clearInterval(S.prepTm);}
+  const rb=document.getElementById('rec-btn');rb.style.opacity='.4';rb.style.pointerEvents='none';
+  await speakQ(qo.question);
+  rb.style.opacity='1';rb.style.pointerEvents='auto';
+  document.getElementById('replay-btn').disabled=false;
+  if(S.mode!=='cefr'&&S.qs[idx+1])gasCall('speak.getTTS',{text:S.qs[idx+1].question.substring(0,300),voice:'nova'}).then(r=>{if(r.success&&r.audio)ttsCache[S.qs[idx+1].question]='data:audio/mpeg;base64,'+r.audio;}).catch(()=>{});
+}
+function setupKWUI(qo){
+  S.hintsVis=false;S.wordsVis=false;
+  const hd=document.getElementById('hints-disp'),wd=document.getElementById('words-disp');
+  hd.className='kw-display';hd.innerHTML='';wd.className='kw-display';wd.innerHTML='';
+  const hasKW=qo.keywords&&qo.keywords.length>0;
+  const bar=document.getElementById('kw-bar');
+  if(!hasKW){bar.style.display='none';return;}
+  bar.style.display='grid';
+  document.getElementById('hints-btn').style.display='none';
+  document.getElementById('words-btn').style.display=hasKW?'flex':'none';
+  if(hasKW)wd.innerHTML=qo.keywords.map(w=>`<div class="kw-pill">${w}</div>`).join('');
+}
+function toggleHints(){S.hintsVis=!S.hintsVis;const d=document.getElementById('hints-disp'),b=document.getElementById('hints-btn');d.className='kw-display'+(S.hintsVis?' vis':'');b.textContent=S.hintsVis?'👀 Visible':'🙈 Hidden';b.className='kwbtn'+(S.hintsVis?' on':'');}
+function toggleWords(){S.wordsVis=!S.wordsVis;const d=document.getElementById('words-disp'),b=document.getElementById('words-btn');d.className='kw-display'+(S.wordsVis?' vis':'');b.textContent=S.wordsVis?'💡 Hide key words':'💡 Show my key words';b.className='kwbtn'+(S.wordsVis?' on':'');}
+function updProg(){const tot=S.qs.length,idx=S.idx;const pct=tot?Math.round((idx/tot)*100):0;document.getElementById('prog-txt').textContent='Question '+(idx+1)+' of '+tot;document.getElementById('prog-pct').textContent=pct+'%';document.getElementById('prog-fill').style.width=pct+'%';}
+function startPrep(){document.getElementById('prep-wrap').style.display='block';S.prepLeft=60;clearInterval(S.prepTm);updPrepUI();S.prepTm=setInterval(()=>{S.prepLeft--;updPrepUI();if(S.prepLeft<=0){clearInterval(S.prepTm);document.getElementById('prep-wrap').style.display='none';toast('Prep time over!','info');}},1000);}
+function updPrepUI(){const m=Math.floor(S.prepLeft/60),s=S.prepLeft%60;document.getElementById('prep-cd').textContent=m+':'+String(s).padStart(2,'0');document.getElementById('prep-pfill').style.width=(S.prepLeft/60*100)+'%';}
+function resetRecUI(){if(S.isRec)stopRec(false);S.isRec=false;S.chunks=[];S.recSec=0;clearInterval(S.recTm);const rb=document.getElementById('rec-btn');rb.textContent='🎤';rb.className='rec-btn';rb.disabled=false;rb.style.opacity='1';rb.style.pointerEvents='auto';document.getElementById('rec-area').className='rec-area';document.getElementById('rec-st').textContent='Tap mic to start recording';document.getElementById('rec-time').style.display='none';document.getElementById('rec-hint').textContent='Tap mic again to stop';}
+async function toggleRec(){if(S.isRec)stopRec(true);else await startRec();}
+async function startRec(){
+  try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';S.mr=new MediaRecorder(stream,{mimeType:mime});S.chunks=[];S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};S.mr.onstop=onRecStop;S.mr.stream=stream;S.mr.start(100);S.isRec=true;S.recSec=0;const rb=document.getElementById('rec-btn');rb.textContent='⏹';rb.className='rec-btn act';document.getElementById('rec-area').className='rec-area recg';document.getElementById('rec-st').textContent='Recording… speak now';document.getElementById('rec-time').style.display='block';document.getElementById('rec-hint').textContent='Tap to stop';S.recTm=setInterval(()=>{S.recSec++;const m=Math.floor(S.recSec/60),s=S.recSec%60;document.getElementById('rec-time').textContent=m+':'+String(s).padStart(2,'0');},1000);}catch(e){toast('Microphone access denied','error');}
+}
+function stopRec(proc){if(!S.mr||S.mr.state==='inactive')return;S.mr.stop();S.mr.stream.getTracks().forEach(t=>t.stop());S.isRec=false;clearInterval(S.recTm);if(proc){const rb=document.getElementById('rec-btn');rb.textContent='⏳';rb.disabled=true;document.getElementById('rec-st').textContent='Saving…';}}
+function onRecStop(){
+  const mime=S.mr.mimeType||'audio/webm';const blob=new Blob(S.chunks,{type:mime});const idx=S.idx;
+  S.recs[idx].audioBlob=blob;S.recs[idx].mimeType=mime;
+  const rd=new FileReader();rd.onloadend=()=>{
+    S.recs[idx].audioBase64=rd.result.split(',')[1];S.recs[idx].question=S.qs[idx].question;
+    const rb=document.getElementById('rec-btn');rb.textContent='✓';rb.className='rec-btn dn';rb.disabled=false;
+    document.getElementById('rec-area').className='rec-area done';document.getElementById('rec-st').textContent='Answer saved ✓';document.getElementById('rec-hint').textContent='Re-record or wait for next question';
+    updSubmitBtn();setTimeout(()=>advanceQ(idx),1800);
+  };rd.readAsDataURL(blob);
+}
+function updSubmitBtn(){const done=S.recs.filter(r=>r.audioBase64).length;document.getElementById('submit-wrap').style.display=done>=S.qs.length?'block':'none';}
+async function advanceQ(done){const next=done+1;if(next<S.qs.length){S.idx=next;await loadQ(next);}else{document.getElementById('submit-wrap').style.display='block';toast('All done! Submit when ready.','success',4000);}}
+function confirmEnd(){const done=S.recs.filter(r=>r.audioBase64).length;if(!done){SS('S-home');return;}if(confirm('Submit '+done+' answer(s) for grading?'))submitAll();}
+
+// ── TRANSCRIBE VIA GEMINI REST (audio inline_data) ────────────────────
+async function transcribeAudio(audioBase64, mimeType){
+  if(!S.gkey) throw new Error('No API key');
+  const body={
+    contents:[{parts:[
+      {inline_data:{mime_type:mimeType||'audio/webm',data:audioBase64}},
+      {text:'Transcribe this English speech exactly as spoken. Return ONLY the transcript text, no labels, no punctuation beyond sentence periods.'}
+    ]}]
+  };
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${S.gkey}`,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Transcribe failed '+r.status);}
   const j=await r.json();
   return j.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||'';
 }
 
-// Real streaming via SSE endpoint
-async function callGeminiStream(prompt, system='', targetEl){
-  const body={contents:[{parts:[{text:prompt}]}]};
-  if(system) body.systemInstruction={parts:[{text:system}]};
-  targetEl.innerHTML='<span class="typing-cur"></span>';
-  let full='';
+// ── SUBMIT IELTS ──────────────────────────────────────────────────────
+async function submitAll(){
+  const answered=S.recs.filter(r=>r.audioBase64);if(!answered.length){toast('No recordings!','error');return;}
+  if(!needKey())return;
+  SS('S-grading');gStep('Transcribing recordings…');
   try{
-    const r=await fetch(`${GM_BASE}:streamGenerateContent?alt=sse&key=${gk()}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!r.ok) throw new Error('Stream error '+r.status);
-    const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
-    while(true){
-      const {done,value}=await reader.read(); if(done) break;
-      buf+=dec.decode(value,{stream:true});
-      const lines=buf.split('\n'); buf=lines.pop();
-      for(const line of lines){
-        if(!line.startsWith('data: ')) continue;
-        const raw=line.slice(6).trim(); if(raw==='[DONE]') continue;
-        try{ const c=JSON.parse(raw); const t=c.candidates?.[0]?.content?.parts?.[0]?.text||''; full+=t; targetEl.innerHTML=md(full)+'<span class="typing-cur"></span>'; }catch(_){}
-      }
+    // Transcribe each recording via Gemini REST
+    for(let i=0;i<answered.length;i++){
+      gStep(`Transcribing Q${i+1}/${answered.length}…`);
+      answered[i].studentAnswer = await transcribeAudio(answered[i].audioBase64, answered[i].mimeType||'audio/webm');
     }
-    targetEl.innerHTML=md(full);
-  }catch(e){
-    // Fallback non-streaming
-    try{ const t=await callGemini(prompt,system); full=t; targetEl.innerHTML=md(t); }
-    catch(e2){ targetEl.innerHTML='<em style="color:var(--g400)">Không thể tải báo cáo: '+e2.message+'</em>'; }
-  }
-  return full;
+    gStep('Transcription done ✓',true);
+    gStep('Generating IELTS report with Gemini…');
+    const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
+    const report=await gem('You are a professional IELTS examiner.',buildIELTSPrompt(tb),2000);
+    gStep('Report ready ✓',true);
+    setTimeout(()=>renderResults(answered,report,'ielts',null),300);
+  }catch(e){SS('S-session');toast('Error: '+e.message,'error',7000);}
 }
 
-// ── RECORDING ──────────────────────────────────────────────────────
-async function startMic(onStop){
+// ══════════════════════════════════════════════
+// CEFR LIVE — Turn-based (record → Gemini REST)
+// Replaces broken WebSocket approach
+// ══════════════════════════════════════════════
+
+// ── SYSTEM PROMPTS ────────────────────────────────────────────────────
+function buildCEFRSystemPrompt(level){
+  const lvMap={
+    A1:`Bạn là giáo viên tiếng Anh ảo thân thiện dành cho học sinh trình độ A1 (Beginner). RÀNG BUỘC NGHIÊM NGẶT:
+1. CHỈ dùng từ vựng và ngữ pháp A1: thì hiện tại đơn, to be, have, like. Không dùng thì phức tạp.
+2. Câu rất ngắn (tối đa 8 từ mỗi câu). Không dùng câu phức.
+3. Nói CHẬM, rõ ràng, đơn giản.
+4. Nếu học sinh dùng từ quá khó hoặc câu phức tạp, hãy nói: "Please say that in simple words."
+5. LUÔN kết thúc bằng 1 câu hỏi yes/no hoặc "what is your..." ở mức A1.
+6. Chủ đề: tên, gia đình, màu sắc, thức ăn, con vật, đồ vật quen thuộc.
+Bắt đầu bằng: "Hello! I am your English teacher. What is your name?"`,
+    A2:`Bạn là giáo viên tiếng Anh ảo thân thiện dành cho học sinh trình độ A2 (Elementary). RÀNG BUỘC NGHIÊM NGẶT:
+1. Dùng từ vựng A2: thì hiện tại đơn/tiếp diễn, quá khứ đơn cơ bản, tương lai "going to/will".
+2. Câu đơn hoặc câu ghép cơ bản với "and, but, because". Không dùng mệnh đề phức.
+3. Tốc độ nói vừa phải, rõ ràng.
+4. Nếu học sinh dùng ngữ pháp quá phức tạp, nhẹ nhàng sửa: "Good! But try to say it more simply."
+5. LUÔN kết thúc bằng câu hỏi gợi mở ở A2: "What do you usually...?", "Did you ever...?", "Do you like...?"
+6. Chủ đề: thói quen hàng ngày, sở thích, gia đình, trường học, thời gian rảnh.
+Bắt đầu bằng: "Hello! Nice to meet you. What do you usually do in the morning?"`,
+    B1:`Bạn là giáo viên tiếng Anh ảo thân thiện dành cho học sinh trình độ B1 (Intermediate). RÀNG BUỘC:
+1. Dùng ngữ pháp B1: câu điều kiện loại 1-2, thì hoàn thành, mệnh đề quan hệ đơn giản.
+2. Từ vựng phong phú hơn nhưng vẫn phổ thông. Dùng idiom đơn giản.
+3. Tốc độ bình thường. Khuyến khích học sinh nói thêm.
+4. Nếu học sinh nói quá ngắn, hỏi thêm: "Can you tell me more about that?"
+5. LUÔN kết thúc bằng câu hỏi ý kiến/kinh nghiệm ở B1.
+6. Chủ đề: kinh nghiệm cá nhân, ý kiến về cuộc sống, kế hoạch tương lai, xã hội.
+Bắt đầu bằng lời chào tự nhiên và câu hỏi về kinh nghiệm gần đây.`,
+    B2:`Bạn là giáo viên tiếng Anh ảo thân thiện dành cho học sinh trình độ B2 (Upper-Intermediate). 
+1. Dùng ngữ pháp và từ vựng B2: câu phức, passive, reported speech, academic vocabulary.
+2. Thảo luận các chủ đề trừu tượng, xã hội, công nghệ, môi trường.
+3. Khuyến khích học sinh lập luận và đưa ra ví dụ.
+4. Tốc độ nói bình thường như người bản ngữ.
+5. LUÔN kết thúc bằng câu hỏi thảo luận mở ở B2.
+Bắt đầu bằng một câu hỏi thảo luận thú vị ở B2.`,
+  };
+  return lvMap[level]||lvMap.A2;
+}
+
+function buildIELTSLivePrompt(questions){
+  const qList=questions.map((q,i)=>`${i+1}. [${q.partLabel||'Q'+(i+1)}] "${q.question}"`).join('\n');
+  return `Bạn là Giám khảo IELTS Speaking chuyên nghiệp (Senior Examiner). Nhiệm vụ của bạn là tiến hành bài thi IELTS Speaking THỰC TẾ với thí sinh.
+
+DANH SÁCH CÂU HỎI PHẢI HỎI (theo đúng thứ tự):
+${qList}
+
+RÀNG BUỘC NGHIÊM NGẶT:
+1. CHỈ hỏi đúng các câu hỏi trong danh sách trên, theo đúng thứ tự từ 1 đến ${questions.length}.
+2. KHÔNG tự tạo thêm câu hỏi mới.
+3. Sau mỗi câu trả lời của thí sinh, gật đầu xác nhận ngắn ("Thank you.", "Good.", "I see.") rồi chuyển sang câu tiếp theo.
+4. Khi hỏi Part 2: thông báo thí sinh có 1 phút chuẩn bị, sau đó hỏi "Ready? Please begin."
+5. Sau câu hỏi cuối cùng: nói "That is the end of the speaking test. Thank you."
+6. Giữ giọng điệu chuyên nghiệp, trung lập như Examiner thực sự.
+
+BẮT ĐẦU: Chào thí sinh, xác nhận tên, giải thích format bài thi ngắn gọn, rồi bắt đầu với câu hỏi số 1.`;
+}
+
+// ── LIVE SESSION INIT ─────────────────────────────────────────────────
+async function startLiveSession(mode){
+  if(!needKey())return;
+  S.liveMode=mode;S.liveTranscript=[];S.liveQCount=0;
+  S.liveDurationSec=0;S.liveCefrLevel='A1';
+  S.liveStartTime=new Date();S.liveEndTime=null;
+  document.getElementById('live-tb').textContent=mode==='cefr'?'/ CEFR Live':'/ IELTS Live Exam';
+  document.getElementById('live-cefr-levels').style.display=mode==='cefr'?'block':'none';
+  document.getElementById('ls-level-wrap').style.display=mode==='cefr'?'block':'none';
+  document.getElementById('live-transcript').innerHTML='<div style="font-size:12px;color:var(--g400);text-align:center">Đang kết nối với Gemini…</div>';
+  setLiveOrb('idle','🤖');setLiveState('Đang khởi động…');
+  document.getElementById('ls-time').textContent='0:00';
+  document.getElementById('ls-qs').textContent='0';
+  document.getElementById('ls-level').textContent='A1';
+  if(mode==='cefr')updLiveLevels('A1');
+  SS('S-live');
+  S.liveTimerTm=setInterval(()=>{
+    S.liveDurationSec++;
+    const m=Math.floor(S.liveDurationSec/60),s=S.liveDurationSec%60;
+    document.getElementById('ls-time').textContent=m+':'+String(s).padStart(2,'0');
+  },1000);
+  // Add mic button to live controls if not present
+  _ensureLiveMicButton();
+  // Start turn-based conversation
+  await _cefrTurnAsk();
+}
+
+// ── TURN-BASED CEFR ENGINE ────────────────────────────────────────────
+// State for turn-based live
+let _cefrMr=null, _cefrChunks=[], _cefrRecording=false, _cefrAskedQs=[];
+
+function _ensureLiveMicButton(){
+  const ctrl=document.querySelector('.live-controls');
+  if(!ctrl||document.getElementById('live-mic-btn'))return;
+  const btn=document.createElement('button');
+  btn.id='live-mic-btn';
+  btn.className='btn btn-red btn-lg';
+  btn.style='flex:1';
+  btn.textContent='🎤 Nhấn để nói';
+  btn.onclick=_cefrToggleMic;
+  ctrl.insertBefore(btn,ctrl.firstChild);
+}
+
+async function _cefrTurnAsk(){
+  if(!S.liveStartTime||S.liveEndTime) return;
+  setLiveOrb('ai-speaking','🤖');
+  setLiveState('AI đang chuẩn bị câu hỏi…');
+  const micBtn=document.getElementById('live-mic-btn');
+  if(micBtn){micBtn.disabled=true;micBtn.textContent='⏳ AI đang hỏi…';}
+
+  const systemPrompt=S.liveMode==='cefr'
+    ? buildCEFRSystemPrompt(S.liveCefrLevel)
+    : buildIELTSLivePrompt(S.liveIeltQs);
+
+  // Build conversation history for context
+  const histText=S.liveTranscript.slice(-8).map(l=>(l.role==='ai'?'Examiner: ':'Student: ')+l.text).join('\n');
+  const askedStr=_cefrAskedQs.slice(-6).join(' | ')||'none';
+  const userMsg=histText
+    ? `Continue the conversation. History:\n${histText}\n\nAlready asked: ${askedStr}\n\nAsk ONE new question appropriate for ${S.liveCefrLevel} level. Return ONLY the question text.`
+    : `Start the conversation. Ask ONE question for ${S.liveCefrLevel} level. Return ONLY the question text.`;
+
+  try{
+    const aiQuestion=await gem(systemPrompt, userMsg, 200);
+    const q=(aiQuestion||'').trim()||'Tell me about yourself.';
+    _cefrAskedQs.push(q);
+    S.liveQCount++;
+    document.getElementById('ls-qs').textContent=S.liveQCount;
+    addTranscriptLine('ai',q);
+    S.liveTranscript.push({role:'ai',text:q});
+    if(S.liveMode==='cefr') checkAndAdaptLevel(q);
+    setLiveOrb('listening','🎤');
+    setLiveState('Đến lượt bạn — nhấn 🎤 để nói');
+    if(micBtn){micBtn.disabled=false;micBtn.textContent='🎤 Nhấn để nói';}
+  }catch(e){
+    setLiveState('Lỗi: '+e.message);
+    if(micBtn){micBtn.disabled=false;micBtn.textContent='🎤 Thử lại';}
+    toast('Lỗi Gemini: '+e.message,'error',5000);
+  }
+}
+
+async function _cefrToggleMic(){
+  if(_cefrRecording){
+    // Stop recording
+    if(_cefrMr&&_cefrMr.state!=='inactive') _cefrMr.stop();
+    return;
+  }
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    S.chunks=[];
-    const opts=MediaRecorder.isTypeSupported('audio/webm')?{mimeType:'audio/webm'}:{};
-    S.mr=new MediaRecorder(stream,opts);
-    S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};
-    S.mr.onstop=()=>{stream.getTracks().forEach(t=>t.stop());onStop(new Blob(S.chunks,{type:S.mr.mimeType||'audio/webm'}));};
-    S.mr.start(); return true;
-  }catch(e){toast('Microphone: '+e.message,'err');return false;}
-}
-function stopMic(){if(S.mr&&S.mr.state!=='inactive')S.mr.stop();}
-function blobToB64(blob){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(blob);});}
-
-async function transcribe(blob){
-  const b64full=await blobToB64(blob); const b64=b64full.split(',')[1]; const mime=blob.type||'audio/webm';
-  const body={contents:[{parts:[{inline_data:{mime_type:mime,data:b64}},{text:'Transcribe this English speech exactly as spoken. Return ONLY the transcript text, nothing else.'}]}]};
-  const r=await fetch(`${GM_BASE}:generateContent?key=${gk()}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Transcribe error');}
-  const j=await r.json(); return j.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||'';
-}
-
-function startRecTI(timerId){
-  S.recSec=0;
-  const el=document.getElementById(timerId); el.style.display='block'; el.textContent='0:00';
-  S.recTI=setInterval(()=>{S.recSec++;const m=Math.floor(S.recSec/60),s=String(S.recSec%60).padStart(2,'0');el.textContent=m+':'+s;},1000);
-}
-function stopRecTI(timerId){clearInterval(S.recTI);const el=document.getElementById(timerId);if(el)el.style.display='none';}
-
-function resetRecUI(wId,oId,stId,tId,pId){
-  document.getElementById(wId).className='rec-wrap';
-  const o=document.getElementById(oId);o.className='rec-orb';o.textContent='🎤';
-  document.getElementById(stId).textContent='Nhấn mic để ghi âm';
-  clearInterval(S.recTI); const t=document.getElementById(tId);if(t){t.style.display='none';t.textContent='0:00';}
-  if(pId){const p=document.getElementById(pId);p.className='t-prev';p.textContent='';}
-}
-
-// ── IELTS SESSION ──────────────────────────────────────────────────
-function startIELTS(){
-  if(!requireKey()) return;
-  const isP2=S.part==='p2';
-  if(isP2){
-    const cue=document.getElementById('ta-cue').value.trim();
-    if(!cue){toast('Paste cue card vào!');return;}
-    S.questions=[cue]; S.sampleAnswer=document.getElementById('ta-sample-p2').value.trim();
-    S.keywords=document.getElementById('ta-kw-p2').value.split(',').map(k=>k.trim()).filter(Boolean);
-  }else{
-    const raw=document.getElementById('ta-qs').value.trim();
-    if(!raw){toast('Nhập câu hỏi!');return;}
-    S.questions=raw.split('\n').map(l=>l.trim()).filter(Boolean);
-    S.sampleAnswer=document.getElementById('ta-sample').value.trim();
-    S.keywords=document.getElementById('ta-kw').value.split(',').map(k=>k.trim()).filter(Boolean);
-  }
-  S.recordings=[]; S.currentQ=0; S.startTime=new Date();
-  document.getElementById('sess-tb').textContent='/ Part '+{p1:'1',p2:'2',p3:'3'}[S.part];
-  SS('S-session'); loadQ();
-}
-
-function loadQ(){
-  const i=S.currentQ, total=S.questions.length, pct=Math.round(i/total*100);
-  document.getElementById('prog-txt').textContent=`Câu ${i+1} / ${total}`;
-  document.getElementById('prog-pct').textContent=pct+'%';
-  document.getElementById('prog-fill').style.width=pct+'%';
-  document.getElementById('q-num').textContent=i+1;
-  document.getElementById('q-txt').textContent=S.questions[i];
-  document.getElementById('q-lbl').textContent=S.part==='p2'?'CUE CARD':'QUESTION';
-  document.getElementById('q-pbadge').style.display='none';
-  // Keywords
-  const showKw=S.round==='hints'&&S.keywords.length>0;
-  document.getElementById('kw-bar').style.display=showKw?'block':'none';
-  if(showKw){document.getElementById('kw-pills').innerHTML=S.keywords.map(k=>`<span class="kw-pill">${k}</span>`).join('');document.getElementById('kw-pills').classList.remove('vis');document.getElementById('kw-lbl').textContent='Xem Keywords gợi ý';}
-  resetRecUI('rec-wrap','rec-orb','rec-st','rec-timer','t-prev');
-  document.getElementById('next-btn').disabled=true;
-  document.getElementById('submit-wrap').style.display='none';
-  document.getElementById('prep-wrap').style.display='none';
-  if(S.part==='p2'&&i===0) startPrep('prep-cd','prep-fill','rec-wrap','rec-orb');
-}
-
-function toggleKw(){
-  const p=document.getElementById('kw-pills'),vis=p.classList.toggle('vis');
-  document.getElementById('kw-lbl').textContent=vis?'Ẩn Keywords':'Xem Keywords gợi ý';
-  document.getElementById('kw-icon').textContent=vis?'🙈':'💡';
-}
-
-function startPrep(cdId,fillId,wId,oId){
-  document.getElementById('prep-wrap').style.display='block';
-  document.getElementById(wId).style.opacity='.45'; document.getElementById(wId).style.pointerEvents='none';
-  document.getElementById(oId).style.pointerEvents='none';
-  let secs=60;
-  const iv=setInterval(()=>{
-    secs--;
-    document.getElementById(cdId).textContent=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
-    document.getElementById(fillId).style.width=(secs/60*100)+'%';
-    if(secs<=0){clearInterval(iv);document.getElementById('prep-wrap').style.display='none';document.getElementById(wId).style.opacity='';document.getElementById(wId).style.pointerEvents='';document.getElementById(oId).style.pointerEvents='';toast('⏱ Bắt đầu nói!','ok');}
-  },1000);
-}
-
-async function toggleRec(){
-  if(S.mr&&S.mr.state==='recording'){stopMic();stopRecTI('rec-timer');return;}
-  const w=document.getElementById('rec-wrap'),o=document.getElementById('rec-orb'),st=document.getElementById('rec-st');
-  w.className='rec-wrap rec-on'; o.className='rec-orb act'; o.textContent='⏹'; st.textContent='Đang ghi âm…';
-  startRecTI('rec-timer');
-  const ok=await startMic(async blob=>{
-    stopRecTI('rec-timer');
-    w.className='rec-wrap rec-dn'; o.className='rec-orb dn'; o.textContent='✓'; st.textContent='Xong! Nhấn "Câu tiếp" để tiếp tục.';
-    S.recordings[S.currentQ]={question:S.questions[S.currentQ],blob,transcript:''};
-    document.getElementById('next-btn').disabled=false;
-    const p=document.getElementById('t-prev'); p.className='t-prev vis'; p.textContent='⏳ Đang nhận diện giọng nói…';
-    try{const t=await transcribe(blob);S.recordings[S.currentQ].transcript=t;p.textContent=t?`"${t}"`:'(Không nhận diện được — thử lại)';}
-    catch(e){p.textContent='(Lỗi transcribe: '+e.message+')';}
-    if(S.currentQ===S.questions.length-1) document.getElementById('submit-wrap').style.display='block';
-  });
-  if(!ok) resetRecUI('rec-wrap','rec-orb','rec-st','rec-timer','t-prev');
-}
-
-function skipQ(){if(!S.recordings[S.currentQ])S.recordings[S.currentQ]={question:S.questions[S.currentQ],blob:null,transcript:'[skipped]'};nextQ(true);}
-function nextQ(skip=false){if(!skip&&!S.recordings[S.currentQ]){toast('Ghi âm trước!');return;}S.currentQ++;if(S.currentQ>=S.questions.length){submitAll();return;}loadQ();}
-function confirmEnd(){if(confirm('Kết thúc và hủy bài luyện?')){stopMic();SS('S-home');}}
-
-async function submitAll(){
-  if(!requireKey()) return;
-  SS('S-grading'); document.getElementById('g-steps').innerHTML='';
-  const gs=(msg,done=false)=>{const el=document.createElement('div');el.className='gstep '+(done?'done':'now');el.innerHTML=`<div class="gstep-dot">${done?'✓':'…'}</div><span>${msg}</span>`;document.getElementById('g-steps').appendChild(el);document.getElementById('g-title').textContent=msg;};
-  try{
-    gs('Transcribing recordings…');
-    for(let i=0;i<S.recordings.length;i++){const rec=S.recordings[i];if(rec&&rec.blob&&!rec.transcript)rec.transcript=await transcribe(rec.blob);}
-    gs('Transcribing recordings…',true);
-    gs('AI đang chấm điểm…');
-    const data=await gradeIELTS();
-    gs('AI đang chấm điểm…',true);
-    gs('Lưu kết quả…');
-    await saveGAS(data,'ielts-'+S.part+'-'+(S.round||''));
-    gs('Lưu kết quả…',true);
-    await renderResults(data);
-  }catch(e){toast('Lỗi: '+e.message,'err');SS('S-session');}
-}
-
-async function gradeIELTS(){
-  const pL={p1:'Part 1 (familiar topics, 3-5 questions)',p2:'Part 2 (long turn, cue card, 2 minutes)',p3:'Part 3 (abstract discussion, analytical)'};
-  const qa=S.recordings.map((r,i)=>`Q${i+1}: "${r?.question||S.questions[i]}"\nA${i+1}: "${r?.transcript||'[no answer]'}"`).join('\n\n');
-  const sn=S.sampleAnswer?`\n\nSAMPLE ANSWER FOR REFERENCE:\n${S.sampleAnswer.substring(0,600)}`:'';
-  const prompt=`You are a strict IELTS Speaking examiner. Assess these ${pL[S.part]||''} responses.${sn}\n\nTRANSCRIPTS:\n${qa}\n\nReturn ONLY a valid JSON array (no markdown):\n[{"question":"...","studentAnswer":"...","corrected":"...","suggestion":"...","scores":{"fluency":{"score":6.5,"comment":"..."},"lexical":{"score":6.0,"comment":"..."},"grammar":{"score":6.0,"comment":"..."},"pronunciation":{"score":6.5,"comment":"..."}},"overall":6.5,"summary":"..."}]\n\nIMPORTANT: Evaluate spoken language ONLY. Ignore punctuation/spelling.`;
-  const raw=await callGemini(prompt,'Return ONLY valid JSON arrays, no markdown.');
-  const clean=raw.replace(/```json|```/g,'').trim();
-  const si=clean.indexOf('['),ei=clean.lastIndexOf(']')+1;
-  if(si<0) throw new Error('AI returned no JSON array');
-  return {items:JSON.parse(clean.substring(si,ei))};
-}
-
-// ── SIMULATION ─────────────────────────────────────────────────────
-function startSim(){
-  if(!requireKey()) return;
-  const q1=document.getElementById('sim-q1').value.trim();
-  const q2=document.getElementById('sim-q2').value.trim();
-  const q3r=document.getElementById('sim-q3').value.trim();
-  if(!q1||!q2||!q3r){toast('Điền đủ 3 parts!');return;}
-  const q1l=q1.split('\n').map(l=>l.trim()).filter(Boolean);
-  const cues=q2.split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean);
-  S.simCue=cues[Math.floor(Math.random()*cues.length)];
-  const q3l=q3r.split('\n').map(l=>l.trim()).filter(Boolean);
-  S.simAllQs=[...q1l.map(q=>({part:1,question:q})),{part:2,question:S.simCue},...q3l.slice(0,5).map(q=>({part:3,question:q}))];
-  S.simRecs=[]; S.simCurrentQ=0; S.simElapsed=0; S.startTime=new Date();
-  SS('S-sim'); startSimTimer(); loadSimQ();
-}
-
-function startSimTimer(){
-  S.simInterval=setInterval(()=>{
-    S.simElapsed++;
-    const rem=S.simTotalSec-S.simElapsed;
-    if(rem<=0){clearInterval(S.simInterval);simSubmit();return;}
-    const m=String(Math.floor(rem/60)).padStart(2,'0'),s=String(rem%60).padStart(2,'0');
-    document.getElementById('sim-time').textContent=m+':'+s;
-    document.getElementById('sim-tf').style.width=(rem/S.simTotalSec*100)+'%';
-  },1000);
-}
-
-function loadSimQ(){
-  const i=S.simCurrentQ, q=S.simAllQs[i];
-  document.getElementById('sim-q-num').textContent=i+1;
-  document.getElementById('sim-q-txt').textContent=q.question;
-  document.getElementById('sim-q-lbl').textContent=q.part===2?'CUE CARD':'QUESTION';
-  document.getElementById('sim-ptag').textContent='Part '+q.part;
-  document.getElementById('sim-prep-wrap').style.display='none';
-  resetRecUI('sim-rec-wrap','sim-rec-orb','sim-rec-st','sim-rec-timer','sim-t-prev');
-  document.getElementById('sim-next-btn').disabled=true;
-  document.getElementById('sim-submit-wrap').style.display='none';
-  if(q.part===2&&(i===0||S.simAllQs[i-1]?.part!==2)){
-    document.getElementById('sim-prep-wrap').style.display='block';
-    document.getElementById('sim-rec-wrap').style.opacity='.45';
-    document.getElementById('sim-rec-wrap').style.pointerEvents='none';
-    let secs=60;
-    const iv=setInterval(()=>{
-      secs--;
-      document.getElementById('sim-prep-cd').textContent=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
-      document.getElementById('sim-prep-fill').style.width=(secs/60*100)+'%';
-      if(secs<=0){clearInterval(iv);document.getElementById('sim-prep-wrap').style.display='none';document.getElementById('sim-rec-wrap').style.opacity='';document.getElementById('sim-rec-wrap').style.pointerEvents='';toast('⏱ Part 2 bắt đầu!','ok');}
-    },1000);
+    _cefrChunks=[];
+    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+    _cefrMr=new MediaRecorder(stream,{mimeType:mime});
+    _cefrMr.ondataavailable=e=>{if(e.data.size>0)_cefrChunks.push(e.data);};
+    _cefrMr.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      _cefrRecording=false;
+      const micBtn=document.getElementById('live-mic-btn');
+      if(micBtn){micBtn.disabled=true;micBtn.textContent='⏳ Đang xử lý…';}
+      setLiveOrb('idle','⏳');
+      setLiveState('Đang nhận diện giọng nói…');
+      const blob=new Blob(_cefrChunks,{type:mime});
+      try{
+        // Transcribe via Gemini
+        const rd=new FileReader();
+        const b64=await new Promise(res=>{rd.onloadend=()=>res(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
+        const transcript=await transcribeAudio(b64, mime);
+        if(transcript){
+          addTranscriptLine('user',transcript);
+          S.liveTranscript.push({role:'user',text:transcript});
+        }
+        // Ask next question
+        await _cefrTurnAsk();
+      }catch(e){
+        setLiveState('Lỗi: '+e.message);
+        if(micBtn){micBtn.disabled=false;micBtn.textContent='🎤 Thử lại';}
+        toast('Lỗi xử lý audio: '+e.message,'error',5000);
+      }
+    };
+    _cefrMr.start(100);
+    _cefrRecording=true;
+    const micBtn=document.getElementById('live-mic-btn');
+    if(micBtn){micBtn.textContent='⏹ Dừng lại';micBtn.style.background='var(--green)';}
+    setLiveOrb('listening','🎤');
+    setLiveState('Đang ghi âm… nhấn ⏹ để dừng');
+  }catch(e){
+    toast('Không thể truy cập microphone: '+e.message,'error',5000);
+    setLiveState('Mic error');
   }
 }
 
-async function simToggleRec(){
-  if(S.mr&&S.mr.state==='recording'){stopMic();stopRecTI('sim-rec-timer');return;}
-  const w=document.getElementById('sim-rec-wrap'),o=document.getElementById('sim-rec-orb'),st=document.getElementById('sim-rec-st');
-  w.className='rec-wrap rec-on';o.className='rec-orb act';o.textContent='⏹';st.textContent='Đang ghi âm…';
-  startRecTI('sim-rec-timer');
-  const ok=await startMic(async blob=>{
-    stopRecTI('sim-rec-timer');
-    w.className='rec-wrap rec-dn';o.className='rec-orb dn';o.textContent='✓';st.textContent='Xong!';
-    S.simRecs[S.simCurrentQ]={...S.simAllQs[S.simCurrentQ],blob,transcript:''};
-    document.getElementById('sim-next-btn').disabled=false;
-    const p=document.getElementById('sim-t-prev');p.className='t-prev vis';p.textContent='⏳ Đang nhận diện…';
-    try{const t=await transcribe(blob);S.simRecs[S.simCurrentQ].transcript=t;p.textContent=t?`"${t}"`:'(Không nhận diện được)';}
-    catch(e){p.textContent='(Lỗi: '+e.message+')';}
-    if(S.simCurrentQ===S.simAllQs.length-1)document.getElementById('sim-submit-wrap').style.display='block';
-  });
-  if(!ok)resetRecUI('sim-rec-wrap','sim-rec-orb','sim-rec-st','sim-rec-timer','sim-t-prev');
+// Legacy stubs — kept so endLive() still works
+let _liveWs=null, _liveAudioCtx=null, _nextPlayTime=0;
+let _micStream=null, _micCtx=null, _micSrc=null, _micProc=null;
+function enqueueAudio(){}
+async function startLiveMic(){}
+function cleanupLiveMic(){
+  if(_cefrMr&&_cefrMr.state!=='inactive'){try{_cefrMr.stop();}catch(e){}}
+  _cefrRecording=false; _cefrMr=null;
 }
-function simSkip(){if(!S.simRecs[S.simCurrentQ])S.simRecs[S.simCurrentQ]={...S.simAllQs[S.simCurrentQ],blob:null,transcript:'[skipped]'};simNext(true);}
-function simNext(skip=false){if(!skip&&!S.simRecs[S.simCurrentQ]){toast('Ghi âm trước!');return;}S.simCurrentQ++;if(S.simCurrentQ>=S.simAllQs.length){simSubmit();return;}loadSimQ();}
-function confirmEndSim(){if(confirm('Kết thúc sớm?')){clearInterval(S.simInterval);stopMic();simSubmit();}}
+async function connectLiveSDK(){ /* replaced by _cefrTurnAsk */ }
 
-async function simSubmit(){
-  clearInterval(S.simInterval); stopMic();
-  if(!requireKey()) return;
-  SS('S-grading'); document.getElementById('g-steps').innerHTML='';
-  const gs=(msg,done=false)=>{const el=document.createElement('div');el.className='gstep '+(done?'done':'now');el.innerHTML=`<div class="gstep-dot">${done?'✓':'…'}</div><span>${msg}</span>`;document.getElementById('g-steps').appendChild(el);document.getElementById('g-title').textContent=msg;};
-  try{
-    gs('Transcribing recordings…');
-    for(let i=0;i<S.simAllQs.length;i++){if(!S.simRecs[i])S.simRecs[i]={...S.simAllQs[i],transcript:'[skipped]'};else if(S.simRecs[i].blob&&!S.simRecs[i].transcript)S.simRecs[i].transcript=await transcribe(S.simRecs[i].blob);}
-    gs('Transcribing recordings…',true);
-    gs('AI đang chấm điểm Simulation…');
-    const qa=S.simRecs.map((r,i)=>`[Part ${r?.part||'?'}] Q${i+1}: "${r?.question||''}"\nA${i+1}: "${r?.transcript||'[skipped]'}"`).join('\n\n');
-    const prompt=`Grade this Full IELTS Simulation (Parts 1+2+3). Part 2 cue card: "${S.simCue?.substring(0,200)||''}"\n\nTRANSCRIPTS:\n${qa}\n\nReturn ONLY valid JSON array:\n[{"question":"...","studentAnswer":"...","corrected":"...","suggestion":"...","scores":{"fluency":{"score":6.5,"comment":"..."},"lexical":{"score":6.0,"comment":"..."},"grammar":{"score":6.0,"comment":"..."},"pronunciation":{"score":6.5,"comment":"..."}},"overall":6.5,"summary":"..."}]`;
-    const raw=await callGemini(prompt,'You are a strict IELTS examiner. Return ONLY valid JSON arrays.');
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const si=clean.indexOf('['),ei=clean.lastIndexOf(']')+1;
-    if(si<0)throw new Error('No JSON');
-    const items=JSON.parse(clean.substring(si,ei));
-    gs('AI đang chấm điểm Simulation…',true);
-    gs('Lưu kết quả…');
-    await saveGAS({items},'ielts-simulation');
-    gs('Lưu kết quả…',true);
-    S.recordings=S.simRecs.map(r=>({question:r?.question||'',transcript:r?.transcript||'',blob:null}));
-    S.questions=S.simAllQs.map(q=>q.question);
-    S.part='sim'; S.round=''; S.sampleAnswer='';
-    await renderResults({items});
-  }catch(e){toast('Lỗi: '+e.message,'err');SS('S-sim');}
+// CEFR adaptive level
+let _levelCooldown=false;
+function checkAndAdaptLevel(aiText){
+  if(_levelCooldown)return;
+  // Level up after every 4 questions answered at current level
+  const lvs=['A1','A2','B1','B2'];
+  const ci=lvs.indexOf(S.liveCefrLevel);
+  if(ci>=lvs.length-1)return; // already at max
+  // Count questions per level
+  if(S.liveQCount>0 && S.liveQCount%4===0){
+    const newLv=lvs[ci+1];
+    S.liveCefrLevel=newLv;
+    updLiveLevels(newLv);
+    document.getElementById('ls-level').textContent=newLv;
+    toast('🎉 Level up: '+newLv,'success',3000);
+    _levelCooldown=true;
+    setTimeout(()=>_levelCooldown=false,8000);
+  }
 }
-
-// ── CEFR ADAPTIVE ──────────────────────────────────────────────────
-function startCEFR(){
-  if(!requireKey()) return;
-  Object.assign(S,{cefrHistory:[],cefrAskedQs:[],cefrLevel:'A1',cefrQCount:0,cefrElapsedSec:0,cefrLevelCounts:{A1:0,A2:0,B1:0,B2:0},cefrRecording:false,_cefrQ:''});
-  S.startTime=new Date();
-  clearInterval(S.cefrTimerInt);
-  S.cefrTimerInt=setInterval(()=>{
-    S.cefrElapsedSec++;
-    const m=Math.floor(S.cefrElapsedSec/60),s=String(S.cefrElapsedSec%60).padStart(2,'0');
-    const disp=m+':'+s;
-    document.getElementById('cs-t').textContent=disp;
-    document.getElementById('cefr-td').textContent=disp;
-  },1000);
-  document.getElementById('chat-body').innerHTML='';
-  document.querySelectorAll('.lchip').forEach(c=>c.className='lchip');
-  document.getElementById('ll-A1').classList.add('active');
-  document.getElementById('cs-lv').textContent='A1';
-  document.getElementById('cs-q').textContent='0';
-  document.getElementById('cefr-mic').className='mic-orb';
-  document.getElementById('cefr-mic-st').textContent='Chờ AI hỏi câu hỏi…';
-  SS('S-cefr');
-  cefrAskNext();
+function updLiveLevels(lv){
+  ['A1','A2','B1','B2'].forEach((l,i,a)=>{const e=document.getElementById('ll-'+l);if(!e)return;e.className='llc';const ci=a.indexOf(lv);if(i<ci)e.classList.add('dn');else if(i===ci)e.classList.add('act');});
 }
-
-async function cefrAskNext(){
-  setMicDisabled(true);
-  document.getElementById('cefr-mic').className='mic-orb';
-  document.getElementById('cefr-mic-st').textContent='AI đang chuẩn bị câu hỏi…';
-  const askedStr=S.cefrAskedQs.slice(-10).join(' | ')||'none';
-  const histStr=S.cefrHistory.slice(-6).map(h=>`Examiner: ${h.q}\nStudent: ${h.a||'[no answer]'}`).join('\n\n');
-  const prompt=`${histStr?'Recent conversation:\n'+histStr+'\n\n':'This is the very first question.\n\n'}Questions already asked (NEVER REPEAT): ${askedStr}\nCurrent target level: ${S.cefrLevel}`;
-  try{
-    const raw=await callGemini(prompt, CEFR_SYS);
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const si=clean.indexOf('{'),ei=clean.lastIndexOf('}')+1;
-    let q='', lvl=S.cefrLevel;
-    if(si>=0){try{const j=JSON.parse(clean.substring(si,ei));q=j.question||'';lvl=j.current_level||S.cefrLevel;}catch(_){q=clean;}}
-    else q=clean;
-    q=q.trim()||'Tell me about yourself.';
-    S.cefrAskedQs.push(q); S.cefrQCount++;
-    document.getElementById('cs-q').textContent=S.cefrQCount;
-    appendMsg('ai',q,lvl);
-    S._cefrQ=q;
-    document.getElementById('cefr-mic-st').textContent='Đến lượt bạn — nhấn mic để nói!';
-    setMicDisabled(false);
-  }catch(e){document.getElementById('cefr-mic-st').textContent='Lỗi: '+e.message;setMicDisabled(false);}
+function addTranscriptLine(role,text){
+  const wrap=document.getElementById('live-transcript');
+  const ph=wrap.querySelector('[style*="text-align:center"]');if(ph)ph.remove();
+  const el=document.createElement('div');
+  el.style.cssText='font-size:13px;margin-bottom:5px;line-height:1.6;padding:4px 0';
+  el.innerHTML=`<strong style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.6">${role==='ai'?'Examiner':'You'}:</strong> ${text}`;
+  wrap.appendChild(el);wrap.scrollTop=wrap.scrollHeight;
 }
-
-async function cefrToggleMic(){
-  if(S.cefrRecording){S.cefrRecording=false;stopMic();document.getElementById('cefr-mic').className='mic-orb processing';document.getElementById('cefr-mic-st').textContent='Đang xử lý…';return;}
-  S.cefrRecording=true;
-  document.getElementById('cefr-mic').className='mic-orb listening';
-  document.getElementById('cefr-mic-st').textContent='Đang nghe… nhấn lại để dừng';
-  const ok=await startMic(async blob=>{
-    S.cefrRecording=false;
-    document.getElementById('cefr-mic').className='mic-orb processing';
-    document.getElementById('cefr-mic-st').textContent='Đang nhận diện giọng nói…';
-    setMicDisabled(true);
-    try{
-      const answer=await transcribe(blob);
-      appendMsg('user',answer||'[không nghe rõ]');
-      S.cefrHistory.push({q:S._cefrQ,a:answer,level:S.cefrLevel});
-      S.cefrLevelCounts[S.cefrLevel]++;
-      if(S.cefrLevel==='B2'&&S.cefrLevelCounts['B2']>=3){await endCEFR();return;}
-      if(S.cefrLevelCounts[S.cefrLevel]>=3) await cefrEvaluate();
-      else await cefrAskNext();
-    }catch(e){document.getElementById('cefr-mic-st').textContent='Lỗi: '+e.message;setMicDisabled(false);}
-  });
-  if(!ok){S.cefrRecording=false;document.getElementById('cefr-mic').className='mic-orb';document.getElementById('cefr-mic-st').textContent='Nhấn mic để nói';}
+function setLiveOrb(state,icon){
+  const orb=document.getElementById('live-orb');
+  orb.className='live-orb '+state;
+  if(icon)document.getElementById('live-orb-icon').textContent=icon;
 }
+function setLiveState(msg){const e=document.getElementById('live-state');if(e)e.textContent=msg;}
 
-async function cefrEvaluate(){
-  const levels=['A1','A2','B1','B2'],idx=levels.indexOf(S.cefrLevel);
-  const lhist=S.cefrHistory.filter(h=>h.level===S.cefrLevel).slice(-4);
-  const evalBlock=lhist.map((h,i)=>`Q${i+1}: ${h.q}\nA${i+1}: ${h.a||'[no answer]'}`).join('\n\n');
-  const prompt=`Evaluate if this student demonstrates solid ${S.cefrLevel} speaking ability. Use CEFR descriptors strictly.
-
-Conversation at ${S.cefrLevel}:
-${evalBlock}
-
-Return ONLY valid JSON: {"pass":true,"reason":"brief reason"}
-- pass:true → promote to next level | pass:false → stay or return to previous level`;
-  try{
-    const raw=await callGemini(prompt,'You are a CEFR expert. Return ONLY valid JSON.');
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const si=clean.indexOf('{'),ei=clean.lastIndexOf('}')+1;
-    const ev=si>=0?JSON.parse(clean.substring(si,ei)):{pass:false};
-    if(ev.pass&&idx<levels.length-1){
-      const next=levels[idx+1]; S.cefrLevel=next;
-      document.getElementById('cs-lv').textContent=next;
-      levels.forEach((l,li)=>{const el=document.getElementById('ll-'+l);if(!el)return;el.className='lchip'+(li<idx+1?' done':l===next?' active':'');});
-      appendMsg('ai',`🎉 Xuất sắc! Bạn đã qua <strong>${levels[idx]}</strong>. Chuyển lên <strong>${next}</strong>!`,next,true);
-    }else if(!ev.pass&&idx>0){
-      const prev=levels[Math.max(0,idx-1)];
-      appendMsg('ai',`Hãy luyện thêm nhé. Quay về <strong>${prev}</strong> level ôn thêm!`,prev,true);
-      S.cefrLevelCounts[S.cefrLevel]=0; S.cefrLevel=prev;
-      document.getElementById('cs-lv').textContent=prev;
+// ── END LIVE SESSION ──────────────────────────────────────────────────
+async function endLive(){
+  S.liveEndTime=new Date();
+  clearInterval(S.liveTimerTm);
+  // Stop mic
+  cleanupLiveMic();
+  if(_liveWs){_liveWs.onclose=null;try{_liveWs.close();}catch(e){}_liveWs=null;}
+  if(_liveAudioCtx){try{_liveAudioCtx.close();}catch(e){}_liveAudioCtx=null;}
+  // Generate report
+  SS('S-grading');gStep('Generating AI feedback report…');
+  const transcript=S.liveTranscript.map(l=>(l.role==='ai'?'Examiner: ':'Student: ')+l.text).join('\n');
+  const dur=S.liveDurationSec,qs=S.liveQCount;
+  const startStr=S.liveStartTime.toLocaleTimeString('vi-VN');
+  const endStr=S.liveEndTime.toLocaleTimeString('vi-VN');
+  const durStr=Math.floor(dur/60)+'m '+(dur%60)+'s';
+  const prompt=S.liveMode==='cefr'?buildCEFRReportPrompt(transcript,S.liveCefrLevel):buildIELTSLiveReportPrompt(transcript);
+  let report=null;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{report=await gem('You are a professional language examiner. Write in Vietnamese.',prompt,2000);break;}
+    catch(e){
+      const is429=e.message&&(e.message.includes('429')||e.message.toLowerCase().includes('quota'));
+      if(is429&&attempt<3){const w=attempt*15;gStep(`Quota — waiting ${w}s (retry ${attempt+1}/3)…`);await new Promise(r=>setTimeout(r,w*1000));}
+      else{report=buildFallbackReport(transcript,S.liveMode,S.liveCefrLevel,qs,durStr);toast('Quota — showing summary','info',5000);break;}
     }
-  }catch(_){}
-  await cefrAskNext();
+  }
+  gStep('Report ready ✓',true);
+  setTimeout(()=>renderLiveResults(report,startStr,endStr,durStr,qs),300);
 }
 
-async function endCEFR(){
-  clearInterval(S.cefrTimerInt); stopMic();
-  if(!S.cefrHistory.length){SS('S-home');return;}
-  SS('S-grading'); document.getElementById('g-steps').innerHTML='';
-  const gs=(msg,done=false)=>{const el=document.createElement('div');el.className='gstep '+(done?'done':'now');el.innerHTML=`<div class="gstep-dot">${done?'✓':'…'}</div><span>${msg}</span>`;document.getElementById('g-steps').appendChild(el);document.getElementById('g-title').textContent=msg;};
-  try{
-    gs('AI đang tổng hợp kết quả CEFR…');
-    const qa=S.cefrHistory.map((h,i)=>`[${h.level}] Q${i+1}: "${h.q}"\nA${i+1}: "${h.a||'[no answer]'}"`).join('\n\n');
-    const prompt=`Evaluate this CEFR adaptive speaking session. Highest level: ${S.cefrLevel}. Total Q: ${S.cefrHistory.length}.\n\nCONVERSATION:\n${qa}\n\nReturn ONLY valid JSON:\n{"cefrLevel":"${S.cefrLevel}","scores":{"fluency":{"score":7,"comment":"..."},"vocabulary":{"score":6,"comment":"..."},"grammar":{"score":6,"comment":"..."},"coherence":{"score":7,"comment":"..."}},"overall":6.5}`;
-    const raw=await callGemini(prompt,'Return ONLY valid JSON.');
-    const clean=raw.replace(/```json|```/g,'').trim();
-    const si=clean.indexOf('{'),ei=clean.lastIndexOf('}')+1;
-    const gd=si>=0?JSON.parse(clean.substring(si,ei)):{cefrLevel:S.cefrLevel,scores:{},overall:0};
-    gs('AI đang tổng hợp kết quả CEFR…',true);
-    gs('Lưu kết quả…');
-    const items=S.cefrHistory.map(h=>({question:h.q,studentAnswer:h.a,corrected:'',suggestion:'',scores:{},overall:0,summary:''}));
-    await saveGAS({items,...gd},'cefr');
-    gs('Lưu kết quả…',true);
-    S.mode='cefr'; S.part='cefr'; S.round='';
-    S.recordings=items.map(r=>({question:r.question,transcript:r.studentAnswer,blob:null}));
-    S.questions=items.map(i=>i.question);
-    await renderResults({items,...gd});
-  }catch(e){toast('Lỗi: '+e.message,'err');SS('S-home');}
+function buildFallbackReport(transcript,mode,cefrLevel,qs,durStr){
+  const lines=transcript.split('\n');
+  const studentLines=lines.filter(l=>l.startsWith('Student: ')).map(l=>l.replace('Student: ',''));
+  const wordCount=studentLines.join(' ').split(/\s+/).filter(Boolean).length;
+  const isCEFR=mode==='cefr';
+  return `### ${isCEFR?'📊 KẾT QUẢ CEFR ADAPTIVE':'📝 BÁO CÁO IELTS SPEAKING'}
+
+**⚠️ Lưu ý:** Báo cáo tự động (Gemini đang bị giới hạn quota — vui lòng thử lại sau vài phút để nhận phân tích chi tiết hơn.)
+
+${isCEFR?`**Level đạt được: ${cefrLevel}**`:''}
+
+### 📊 Thống kê buổi học
+- **Số câu hỏi đã trả lời:** ${qs} câu
+- **Thời gian:** ${durStr}
+- **Tổng số từ đã nói (ước tính):** ~${wordCount} từ
+- **Trung bình từ/câu:** ~${qs>0?Math.round(wordCount/qs):0} từ
+
+### 📋 Transcript buổi học
+\`\`\`
+${transcript||'[Không có transcript]'}
+\`\`\`
+
+### 💡 Hướng dẫn tiếp theo
+- Lưu lại transcript ở trên để tự review
+- Thử lại sau vài phút để nhận đánh giá chi tiết từ AI
+- Chú ý các câu trả lời ngắn — cố gắng phát triển ý dài hơn trong lần tới`;
 }
 
-function setMicDisabled(dis){
-  document.getElementById('cefr-mic').style.pointerEvents=dis?'none':'';
-  document.getElementById('cefr-mic').style.opacity=dis?'.45':'1';
+// ── LIVE REPORT PROMPTS ───────────────────────────────────────────────
+function buildCEFRReportPrompt(transcript,finalLevel){
+  return `# ROLE: CEFR Language Examiner. Output in Vietnamese. Be CONCISE.
+# Level reached: ${finalLevel}
+# TRANSCRIPT:
+${transcript||'[No transcript]'}
+
+# OUTPUT FORMAT (Markdown, tiếng Việt) — giữ ngắn gọn:
+
+## 📊 Kết quả: Level **${finalLevel}**
+| Tiêu chí | Điểm |
+| :--- | :---: |
+| Fluency | x.x/9 |
+| Vocabulary | x.x/9 |
+| Grammar | x.x/9 |
+| Pronunciation | x.x/9 |
+
+## 📝 Script đã nói — lỗi được highlight
+Trích lại ĐÚNG NGUYÊN VĂN các câu sinh viên đã nói. Với mỗi lỗi, format như sau:
+> ~~câu sai~~ → **câu đúng** *(giải thích ngắn gọn)*
+
+Chỉ highlight TỐI ĐA 5 lỗi quan trọng nhất. Bỏ qua lỗi nhỏ.
+
+## 💡 Gợi ý lên level tiếp theo
+2-3 gạch đầu dòng cực ngắn. Không hơn.`;
 }
-function appendMsg(role,text,level='',isSystem=false){
-  const body=document.getElementById('chat-body');
-  const div=document.createElement('div'); div.className='msg-row '+role;
-  const badge=level?`<span class="lvl-badge">${level}</span>`:'';
-  if(role==='ai') div.innerHTML=`<div class="msg-av">🤖</div><div class="msg-bub">${isSystem?'<em>'+text+'</em>':text}${badge}</div>`;
-  else div.innerHTML=`<div class="msg-bub">${text}</div><div class="msg-av">🎙️</div>`;
-  body.appendChild(div); body.scrollTop=body.scrollHeight;
+function buildIELTSLiveReportPrompt(transcript){
+  return `# ROLE: IELTS Examiner (IDP/British Council). Output in Vietnamese. Be CONCISE.
+# TRANSCRIPT:
+${transcript||'[No transcript]'}
+# NOTE: This is spoken English — do NOT comment on punctuation or spelling.
+
+# OUTPUT (Markdown, tiếng Việt) — ngắn gọn:
+
+## 📊 Band Score dự đoán
+| Tiêu chí | Band |
+| :--- | :---: |
+| Fluency & Coherence | x.x |
+| Lexical Resource | x.x |
+| Grammar Range | x.x |
+| Pronunciation | x.x |
+| **Tổng** | **x.x** |
+
+## 📝 Script — lỗi được highlight
+Trích NGUYÊN VĂN các câu thí sinh đã nói. Với mỗi lỗi quan trọng:
+> ~~câu/cụm sai~~ → **câu/cụm đúng** *(lý do ngắn)*
+
+Chỉ highlight TỐI ĐA 5 lỗi. Bỏ qua lỗi nhỏ.
+
+## 🚀 1 câu nâng cấp lên Band 8.0
+Chọn 1 câu trả lời hay nhất, viết lại theo phong cách Band 8.
+
+## 💡 Lời khuyên
+2-3 gạch đầu dòng ngắn gọn nhất có thể.`;
 }
 
-// ── RENDER RESULTS ─────────────────────────────────────────────────
-async function renderResults(data){
-  const items=data.items||[];
-  const scores=items.flatMap(r=>Object.values(r.scores||{}).map(v=>v.score||0)).filter(s=>s>0);
-  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length*2)/2:0;
-  const isCEFR=S.mode==='cefr';
-  const modeTag=isCEFR?'CEFR ADAPTIVE':('IELTS '+String(S.part||'').toUpperCase()+(S.round?' · '+(S.round==='hints'?'WITH HINTS':'NO HINTS'):''));
-  document.getElementById('res-tag').textContent=modeTag;
-  document.getElementById('res-score').textContent=data.cefrLevel||avg||'—';
-  document.getElementById('res-label').textContent=isCEFR?'CEFR Level Achieved':'Overall Band Score';
-  const cks=isCEFR?[['fluency','FC'],['vocabulary','VC'],['grammar','GR'],['coherence','CO']]:[['fluency','FC'],['lexical','LR'],['grammar','GR'],['pronunciation','P']];
-  document.getElementById('crit-row').innerHTML=cks.map(([k,a])=>{
-    const sc=items.map(r=>(r.scores&&r.scores[k]?.score)||0).filter(s=>s>0);
-    const av=sc.length?Math.round(sc.reduce((x,y)=>x+y,0)/sc.length*2)/2:data.scores?.[k]?.score||0;
-    return `<div class="crit-box"><div class="crit-score">${av||'—'}</div><div class="crit-name">${a}</div></div>`;
-  }).join('');
-  // Streaming report
-  document.getElementById('rpt-card').style.display='block';
-  const rptEl=document.getElementById('rpt-body');
-  const qa=items.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
-  const partMap={p1:'IELTS Part 1',p2:'IELTS Part 2',p3:'IELTS Part 3',sim:'Full Simulation',cefr:'CEFR Adaptive'};
-  const reportPrompt=`You are an experienced IELTS/CEFR Speaking examiner. Write a comprehensive feedback report in VIETNAMESE (350–450 words) for this student's ${partMap[S.part||'p1']||''} session.
-
-TRANSCRIPTS:
-${qa}
-
-Use this exact markdown format:
-### 📊 Band Score dự đoán
-| Tiêu chí | Band | Nhận xét |
+// ── IELTS RECORD REPORT PROMPT ────────────────────────────────────────
+function buildIELTSPrompt(tb){
+  return `# ROLE: Giám khảo IELTS cao cấp. Chấm theo 4 tiêu chí chuẩn. QUAN TRỌNG: Đây là bài nói — KHÔNG nhận xét về dấu câu hay chính tả.
+# TRANSCRIPT:
+${tb}
+# OUTPUT (Markdown, tiếng Việt):
+### 📝 BÁO CÁO KẾT QUẢ IELTS SPEAKING
+**Dự đoán Band Score tổng: [x.x]**
+| Tiêu chí | Band | Phân tích chi tiết |
 | :--- | :---: | :--- |
-| Fluency & Coherence | x.x | ... |
-| Lexical Resource | x.x | ... |
-| Grammatical Range | x.x | ... |
-| Pronunciation | x.x | ... |
-| **Overall** | **x.x** | ... |
-
-### ✅ Điểm mạnh nổi bật
-- ...
-
-### ⚠️ Cần cải thiện
-- ...
-
-### 🚀 Nâng cấp 1 câu lên Band 8+
-> Câu gốc: "..."
-> Band 8+: "..."
-
-### 💡 Lời khuyên
-- ...`;
-  SS('S-results');
-  await callGeminiStream(reportPrompt,'',rptEl);
-  // Per-Q accordion
-  const sec=document.getElementById('qa-sec');
-  sec.innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Chi tiết từng câu</div>';
-  items.forEach((r,i)=>{
-    const el=document.createElement('div'); el.className='qacc';
-    el.innerHTML=`<div class="qacc-hdr" onclick="togQA(this)"><div class="qa-num">${i+1}</div><div class="qa-qtext">${r.question||''}</div><div class="qa-band">Band ${r.overall||'—'}</div><span class="qa-cv">▼</span></div>
-    <div class="qacc-body"><div class="qs-lbl">Your Answer</div><div class="qs-ans">${r.studentAnswer||'[No answer]'}</div>${r.corrected?`<div class="qs-lbl">Corrected</div><div class="qs-corr">${r.corrected}</div>`:''}${r.suggestion?`<div class="qs-lbl">Suggestion</div><div class="qs-sugg">${r.suggestion}</div>`:''}${r.summary?`<div class="qs-lbl">Summary</div><div style="font-size:13px;line-height:1.7;color:var(--g600)">${r.summary}</div>`:''}</div>`;
-    sec.appendChild(el);
-  });
+| **Fluency & Coherence** | x.x | ... |
+| **Lexical Resource** | x.x | ... |
+| **Grammar Range** | x.x | ... |
+| **Pronunciation** | x.x | ... |
+---
+### 🛠 PHÂN TÍCH CHUYÊN SÂU:
+- **Cụm từ tốt:** [2-3 ví dụ]
+- **Lỗi sai nghiêm trọng:** [câu sai → giải thích → sửa lại]
+- **Vùng cần cải thiện:** [1 điểm yếu nhất]
+### 🚀 BẢN NÂNG CẤP (BAND 8.0+):
+[Viết lại theo phong cách Band 8.5]
+### 💡 LỜI KHUYÊN:
+[Động viên + lộ trình luyện tập cụ thể]`;
 }
+
+// ── RENDER RESULTS ─────────────────────────────────────────────────────
+function renderLiveResults(report,startStr,endStr,durStr,qCount){
+  const isIELTS=S.liveMode==='ielts-live';
+  document.getElementById('res-mode').textContent=isIELTS?'IELTS LIVE SPEAKING':'CEFR ADAPTIVE LIVE';
+  // Extract overall score from report
+  const scoreMatch=report.match(/Band Score[^:]*:\s*\*?\*?([0-9.]+)/i)||report.match(/Level đạt được[^:]*:\s*([A-B][12])/i);
+  document.getElementById('res-sc').textContent=scoreMatch?scoreMatch[1]:'—';
+  document.getElementById('res-lb').textContent=isIELTS?'Overall Band Score':'CEFR Level Reached';
+  // Criteria from report (rough parse)
+  const critKeys=isIELTS?[['Fluency','FC'],['Lexical','LR'],['Grammar','GR'],['Pronunciation','P']]:[['Fluency','FL'],['Vocabulary','VC'],['Grammar','GR'],['Coherence','CO']];
+  document.getElementById('res-crit').innerHTML=critKeys.map(([k,abbr])=>{
+    const m=report.match(new RegExp(k+'[^|]*\\|\\s*([0-9.]+)','i'));
+    return `<div class="crit-box"><div class="crit-score">${m?m[1]:'—'}</div><div class="crit-name">${abbr}</div></div>`;
+  }).join('');
+  // Summary card
+  document.getElementById('live-sum').style.display='block';
+  document.getElementById('sum-start').textContent=startStr;
+  document.getElementById('sum-end').textContent=endStr;
+  document.getElementById('sum-dur').textContent=durStr;
+  document.getElementById('sum-qs').textContent=qCount||'—';
+  // Report
+  document.getElementById('rpt-card').style.display='block';
+  document.getElementById('rpt-body').innerHTML=md(report);
+  // No per-Q breakdown for live (transcript shown inline)
+  document.getElementById('qa-list').innerHTML='<div class="sec-lbl" style="margin-bottom:10px">💬 Session Transcript</div>'
+    +'<div class="rpt-box" style="max-height:300px;overflow-y:auto;font-size:13px;white-space:pre-line">'
+    +S.liveTranscript.map(l=>`<strong>${l.role==='ai'?'Examiner':'You'}:</strong> ${l.text}`).join('\n\n')
+    +'</div>';
+  SS('S-results');
+}
+
+function renderResults(results,report,mode,liveData){
+  document.getElementById('res-mode').textContent='IELTS SPEAKING';
+  const oa=results.map(r=>r.overall||0).filter(s=>s>0);
+  const avg=oa.length?Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2:0;
+  document.getElementById('res-sc').textContent=avg||'—';
+  document.getElementById('res-lb').textContent='Overall Band Score';
+  const cks=[['fluency','FC'],['lexical','LR'],['grammar','GR'],['pronunciation','P']];
+  document.getElementById('res-crit').innerHTML=cks.map(([k,a])=>{const sc=results.map(r=>(r.scores&&r.scores[k]&&r.scores[k].score)||0).filter(s=>s>0);const av=sc.length?Math.round(sc.reduce((x,y)=>x+y,0)/sc.length*2)/2:0;return `<div class="crit-box"><div class="crit-score">${av||'—'}</div><div class="crit-name">${a}</div></div>`;}).join('');
+  document.getElementById('live-sum').style.display='none';
+  if(report){document.getElementById('rpt-card').style.display='block';document.getElementById('rpt-body').innerHTML=md(report);}
+  const qaList=document.getElementById('qa-list');qaList.innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div>';
+  results.forEach((r,i)=>{const el=document.createElement('div');el.className='qacc';el.innerHTML=`<div class="qacc-hdr" onclick="togQA(this)"><div class="qa-n">${i+1}</div><div class="qa-qp">${r.question}</div><div class="qa-bp">Band ${r.overall||'—'}</div><span class="qa-cv">▼</span></div><div class="qacc-body" id="qab-${i}"><div class="qs-lbl">Your Answer</div><div class="qs-student">${r.studentAnswer||'[No transcript]'}</div>${r.corrected?`<div class="qs-lbl">Corrected</div><div class="qs-corr">${r.corrected}</div>`:''} ${r.suggestion?`<div class="qs-lbl">Suggestion</div><div class="qs-sugg">${r.suggestion}</div>`:''} ${r.scores?`<div class="qs-lbl">Scores</div><div class="qa-sg">${Object.entries(r.scores).map(([k,v])=>`<div class="qa-sr"><span class="qa-sn">${k}</span><span><span class="qa-sv">${v.score||'—'}</span><span class="qa-sc">${v.comment||''}</span></span></div>`).join('')}</div>`:''}</div>`;qaList.appendChild(el);});
+  SS('S-results');
+}
+
+function gStep(msg,done){const wrap=document.getElementById('g-steps');const el=document.createElement('div');el.className='gstep '+(done?'done':'now');el.innerHTML=`<div class="dot">${done?'✓':'…'}</div><span>${msg}</span>`;wrap.appendChild(el);document.getElementById('g-title').textContent=msg.replace(' ✓','');}
 function togQA(h){const b=h.nextElementSibling;b.classList.toggle('open');h.querySelector('.qa-cv').textContent=b.classList.contains('open')?'▲':'▼';}
 
-// ── SAVE TO GAS ────────────────────────────────────────────────────
-async function saveGAS(data,simMode){
-  const tok=sessionStorage.getItem('ielts_hub_token')||'';
-  const user=S.user||{};
-  const end=new Date(),dur=S.startTime?Math.round((end-S.startTime)/60000):0;
-  const payload={
-    startingTime:S.startTime?S.startTime.toISOString():'',submittingTime:end.toISOString(),
-    accessCode:user.studentId||'',studentId:user.studentId||'',class:user.class||'',
-    mode:'speaking',simMode,duration:dur,
-    questions:(data.items||[]).map(r=>r.question||''),
-    results:(data.items||[]).map(r=>({q:r.question,a:r.studentAnswer,overall:r.overall,corrected:r.corrected,suggestion:r.suggestion}))
-  };
-  try{await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'speak.saveResult',sessionToken:tok,payload})});}
-  catch(e){console.warn('GAS:',e.message);}
+function md(s){
+  return s.replace(/^#{1,3}\s(.+)$/gm,'<h3>$1</h3>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^-\s(.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>(?:\n<li>[\s\S]*?<\/li>)*)/g,'<ul>$1</ul>').replace(/((?:^\|.+\|\n?)+)/gm,tb=>{const rows=tb.trim().split('\n').filter(r=>r.trim()&&!r.match(/^\|[-\s|:]+\|$/));if(!rows.length)return tb;const[head,...body]=rows;const ths=head.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');const brs=body.map(r=>{const cs=r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');return`<tr>${cs}</tr>`;}).join('');return`<table><thead><tr>${ths}</tr></thead><tbody>${brs}</tbody></table>`;}).replace(/---+/g,'<hr>').replace(/\n{2,}/g,'</p><p>');
 }
 
-// ── MISC ───────────────────────────────────────────────────────────
-function again(){SS('S-home');}
-function md(s){
-  if(!s)return'';
-  return s
-    .replace(/^#{3}\s(.+)$/gm,'<h3>$1</h3>').replace(/^#{2}\s(.+)$/gm,'<h3>$1</h3>').replace(/^#{1}\s(.+)$/gm,'<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^>\s(.+)$/gm,'<blockquote>$1</blockquote>')
-    .replace(/^-\s(.+)$/gm,'<li>$1</li>')
-    .replace(/(<li>[\s\S]*?<\/li>(?:\n<li>[\s\S]*?<\/li>)*)/g,'<ul>$1</ul>')
-    .replace(/((?:^\|.+\|\n?)+)/gm,tb=>{
-      const rows=tb.trim().split('\n').filter(r=>r.trim()&&!r.match(/^\|[-\s|:]+\|$/));
-      if(!rows.length)return tb;
-      const[head,...body]=rows;
-      const ths=head.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
-      const brs=body.map(r=>{const cs=r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');return`<tr>${cs}</tr>`;}).join('');
-      return`<table><thead><tr>${ths}</tr></thead><tbody>${brs}</tbody></table>`;
-    })
-    .replace(/---+/g,'<hr>').replace(/\n{2,}/g,'</p><p>');
+function again(){
+  S.qs=[];S.recs=[];S.idx=0;S.liveTranscript=[];ttsCache={};ttsId=0;
+  document.getElementById('qa-list').innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div>';
+  document.getElementById('g-steps').innerHTML='';document.getElementById('rpt-card').style.display='none';document.getElementById('live-sum').style.display='none';
+  SS('S-home');
 }
 </script>
 </body>
