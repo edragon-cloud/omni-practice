@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speaking History — Language Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F172A;--surface:#1E293B;--surface2:#253348;--border:#2D3F57;
+  --text:#E2E8F0;--muted:#64748B;--dim:#94A3B8;
+  --red:#EF4444;--red-bg:rgba(239,68,68,.12);
+  --green:#22C55E;--green-bg:rgba(34,197,94,.12);
+  --blue:#3B82F6;--blue-bg:rgba(59,130,246,.12);
+  --gold:#F59E0B;--gold-bg:rgba(245,158,11,.12);
+  --purple:#A78BFA;--purple-bg:rgba(167,139,250,.12);
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+  --r:10px;--rl:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.tb-back{color:var(--muted);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:5px;transition:color .15s;background:none;border:none;cursor:pointer;font-family:var(--sans)}
+.tb-back:hover{color:var(--text)}
+.tb-title{font-family:var(--mono);font-size:13px;color:var(--purple);letter-spacing:.04em}
+.tb-spacer{flex:1}
+.tb-user{font-size:12px;color:var(--muted)}
+
+/* MAIN */
+.main{max-width:900px;margin:0 auto;padding:24px 20px}
+
+/* HERO STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;text-align:center}
+.stat-val{font-family:var(--mono);font-size:1.6rem;font-weight:700;color:var(--text)}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:4px}
+
+/* FILTER / SECTION */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filter-chip{padding:5px 14px;border-radius:99px;font-size:12px;font-weight:600;border:1.5px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;transition:.15s;font-family:var(--sans)}
+.filter-chip:hover{border-color:var(--blue);color:var(--text)}
+.filter-chip.sel{border-color:var(--purple);color:var(--purple);background:var(--purple-bg)}
+
+/* SESSION CARDS */
+.session-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:12px;overflow:hidden;transition:.15s}
+.session-card:hover{border-color:var(--border);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.sc-header{padding:16px 18px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.sc-mode-badge{padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;font-family:var(--mono);flex-shrink:0}
+.badge-ielts-p1{background:var(--blue-bg);color:var(--blue)}
+.badge-ielts-p2{background:var(--green-bg);color:var(--green)}
+.badge-ielts-p3{background:var(--gold-bg);color:var(--gold)}
+.badge-ielts-sim{background:var(--red-bg);color:var(--red)}
+.badge-cefr{background:var(--purple-bg);color:var(--purple)}
+.sc-info{flex:1;min-width:0}
+.sc-date{font-size:12px;color:var(--muted);margin-bottom:2px}
+.sc-qs{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-score{font-family:var(--mono);font-size:1.1rem;font-weight:700;flex-shrink:0}
+.sc-chevron{color:var(--muted);font-size:11px;transition:.2s;flex-shrink:0}
+.sc-body{display:none;border-top:1px solid var(--border);padding:16px 18px}
+.sc-body.open{display:block}
+
+/* REPORT in card */
+.rpt-box{font-size:13px;line-height:1.85;color:var(--dim)}
+.rpt-box h3{font-size:.85rem;font-weight:700;color:var(--text);margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.rpt-box h3:first-child{margin-top:0}
+.rpt-box table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+.rpt-box th{background:rgba(255,255,255,.06);color:var(--text);padding:7px 10px;text-align:left;font-weight:600}
+.rpt-box td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--dim)}
+.rpt-box ul{padding-left:18px;margin:5px 0}.rpt-box li{margin-bottom:3px;color:var(--dim)}
+.rpt-box strong{color:var(--text)}.rpt-box p{margin-bottom:7px}
+.rpt-box hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+/* Q accordion inside card */
+.qa-acc{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
+.qa-hdr{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.qa-hdr:hover{background:rgba(255,255,255,.04)}
+.qa-n{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-q{flex:1;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qa-band{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--gold);flex-shrink:0}
+.qa-body{display:none;padding:12px 14px;border-top:1px solid var(--border)}
+.qa-body.open{display:block}
+.qa-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px;margin-top:10px}
+.qa-lbl:first-child{margin-top:0}
+.qa-ans{background:rgba(255,255,255,.04);border-radius:7px;padding:8px 11px;font-size:13px;line-height:1.7;font-style:italic;color:var(--dim)}
+.qa-corr{background:var(--green-bg);border-left:3px solid var(--green);border-radius:7px;padding:8px 11px;font-size:13px;line-height:1.7;color:var(--dim)}
+.qa-sugg{background:var(--blue-bg);border-left:3px solid var(--blue);border-radius:7px;padding:8px 11px;font-size:13px;line-height:1.7;color:var(--dim)}
+
+/* Empty / loading */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:2.5rem;margin-bottom:12px}
+.spinner{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge-round{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.badge-hints{background:var(--gold-bg);color:var(--gold)}
+.badge-nohints{background:rgba(255,255,255,.07);color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="tb-back" onclick="history.back()">← Fluentalk</button>
+  <span style="color:var(--border)">|</span>
+  <span class="tb-title">speak-detail.html</span>
+  <div class="tb-spacer"></div>
+  <span class="tb-user" id="u-name">—</span>
+</div>
+
+<div class="main">
+  <!-- Stats -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="st-sessions">—</div><div class="stat-lbl">Sessions</div></div>
+    <div class="stat-card"><div class="stat-val" id="st-best">—</div><div class="stat-lbl">Best Band</div></div>
+    <div class="stat-card"><div class="stat-val" id="st-avg">—</div><div class="stat-lbl">Avg Band</div></div>
+    <div class="stat-card"><div class="stat-val" id="st-mins">—</div><div class="stat-lbl">Total Mins</div></div>
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-row">
+    <button class="filter-chip sel" onclick="filterSessions('all',this)">All</button>
+    <button class="filter-chip" onclick="filterSessions('p1',this)">Part 1</button>
+    <button class="filter-chip" onclick="filterSessions('p2',this)">Part 2</button>
+    <button class="filter-chip" onclick="filterSessions('p3',this)">Part 3</button>
+    <button class="filter-chip" onclick="filterSessions('sim',this)">Simulation</button>
+    <button class="filter-chip" onclick="filterSessions('cefr',this)">CEFR</button>
+  </div>
+
+  <div class="sec-hdr">
+    <div class="sec-title" id="session-count">Loading…</div>
+  </div>
+
+  <div id="session-list">
+    <div class="empty"><div class="spinner"></div><div>Đang tải lịch sử…</div></div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+let allSessions = [];
+let activeFilter = 'all';
+
+window.onload = async function() {
+  const tok = sessionStorage.getItem('hub_session');
+  const usr = sessionStorage.getItem('hub_user');
+  if (!tok || !usr) { location.href='index.html'; return; }
+  const user = JSON.parse(usr);
+  document.getElementById('u-name').textContent = user.fullName || user.email || 'Student';
+  await loadHistory(tok, user);
+};
+
+async function loadHistory(tok, user) {
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'teacher.getAllResults', sessionToken: tok, teacherToken: '', payload: {} })
+    });
+    // Fallback: use getAllResults and filter by student
+    // Actually use speak.saveResult data from GAS
+    // We post with student token
+    const resp2 = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'teacher.getAllResults', sessionToken: tok, teacherToken: '', payload: {} })
+    });
+    const j = await resp2.json();
+    let rows = [];
+    if (j.success && j.speakSubs) {
+      const sid = user.studentId || '';
+      rows = j.speakSubs.filter(r => String(r.AccessCode||'').trim() === String(sid).trim() || String(r.StudentName||'').trim().toLowerCase() === (user.fullName||'').trim().toLowerCase());
+    }
+    allSessions = rows.reverse();
+    renderStats(allSessions);
+    renderSessions(allSessions);
+  } catch(e) {
+    document.getElementById('session-list').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div>Không tải được lịch sử: ${e.message}</div></div>`;
+  }
+}
+
+function renderStats(sessions) {
+  document.getElementById('st-sessions').textContent = sessions.length || '0';
+  const bands = sessions.map(s => {
+    const r = safeParseResults(s.ResultsJSON);
+    return avgBand(r);
+  }).filter(b => b > 0);
+  const best = bands.length ? Math.max(...bands) : '—';
+  const avg = bands.length ? (bands.reduce((a,b)=>a+b,0)/bands.length).toFixed(1) : '—';
+  const mins = sessions.reduce((sum,s) => sum + (parseFloat(s.DurationMin)||0), 0);
+  document.getElementById('st-best').textContent = best;
+  document.getElementById('st-avg').textContent = avg;
+  document.getElementById('st-mins').textContent = Math.round(mins);
+}
+
+function filterSessions(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  const filtered = f === 'all' ? allSessions : allSessions.filter(s => {
+    const mode = String(s.SimMode||'').toLowerCase();
+    if (f==='p1') return mode.includes('p1');
+    if (f==='p2') return mode.includes('p2');
+    if (f==='p3') return mode.includes('p3');
+    if (f==='sim') return mode.includes('sim');
+    if (f==='cefr') return mode.includes('cefr');
+    return true;
+  });
+  renderSessions(filtered);
+}
+
+function renderSessions(sessions) {
+  document.getElementById('session-count').textContent = sessions.length + ' session' + (sessions.length!==1?'s':'');
+  const list = document.getElementById('session-list');
+  if (!sessions.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🎙️</div><div>Chưa có session nào. Luyện nói đi!</div></div>`;
+    return;
+  }
+  list.innerHTML = sessions.map((s,i) => buildCard(s, i)).join('');
+}
+
+function buildCard(s, idx) {
+  const mode = String(s.SimMode||'');
+  const results = safeParseResults(s.ResultsJSON);
+  const questions = safeParseJSON(s.QuestionsJSON, []);
+  const band = avgBand(results);
+  const dateStr = fmtDate(s.StartingTime);
+  const dur = parseFloat(s.DurationMin)||0;
+  const qCount = questions.length || results.length || '?';
+  const badgeClass = getBadgeClass(mode);
+  const badgeLabel = getBadgeLabel(mode);
+  const bandColor = band >= 7 ? '#22C55E' : band >= 5.5 ? '#F59E0B' : band > 0 ? '#EF4444' : '#64748B';
+  const scoreDisplay = mode.toLowerCase().includes('cefr')
+    ? (results[0]?.cefrLevel || s.SimMode?.replace('cefr','').trim() || '—')
+    : (band > 0 ? band.toFixed(1) : '—');
+  // Round badge
+  const roundBadge = mode.includes('hints') && !mode.includes('nohints')
+    ? '<span class="badge-round badge-hints">💡 With Hints</span>'
+    : mode.includes('nohints')
+    ? '<span class="badge-round badge-nohints">🧠 No Hints</span>'
+    : '';
+  // Q preview
+  const qPreview = questions.slice(0,2).join(' · ') || '—';
+
+  return `<div class="session-card">
+  <div class="sc-header" onclick="toggleCard(${idx})">
+    <span class="sc-mode-badge ${badgeClass}">${badgeLabel}</span>
+    <div class="sc-info">
+      <div class="sc-date">${dateStr} · ${dur}min · ${qCount} câu ${roundBadge}</div>
+      <div class="sc-qs" title="${qPreview}">${qPreview}</div>
+    </div>
+    <div class="sc-score" style="color:${bandColor}">${scoreDisplay}</div>
+    <div class="sc-chevron" id="chev-${idx}">▼</div>
+  </div>
+  <div class="sc-body" id="body-${idx}">
+    ${buildCardBody(s, results, questions, mode)}
+  </div>
+</div>`;
+}
+
+function buildCardBody(s, results, questions, mode) {
+  if (!results.length) return `<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Không có dữ liệu chi tiết.</div>`;
+  const isCEFR = mode.toLowerCase().includes('cefr');
+  let html = '';
+  // Overall report (if stored)
+  if (results[0]?.report) {
+    html += `<div class="rpt-box" style="margin-bottom:16px">${md(results[0].report)}</div>`;
+  }
+  // Per-Q list
+  html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">🎙 ${isCEFR?'Conversation Log':'Chi tiết từng câu'}</div>`;
+  results.forEach((r, i) => {
+    const q = r.q || r.question || questions[i] || `Question ${i+1}`;
+    const a = r.a || r.studentAnswer || '';
+    const band = r.overall || '';
+    html += `<div class="qa-acc">
+      <div class="qa-hdr" onclick="togQA(this)">
+        <div class="qa-n">${i+1}</div>
+        <div class="qa-q">${q}</div>
+        ${band?`<div class="qa-band">Band ${band}</div>`:''}
+        <div style="color:var(--muted);font-size:11px;flex-shrink:0;margin-left:6px">▼</div>
+      </div>
+      <div class="qa-body">
+        <div class="qa-lbl">Your Answer</div>
+        <div class="qa-ans">${a||'[No answer recorded]'}</div>
+        ${r.corrected?`<div class="qa-lbl">Corrected</div><div class="qa-corr">${r.corrected}</div>`:''}
+        ${r.suggestion?`<div class="qa-lbl">Suggestion</div><div class="qa-sugg">${r.suggestion}</div>`:''}
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
+function toggleCard(idx) {
+  const body = document.getElementById('body-'+idx);
+  const chev = document.getElementById('chev-'+idx);
+  body.classList.toggle('open');
+  chev.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+function togQA(h) { const b=h.nextElementSibling; b.classList.toggle('open'); }
+
+function getBadgeClass(mode) {
+  if (mode.includes('p1')) return 'badge-ielts-p1';
+  if (mode.includes('p2')) return 'badge-ielts-p2';
+  if (mode.includes('p3')) return 'badge-ielts-p3';
+  if (mode.includes('sim')) return 'badge-ielts-sim';
+  if (mode.includes('cefr')) return 'badge-cefr';
+  return 'badge-ielts-p1';
+}
+function getBadgeLabel(mode) {
+  if (mode.includes('simulation')||mode.includes('sim')) return 'SIMULATION';
+  if (mode.includes('p1')) return 'PART 1';
+  if (mode.includes('p2')) return 'PART 2';
+  if (mode.includes('p3')) return 'PART 3';
+  if (mode.includes('cefr')) return 'CEFR';
+  return 'IELTS';
+}
+function safeParseResults(json) {
+  try { const r = JSON.parse(json||'[]'); return Array.isArray(r) ? r : []; } catch(e) { return []; }
+}
+function safeParseJSON(json, fallback) {
+  try { return JSON.parse(json||'[]') || fallback; } catch(e) { return fallback; }
+}
+function avgBand(results) {
+  const bands = results.map(r=>parseFloat(r.overall||0)).filter(b=>b>0);
+  return bands.length ? Math.round(bands.reduce((a,b)=>a+b,0)/bands.length*2)/2 : 0;
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' +
+           d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { return String(ts).substring(0,16); }
+}
+function md(s) {
+  if (!s) return '';
+  return s
+    .replace(/^#{3}\s(.+)$/gm,'<h3>$1</h3>')
+    .replace(/^#{2}\s(.+)$/gm,'<h3>$1</h3>')
+    .replace(/^#{1}\s(.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^-\s(.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>(?:\n<li>[\s\S]*?<\/li>)*)/g,'<ul>$1</ul>')
+    .replace(/((?:^\|.+\|\n?)+)/gm,tb=>{
+      const rows=tb.trim().split('\n').filter(r=>r.trim()&&!r.match(/^\|[-\s|:]+\|$/));
+      if(!rows.length)return tb;
+      const[head,...body]=rows;
+      const ths=head.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
+      const brs=body.map(r=>{const cs=r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');return`<tr>${cs}</tr>`;}).join('');
+      return`<table><thead><tr>${ths}</tr></thead><tbody>${brs}</tbody></table>`;
+    })
+    .replace(/---+/g,'<hr>')
+    .replace(/\n{2,}/g,'</p><p>');
+}
+</script>
+</body>
+</html>
