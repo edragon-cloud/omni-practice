@@ -248,8 +248,8 @@ function avgCriteria(results, key){
 
 // ── INIT ───────────────────────────────────────────────────────
 window.onload = async () => {
-  const tok = sessionStorage.getItem('hub_session');
-  const usr = sessionStorage.getItem('hub_user');
+  const tok = sessionStorage.getItem('ielts_hub_token');
+  const usr = sessionStorage.getItem('ielts_hub_user');
   if(!tok||!usr){ location.href='index.html'; return; }
   S.user = JSON.parse(usr); S.sessionToken = tok;
   await loadHistory();

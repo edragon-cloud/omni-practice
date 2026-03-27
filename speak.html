@@ -368,8 +368,8 @@ const S = {
 
 // ── INIT ───────────────────────────────────────────────────────────
 window.onload = () => {
-  const tok = sessionStorage.getItem('hub_session');
-  const usr = sessionStorage.getItem('hub_user');
+  const tok = sessionStorage.getItem('ielts_hub_token');
+  const usr = sessionStorage.getItem('ielts_hub_user');
   if (!tok||!usr) { location.href='index.html'; return; }
   S.user = JSON.parse(usr);
   const name = S.user.fullName||S.user.email||'Student';
@@ -934,7 +934,7 @@ function togQA(h){const b=h.nextElementSibling;b.classList.toggle('open');h.quer
 
 // ── SAVE TO GAS ────────────────────────────────────────────────────
 async function saveGAS(data,simMode){
-  const tok=sessionStorage.getItem('hub_session')||'';
+  const tok=sessionStorage.getItem('ielts_hub_token')||'';
   const user=S.user||{};
   const end=new Date(),dur=S.startTime?Math.round((end-S.startTime)/60000):0;
   const payload={
