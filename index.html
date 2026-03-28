@@ -1174,6 +1174,9 @@ function openApp(app) {
   }
   sessionStorage.setItem('ielts_hub_token', App.sessionToken);
   sessionStorage.setItem('ielts_hub_user', JSON.stringify(App.user));
+  // Also persist to localStorage so write-detail.html can read it when opened from email links
+  localStorage.setItem('ielts_hub_token', App.sessionToken);
+  localStorage.setItem('ielts_hub_user', JSON.stringify(App.user));
   var urls = {vocab:'./vocab.html',write:'./write.html',listen:'./listen.html',speak:'./speak.html'};
   window.location.href = urls[app] || './';
 }
@@ -1182,6 +1185,8 @@ function doLogout() {
   App.user = null; App.sessionToken = null;
   sessionStorage.removeItem('ielts_hub_token');
   sessionStorage.removeItem('ielts_hub_user');
+  localStorage.removeItem('ielts_hub_token');
+  localStorage.removeItem('ielts_hub_user');
   showPage('page-auth');
   toast('Signed out.', 'info');
 }
@@ -2556,7 +2561,7 @@ function _writeRenderTable(rows) {
       timestamp: r.SubmittedAt||r.Timestamp||'',
       overall: r.OverallBand||'',
       scores: { TR: r.TaskResponse||'', CC: r.Coherence||'', LR: r.Lexical||'', GRA: r.Grammar||'' },
-      result: (() => { try { return JSON.parse(r.FeedbackJSON||'{}'); } catch(e){ return {}; } })()
+      needDetail: true
     }));
     return `<tr>
       <td style="color:var(--grey-400)">${sorted.length-i}</td>
@@ -2580,44 +2585,9 @@ function _writeRenderTable(rows) {
 async function loadWriteResults() {
   const tbody = document.getElementById('write-results-tbody');
   tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
-  const res = await api('teacher.write.getResults');
+  const res = await api('teacher.getAllResults');
   if (!res.success) { tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
-
-  // Normalize: sheet thực tế có format:
-  // A=Timestamp  B=StudentName  C=AccessCode  D=Mode
-  // E=TaskResponse  F=Coherence  G=Lexical  H=Grammar
-  // I=OverallBand  J=Question  K=Essay  L=FeedbackJSON  M=DocURL  N=TeacherNotes
-  // GAS writeSaveResult MỚI ghi: StartedAt, SubmittedAt, StudentName, Class, AccessCode, Mode...
-  // → cần normalize cả 2 format
-  const normalize = r => {
-    // Detect new format: có StartedAt riêng
-    if (r.StartedAt || r.SubmittedAt) {
-      return r; // new format, đã đúng
-    }
-    // Old format: Timestamp ở field Timestamp hoặc StartedAt
-    const ts = r.Timestamp || r.StartedAt || '';
-    return {
-      StartedAt:    ts,
-      SubmittedAt:  ts,
-      Timestamp:    ts,
-      StudentName:  r.StudentName  || r.FullName || '',
-      Class:        r.Class        || '',
-      AccessCode:   r.AccessCode   || '',
-      Mode:         r.Mode         || '',
-      TaskResponse: r.TaskResponse || '',
-      Coherence:    r.Coherence    || '',
-      Lexical:      r.Lexical      || '',
-      Grammar:      r.Grammar      || '',
-      OverallBand:  r.OverallBand  || '',
-      Question:     r.Question     || '',
-      Essay:        r.Essay        || '',
-      FeedbackJSON: r.FeedbackJSON || '',
-      DocURL:       r.DocURL       || '',
-      TeacherNotes: r.TeacherNotes || ''
-    };
-  };
-
-  _writeRows = (res.rows||[]).map(normalize).slice().reverse();
+  _writeRows = (res.writeSubs||[]).slice().reverse();
   _writeSortField = null; _writeSortAsc = true;
   _writeRenderTable(_writeRows);
 }

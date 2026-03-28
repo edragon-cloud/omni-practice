@@ -506,10 +506,10 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
 
     <!-- Controls -->
     <div class="live-controls">
-      <button id="live-mic-btn" class="btn btn-red btn-lg" style="flex:1" onclick="_cefrToggleMic()">🎤 Nhấn để nói</button>
-      <button class="btn btn-danger btn-lg" style="flex:1" onclick="endLive()">⏹ End &amp; Get Results</button>
+      <button id="live-mic-btn" class="btn btn-red btn-lg" style="flex:1;min-width:160px" onclick="liveToggleMic()" disabled>🎤 Nhấn để trả lời</button>
+      <button class="btn btn-danger btn-lg" style="flex:0 0 auto" onclick="endLive()">⏹ Kết thúc</button>
     </div>
-    <div style="font-size:11px;color:var(--g400);margin-top:10px;text-align:center">AI hỏi → bạn nhấn 🎤 để trả lời → nhấn ⏹ để dừng ghi âm</div>
+    <div style="font-size:11px;color:var(--g400);margin-top:10px;text-align:center" id="live-hint">Chờ AI hỏi câu hỏi…</div>
   </div>
 </div>
 
@@ -572,7 +572,10 @@ window._Modality = Modality;
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
-const GM_REST  = 'gemini-2.0-flash';
+// Alias models — Google tự cập nhật version mới nhất, không cần đổi code
+const GM_PRIMARY = 'gemini-2.5-flash';      // always latest Gemini 2.5 Flash
+const GM_FALLBACK= 'gemini-2.5-flash-lite-001'; // lite fallback khi hết quota
+const GM_REST    = GM_PRIMARY;
 const GM_LIVE  = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────
@@ -634,28 +637,57 @@ function gasCall(action,payload){
   });
 }
 
-// ── GEMINI REST — via Official SDK (no CORS issue) ───────────────────
-async function gem(sys, usr, mx) {
-  mx = mx || 1024;
-  // Wait for SDK to be available
-  let waited = 0;
-  while (!window._GoogleGenAI && waited < 8000) {
-    await new Promise(r => setTimeout(r, 100)); waited += 100;
+// ── GEMINI REST — fetch-based, clean errors, auto-retry on 429 ────────
+async function gem(sys, usr, mx, _attempt) {
+  mx = mx || 1024; _attempt = _attempt || 1;
+  if (!S.gkey) throw new Error('Chưa có API key — vui lòng nhập key Gemini');
+  const body = {
+    contents: [{ parts: [{ text: usr }] }],
+    generationConfig: { maxOutputTokens: mx, temperature: 0.45 }
+  };
+  if (sys) body.systemInstruction = { parts: [{ text: sys }] };
+  // Primary: gemini-2.5-flash | Fallback: gemini-2.5-flash-lite (lower quota usage)
+  // Models in fallback order — edit GM_PRIMARY / GM_FALLBACK to change
+  const _base = 'https://generativelanguage.googleapis.com/v1beta/models/';
+  const _modelList = [
+    _base + GM_PRIMARY + ':generateContent?key=' + S.gkey,
+    _base + GM_FALLBACK + ':generateContent?key=' + S.gkey,
+    _base + 'gemini-2.0-flash:generateContent?key=' + S.gkey
+  ];
+  const url = _modelList[Math.min(_attempt-1, _modelList.length-1)];
+  const r = await fetch(url,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  if (!r.ok) {
+    let errMsg = 'Gemini lỗi ' + r.status;
+    try {
+      const ej = await r.json();
+      const raw = ej.error?.message || '';
+      if (r.status === 429) {
+        // Try the other model endpoint before giving up
+        if (_attempt <= 3) {
+          const countdownEl = document.getElementById('live-state') || document.getElementById('g-title');
+          const delaySec = _attempt <= 2 ? 5 : 20;
+          for (let i = delaySec; i > 0; i--) {
+            if (countdownEl) countdownEl.textContent = `⏳ Đang thử lại sau ${i}s…`;
+            await new Promise(res => setTimeout(res, 1000));
+          }
+          return gem(sys, usr, mx, _attempt + 1);
+        }
+        errMsg = 'Quota Gemini đã hết. Vui lòng thử lại sau ít phút hoặc dùng key khác.';
+      } else if (r.status === 400) {
+        errMsg = 'API Key không hợp lệ — kiểm tra lại key Gemini';
+      } else if (r.status === 403) {
+        errMsg = 'API Key không có quyền truy cập Gemini API';
+      } else {
+        errMsg = raw.split('\n')[0].substring(0, 120) || errMsg;
+      }
+    } catch(_) {}
+    throw new Error(errMsg);
   }
-  if (!window._GoogleGenAI) throw new Error('SDK not loaded');
-  if (!S.gkey) throw new Error('No API key');
-  const ai = new window._GoogleGenAI({ apiKey: S.gkey });
-  const response = await ai.models.generateContent({
-    model: GM_REST,
-    contents: usr,
-    config: {
-      systemInstruction: sys,
-      maxOutputTokens: mx,
-      temperature: 0.45
-    }
-  });
-  const text = response.text;
-  if (!text) throw new Error('Empty response');
+  const j = await r.json();
+  const text = j.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) throw new Error('Gemini trả về kết quả rỗng');
   return text.trim();
 }
 
@@ -887,20 +919,18 @@ function updSubmitBtn(){const done=S.recs.filter(r=>r.audioBase64).length;docume
 async function advanceQ(done){const next=done+1;if(next<S.qs.length){S.idx=next;await loadQ(next);}else{document.getElementById('submit-wrap').style.display='block';toast('All done! Submit when ready.','success',4000);}}
 function confirmEnd(){const done=S.recs.filter(r=>r.audioBase64).length;if(!done){SS('S-home');return;}if(confirm('Submit '+done+' answer(s) for grading?'))submitAll();}
 
-// ── TRANSCRIBE VIA GEMINI REST (audio inline_data) ────────────────────
-async function transcribeAudio(audioBase64, mimeType){
+// ── TRANSCRIBE AUDIO VIA GEMINI REST ─────────────────────────────────
+async function transcribeAudio(base64, mime){
   if(!S.gkey) throw new Error('No API key');
-  const body={
-    contents:[{parts:[
-      {inline_data:{mime_type:mimeType||'audio/webm',data:audioBase64}},
-      {text:'Transcribe this English speech exactly as spoken. Return ONLY the transcript text, no labels, no punctuation beyond sentence periods.'}
-    ]}]
-  };
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${S.gkey}`,
+  const body={contents:[{parts:[
+    {inline_data:{mime_type:mime||'audio/webm',data:base64}},
+    {text:'Transcribe this English speech. Return ONLY the transcript text, no labels.'}
+  ]}]};
+  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+GM_PRIMARY+':generateContent?key='+S.gkey,
     {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Transcribe failed '+r.status);}
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Transcribe error '+r.status);}
   const j=await r.json();
-  return j.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||'';
+  return (j.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
 }
 
 // ── SUBMIT IELTS ──────────────────────────────────────────────────────
@@ -909,7 +939,6 @@ async function submitAll(){
   if(!needKey())return;
   SS('S-grading');gStep('Transcribing recordings…');
   try{
-    // Transcribe each recording via Gemini REST
     for(let i=0;i<answered.length;i++){
       gStep(`Transcribing Q${i+1}/${answered.length}…`);
       answered[i].studentAnswer = await transcribeAudio(answered[i].audioBase64, answered[i].mimeType||'audio/webm');
@@ -924,8 +953,7 @@ async function submitAll(){
 }
 
 // ══════════════════════════════════════════════
-// CEFR LIVE — Turn-based (record → Gemini REST)
-// Replaces broken WebSocket approach
+// GEMINI LIVE API — WebSocket
 // ══════════════════════════════════════════════
 
 // ── SYSTEM PROMPTS ────────────────────────────────────────────────────
@@ -987,142 +1015,211 @@ BẮT ĐẦU: Chào thí sinh, xác nhận tên, giải thích format bài thi n
 // ── LIVE SESSION INIT ─────────────────────────────────────────────────
 async function startLiveSession(mode){
   if(!needKey())return;
-  S.liveMode=mode;S.liveTranscript=[];S.liveQCount=0;
-  S.liveDurationSec=0;S.liveCefrLevel='A1';
-  S.liveStartTime=new Date();S.liveEndTime=null;
+  S.liveMode=mode; S.liveTranscript=[]; S.liveQCount=0;
+  S.liveDurationSec=0; S.liveCefrLevel='A1';
+  S.liveStartTime=new Date(); S.liveEndTime=null;
+  _liveRecording=false; _liveMr=null; _liveChunks=[];
   document.getElementById('live-tb').textContent=mode==='cefr'?'/ CEFR Live':'/ IELTS Live Exam';
   document.getElementById('live-cefr-levels').style.display=mode==='cefr'?'block':'none';
   document.getElementById('ls-level-wrap').style.display=mode==='cefr'?'block':'none';
-  document.getElementById('live-transcript').innerHTML='<div style="font-size:12px;color:var(--g400);text-align:center">Đang kết nối với Gemini…</div>';
-  setLiveOrb('idle','🤖');setLiveState('Đang khởi động…');
+  document.getElementById('live-transcript').innerHTML='<div style="font-size:12px;color:var(--g400);text-align:center">Đang khởi động…</div>';
   document.getElementById('ls-time').textContent='0:00';
   document.getElementById('ls-qs').textContent='0';
   document.getElementById('ls-level').textContent='A1';
-  if(mode==='cefr')updLiveLevels('A1');
+  if(mode==='cefr') updLiveLevels('A1');
+  setLiveOrb('idle','🤖'); setLiveState('Đang kết nối…');
   SS('S-live');
   S.liveTimerTm=setInterval(()=>{
     S.liveDurationSec++;
     const m=Math.floor(S.liveDurationSec/60),s=S.liveDurationSec%60;
     document.getElementById('ls-time').textContent=m+':'+String(s).padStart(2,'0');
   },1000);
-  // Add mic button to live controls if not present
-  _ensureLiveMicButton();
-  // Start turn-based conversation
-  await _cefrTurnAsk();
+  // Kick off first AI turn
+  await liveAskNext();
 }
 
-// ── TURN-BASED CEFR ENGINE ────────────────────────────────────────────
-// State for turn-based live
-let _cefrMr=null, _cefrChunks=[], _cefrRecording=false, _cefrAskedQs=[];
+// ══════════════════════════════════════════════════════════════════
+// TURN-BASED LIVE ENGINE
+// Flow: AI generates question → TTS speaks it → student presses mic
+//       → records → stops → Gemini transcribes → loop
+// ══════════════════════════════════════════════════════════════════
+let _liveRecording=false, _liveMr=null, _liveChunks=[];
 
-function _ensureLiveMicButton(){
-  const ctrl=document.querySelector('.live-controls');
-  if(!ctrl||document.getElementById('live-mic-btn'))return;
-  const btn=document.createElement('button');
-  btn.id='live-mic-btn';
-  btn.className='btn btn-red btn-lg';
-  btn.style='flex:1';
-  btn.textContent='🎤 Nhấn để nói';
-  btn.onclick=_cefrToggleMic;
-  ctrl.insertBefore(btn,ctrl.firstChild);
+// Web Speech TTS — speaks text, returns Promise that resolves when done
+// Pre-load voices on page load so they're ready when needed
+let _ttsVoices=[];
+function _loadVoices(){
+  _ttsVoices=window.speechSynthesis.getVoices();
+}
+if(window.speechSynthesis){
+  _loadVoices();
+  window.speechSynthesis.onvoiceschanged=_loadVoices;
 }
 
-async function _cefrTurnAsk(){
-  if(!S.liveStartTime||S.liveEndTime) return;
+function _getBestEnVoice(){
+  const v=_ttsVoices.length?_ttsVoices:window.speechSynthesis.getVoices();
+  return v.find(x=>x.lang.startsWith('en')&&x.name.toLowerCase().includes('google'))
+      || v.find(x=>x.lang==='en-US'&&!x.localService)
+      || v.find(x=>x.lang.startsWith('en-')&&!x.localService)
+      || v.find(x=>x.lang.startsWith('en'));
+}
+
+function liveTTS(text){
+  return new Promise(resolve=>{
+    if(!text||!window.speechSynthesis){resolve();return;}
+    window.speechSynthesis.cancel();
+    const speak=()=>{
+      const utt=new SpeechSynthesisUtterance(text);
+      utt.lang='en-US'; utt.rate=0.9; utt.pitch=1;
+      const voice=_getBestEnVoice();
+      if(voice) utt.voice=voice;
+      utt.onend=()=>resolve();
+      utt.onerror=()=>resolve();
+      window.speechSynthesis.speak(utt);
+    };
+    if(_ttsVoices.length>0){speak();}
+    else{setTimeout(()=>{_loadVoices();speak();},300);}
+  });
+}
+
+function setMicBtn(state){
+  const btn=document.getElementById('live-mic-btn');
+  const hint=document.getElementById('live-hint');
+  if(!btn)return;
+  if(state==='idle'){
+    btn.textContent='🎤 Nhấn để trả lời';
+    btn.className='btn btn-red btn-lg';
+    btn.style.flex='1';btn.style.minWidth='160px';
+    btn.disabled=false;
+    if(hint)hint.textContent='Nhấn 🎤 để bắt đầu nói — nhấn lại ⏹ để dừng';
+  }else if(state==='recording'){
+    btn.textContent='⏹ Dừng ghi âm';
+    btn.className='btn btn-green btn-lg';
+    btn.style.flex='1';btn.style.minWidth='160px';
+    btn.disabled=false;
+    if(hint)hint.textContent='Đang ghi âm… nói xong nhấn ⏹';
+  }else if(state==='processing'){
+    btn.textContent='⏳ Đang xử lý…';
+    btn.className='btn btn-grey btn-lg';
+    btn.style.flex='1';btn.style.minWidth='160px';
+    btn.disabled=true;
+    if(hint)hint.textContent='AI đang xử lý câu trả lời của bạn…';
+  }else if(state==='ai-turn'){
+    btn.textContent='🤖 AI đang nói…';
+    btn.className='btn btn-grey btn-lg';
+    btn.style.flex='1';btn.style.minWidth='160px';
+    btn.disabled=true;
+    if(hint)hint.textContent='Chờ AI hỏi xong rồi nhấn 🎤';
+  }
+}
+
+async function liveAskNext(){
+  if(S.liveEndTime)return;
   setLiveOrb('ai-speaking','🤖');
   setLiveState('AI đang chuẩn bị câu hỏi…');
-  const micBtn=document.getElementById('live-mic-btn');
-  if(micBtn){micBtn.disabled=true;micBtn.textContent='⏳ AI đang hỏi…';}
+  setMicBtn('ai-turn');
 
   const systemPrompt=S.liveMode==='cefr'
     ? buildCEFRSystemPrompt(S.liveCefrLevel)
     : buildIELTSLivePrompt(S.liveIeltQs);
 
-  // Build conversation history for context
-  const histText=S.liveTranscript.slice(-8).map(l=>(l.role==='ai'?'Examiner: ':'Student: ')+l.text).join('\n');
-  const askedStr=_cefrAskedQs.slice(-6).join(' | ')||'none';
-  const userMsg=histText
-    ? `Continue the conversation. History:\n${histText}\n\nAlready asked: ${askedStr}\n\nAsk ONE new question appropriate for ${S.liveCefrLevel} level. Return ONLY the question text.`
-    : `Start the conversation. Ask ONE question for ${S.liveCefrLevel} level. Return ONLY the question text.`;
+  // Build context from conversation history
+  const histLines=S.liveTranscript.slice(-10)
+    .map(l=>(l.role==='ai'?'Examiner':'Student')+': '+l.text).join('\n');
+  const userMsg=S.liveTranscript.length===0
+    ? 'Please start the conversation with your opening question.'
+    : `Conversation so far:\n${histLines}\n\nAsk your next question. Return ONLY the question text, nothing else.`;
 
   try{
-    const aiQuestion=await gem(systemPrompt, userMsg, 200);
-    const q=(aiQuestion||'').trim()||'Tell me about yourself.';
-    _cefrAskedQs.push(q);
+    const aiText=await gem(systemPrompt, userMsg, 200);
+    const q=(aiText||'').trim();
+    if(!q)throw new Error('Empty response');
+
+    // Show in transcript
+    addTranscriptLine('ai', q);
+    S.liveTranscript.push({role:'ai',text:q});
     S.liveQCount++;
     document.getElementById('ls-qs').textContent=S.liveQCount;
-    addTranscriptLine('ai',q);
-    S.liveTranscript.push({role:'ai',text:q});
     if(S.liveMode==='cefr') checkAndAdaptLevel(q);
+
+    // Speak it aloud
+    setLiveState('AI đang đọc câu hỏi…');
+    await liveTTS(q);
+
+    // Ready for student
     setLiveOrb('listening','🎤');
-    setLiveState('Đến lượt bạn — nhấn 🎤 để nói');
-    if(micBtn){micBtn.disabled=false;micBtn.textContent='🎤 Nhấn để nói';}
+    setLiveState('Đến lượt bạn!');
+    setMicBtn('idle');
   }catch(e){
-    setLiveState('Lỗi: '+e.message);
-    if(micBtn){micBtn.disabled=false;micBtn.textContent='🎤 Thử lại';}
-    toast('Lỗi Gemini: '+e.message,'error',5000);
+    const msg = e.message || 'Lỗi không xác định';
+    setLiveState('⚠️ ' + msg);
+    setMicBtn('idle');
+    toast(msg, 'error', 6000);
   }
 }
 
-async function _cefrToggleMic(){
-  if(_cefrRecording){
-    // Stop recording
-    if(_cefrMr&&_cefrMr.state!=='inactive') _cefrMr.stop();
+async function liveToggleMic(){
+  if(_liveRecording){
+    // Stop
+    if(_liveMr&&_liveMr.state!=='inactive') _liveMr.stop();
     return;
   }
+  // Start recording
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    _cefrChunks=[];
+    _liveChunks=[];
     const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
-    _cefrMr=new MediaRecorder(stream,{mimeType:mime});
-    _cefrMr.ondataavailable=e=>{if(e.data.size>0)_cefrChunks.push(e.data);};
-    _cefrMr.onstop=async()=>{
+    _liveMr=new MediaRecorder(stream,{mimeType:mime});
+    _liveMr.ondataavailable=e=>{if(e.data.size>0)_liveChunks.push(e.data);};
+    _liveMr.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
-      _cefrRecording=false;
-      const micBtn=document.getElementById('live-mic-btn');
-      if(micBtn){micBtn.disabled=true;micBtn.textContent='⏳ Đang xử lý…';}
+      _liveRecording=false;
+      setMicBtn('processing');
       setLiveOrb('idle','⏳');
       setLiveState('Đang nhận diện giọng nói…');
-      const blob=new Blob(_cefrChunks,{type:mime});
+      // Transcribe
+      const blob=new Blob(_liveChunks,{type:mime});
+      const b64=await new Promise(res=>{const rd=new FileReader();rd.onloadend=()=>res(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
       try{
-        // Transcribe via Gemini
-        const rd=new FileReader();
-        const b64=await new Promise(res=>{rd.onloadend=()=>res(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
         const transcript=await transcribeAudio(b64, mime);
         if(transcript){
-          addTranscriptLine('user',transcript);
+          addTranscriptLine('user', transcript);
           S.liveTranscript.push({role:'user',text:transcript});
         }
-        // Ask next question
-        await _cefrTurnAsk();
+        // CEFR level check every 3 student answers
+        if(S.liveMode==='cefr'){
+          const studentCount=S.liveTranscript.filter(l=>l.role==='user').length;
+          if(studentCount>0&&studentCount%3===0) checkAndAdaptLevel('');
+        }
+        // Next AI turn
+        await liveAskNext();
       }catch(e){
-        setLiveState('Lỗi: '+e.message);
-        if(micBtn){micBtn.disabled=false;micBtn.textContent='🎤 Thử lại';}
+        setLiveState('Lỗi transcribe: '+e.message);
+        setMicBtn('idle');
         toast('Lỗi xử lý audio: '+e.message,'error',5000);
       }
     };
-    _cefrMr.start(100);
-    _cefrRecording=true;
-    const micBtn=document.getElementById('live-mic-btn');
-    if(micBtn){micBtn.textContent='⏹ Dừng lại';micBtn.style.background='var(--green)';}
+    _liveMr.start(100);
+    _liveRecording=true;
     setLiveOrb('listening','🎤');
-    setLiveState('Đang ghi âm… nhấn ⏹ để dừng');
+    setLiveState('Đang ghi âm…');
+    setMicBtn('recording');
   }catch(e){
-    toast('Không thể truy cập microphone: '+e.message,'error',5000);
-    setLiveState('Mic error');
+    toast('Không thể truy cập microphone: '+e.message,'error',6000);
+    setLiveState('Mic error — kiểm tra quyền microphone');
   }
 }
 
-// Legacy stubs — kept so endLive() still works
-let _liveWs=null, _liveAudioCtx=null, _nextPlayTime=0;
-let _micStream=null, _micCtx=null, _micSrc=null, _micProc=null;
+// Stubs for endLive() compatibility
+let _liveWs=null, _liveAudioCtx=null;
+function cleanupLiveMic(){
+  if(_liveMr&&_liveMr.state!=='inactive'){try{_liveMr.stop();}catch(e){}}
+  _liveRecording=false;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+}
 function enqueueAudio(){}
 async function startLiveMic(){}
-function cleanupLiveMic(){
-  if(_cefrMr&&_cefrMr.state!=='inactive'){try{_cefrMr.stop();}catch(e){}}
-  _cefrRecording=false; _cefrMr=null;
-}
-async function connectLiveSDK(){ /* replaced by _cefrTurnAsk */ }
+async function connectLiveSDK(){}
 
 // CEFR adaptive level
 let _levelCooldown=false;

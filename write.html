@@ -404,6 +404,12 @@ body{font-family:var(--fn);background:var(--gd);color:var(--txt);min-height:100v
       <div class="mcard" onclick="enterMode(5)"><div class="mico">⏱️</div><div class="mtag">Mode 05</div><div class="mtitle">IELTS Test Simulation</div><div class="mdesc">Full 60-min timed test — Task 1 + Task 2</div></div>
       <div class="mcard" onclick="enterMode(4)"><div class="mico">📚</div><div class="mtag">Mode 04</div><div class="mtitle">Library</div><div class="mdesc">Browse 365+ topics, questions & essay ideas</div></div>
     </div>
+    <!-- My History button -->
+    <div style="display:flex;justify-content:center;margin-top:8px">
+      <button onclick="openWriteHistory()" style="background:#F5C542;color:#1A1A16;border:none;border-radius:12px;padding:14px 48px;font-size:1rem;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:.02em;transition:all .18s;box-shadow:0 4px 16px rgba(245,197,66,.35)" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        📋 My History
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1027,61 +1033,91 @@ async function gradeWithGemini(payload, geminiKey) {
   const imgDesc  = payload.imgDesc || '';
 
     const prompt =
-`You are a strict IELTS Writing examiner AND a bilingual (English/Vietnamese) writing coach.
-Analyze the essay below and return ONLY valid JSON (no markdown, no extra text).
+`You are a certified IELTS Writing examiner. Grade this essay using the OFFICIAL IELTS Band Descriptors.
 
-SCORING RULES (anti-inflation):
-- Score ONLY what is written. Choose LOWER band if borderline.
-- Unclear viewpoint → max 6. Mechanical linking → max 6.5.
-- Wrong collocations → max 6. 2+ major grammar errors → max 6.
+OFFICIAL IELTS BAND DESCRIPTORS:
 
-TASK: ${question}
-${imgDesc ? 'DIAGRAM: ' + imgDesc : ''}
+TASK RESPONSE (Task 2) / TASK ACHIEVEMENT (Task 1):
+Band 9: Fully addresses all parts. Position clear throughout. Ideas fully developed.
+Band 8: Sufficiently addresses all parts. Position clear. Ideas well developed.
+Band 7: Addresses all parts, some more fully. Clear position. Main ideas extended.
+Band 6: Addresses all parts but conclusions may be unclear. Relevant ideas but insufficiently developed.
+Band 5: Addresses task only partially. Position sometimes unclear. Ideas limited/repetitive.
+Band 4: Responds to task minimally. Position unclear. Ideas not developed or irrelevant.
+
+COHERENCE & COHESION:
+Band 9: Seamless cohesion. Paragraphing fully appropriate.
+Band 8: Sequences information flexibly. Varied cohesion. Paragraphing appropriate.
+Band 7: Logical progression. Uses range of cohesive devices. Paragraphing generally effective.
+Band 6: Cohesive devices used but some under/over-use. Paragraphing present but not always logical.
+Band 5: Some organisation but lacks overall progression. Limited cohesive devices.
+Band 4: Information not arranged coherently. Basic cohesion; some inaccurate use.
+
+LEXICAL RESOURCE:
+Band 9: Full flexibility. Rare minor errors.
+Band 8: Wide resource. Rare errors in word choice/collocation/spelling.
+Band 7: Sufficient range. Some errors but not impeding communication.
+Band 6: Adequate range. Errors in word choice/spelling but meaning clear.
+Band 5: Limited range. Frequent errors. May make meaning partially unclear.
+Band 4: Basic vocabulary. Limited control. Errors may cause misunderstanding.
+
+GRAMMATICAL RANGE & ACCURACY:
+Band 9: Full range. Rare minor errors.
+Band 8: Wide range. Majority error-free sentences.
+Band 7: Uses complex forms. Frequent error-free sentences. Some grammar errors.
+Band 6: Mix of simple and complex. Some error-free sentences. Errors in complex structures.
+Band 5: Limited range. Frequent grammatical errors that cause difficulty.
+Band 4: Very limited range. Predominantly simple sentences. Frequent errors impede meaning.
+
+CRITICAL SCORING RULES — MUST FOLLOW EXACTLY:
+1. Component scores (TR, CC, LR, GRA) MUST be WHOLE NUMBERS only: 4, 5, 6, 7, 8, or 9. NEVER use decimals (no 6.5, no 7.5) for components.
+2. Overall band = average of 4 components, rounded to nearest 0.5. Example: (6+7+6+7)/4 = 6.5 overall.
+3. DO NOT inflate. Most university students score 5–6. Band 7 requires genuinely good writing. Band 8+ is near-native.
+4. Score EACH criterion independently. Rarely should all 4 be equal — differentiate based on evidence.
+5. Choose LOWER band when borderline.
+
+TASK: \${question}
+\${imgDesc ? 'DIAGRAM: ' + imgDesc : ''}
 ESSAY:
-${text}
+\${text}
 
-Return this EXACT JSON structure:
+Return ONLY valid JSON (no markdown):
 {
-  "scores": {"TR": 6.0, "CC": 6.0, "LR": 6.5, "GRA": 6.0},
+  "scores": {"TR": 6, "CC": 6, "LR": 6, "GRA": 6},
   "overall": 6.0,
   "band_description": "Competent User",
+  "overall_feedback_vi": "Nhận xét tổng quan bằng tiếng Việt (3-4 câu): điểm mạnh, điểm yếu chính, lời khuyên cụ thể để lên band.",
   "tr_comments": [
     {
-      "original_idea": "exact quote from essay (the key idea being assessed)",
-      "assessment_vi": "Nhận xét bằng tiếng Việt: điểm mạnh/yếu của ý tưởng này",
-      "suggestion_en": "Improved version of this idea in English (full sentence, well-developed)"
+      "original_idea": "exact quote from essay",
+      "assessment_vi": "Nhận xét bằng tiếng Việt",
+      "suggestion_en": "Improved version in English"
     }
   ],
   "gra_errors": [
     {
-      "wrong": "exact wrong phrase from essay",
+      "wrong": "exact wrong phrase",
       "correct": "corrected version",
-      "explanation_vi": "Giải thích lỗi ngắn gọn bằng tiếng Việt"
+      "explanation_vi": "Giải thích ngắn gọn bằng tiếng Việt"
     }
   ],
   "lr_issues": [
     {
-      "original": "word or phrase from essay",
-      "better": "more appropriate word/phrase",
-      "explanation_vi": "Giải thích bằng tiếng Việt tại sao nên thay",
-      "alternatives": ["example sentence using the better word", "another example sentence"]
+      "original": "word from essay",
+      "better": "better word/phrase",
+      "explanation_vi": "Giải thích bằng tiếng Việt",
+      "alternatives": ["example sentence 1", "example sentence 2"]
     }
   ],
   "cc_feedback": {
-    "assessment_vi": "Nhận xét tổng quan về coherence & cohesion bằng tiếng Việt",
-    "issues": ["specific issue 1 in English", "specific issue 2 in English"],
-    "suggestions": ["concrete suggestion 1 in English", "concrete suggestion 2 in English"]
+    "assessment_vi": "Nhận xét CC bằng tiếng Việt",
+    "issues": ["issue 1", "issue 2"],
+    "suggestions": ["suggestion 1", "suggestion 2"]
   },
-  "corrected_text": "FULL essay word-for-word. Mark wrong words only: ~~wrong~~correct~~ Never wrap whole sentences.",
-  "overall_feedback_vi": "Nhận xét tổng quan bằng tiếng Việt (3-4 câu): điểm mạnh, điểm yếu chính, lời khuyên cụ thể để lên band."
+  "corrected_text": "FULL essay. Mark wrong words only: ~~wrong~~correct~~ Never wrap whole sentences."
 }
 
-RULES:
-- tr_comments: 2-4 key ideas (intro, body 1, body 2, conclusion)
-- gra_errors: 3-5 real grammar errors found in the essay
-- lr_issues: 2-4 vocabulary items that could be improved
-- Vietnamese text must be natural, specific, encouraging
-- corrected_text must contain the FULL essay every sentence`;
+RULES: tr_comments: 2-4 ideas. gra_errors: 3-5 real errors. lr_issues: 2-4 improvements. corrected_text must be the FULL essay.`;
 
   const maxTokens = 10000;
   const resp = await fetch(

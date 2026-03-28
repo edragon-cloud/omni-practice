@@ -22,6 +22,7 @@
 }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+@keyframes spin { to { transform: rotate(360deg); } }
 body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
 
 /* ── TOPBAR ── */
@@ -140,7 +141,16 @@ tr:hover td { background: var(--paper); }
 .tab { flex: 1; text-align: center; padding: 9px; border: none; border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: var(--grey); transition: all .18s; }
 .tab.active { background: #fff; color: var(--ink); box-shadow: 0 1px 6px rgba(0,0,0,.1); }
 
-/* ── PRINT ── */
+/* ── ACCORDION CRITERION CARDS ── */
+.acc-card { border-top: 1px solid var(--border); }
+.acc-card:first-child { border-top: none; }
+.acc-head { display:flex; align-items:center; padding:14px 20px; gap:12px; user-select:none; transition:background .15s; background:var(--ink); }
+.acc-head:hover { background:#1e1e28; }
+.acc-label { font-family:'Playfair Display',serif; font-size:.88rem; font-weight:600; color:var(--gold); }
+.acc-score { font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; line-height:1; min-width:36px; text-align:right; }
+.acc-chevron { font-size:.7rem; color:rgba(255,255,255,.4); transition:transform .2s; }
+.acc-body { border-top:1px solid var(--border); background:#fff; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 @media print {
   .topbar, .tabs, .btn, .btn-red, .btn-ghost, .btn-outline { display: none !important; }
   .page-wrap { padding: 0; max-width: 100%; }
@@ -254,35 +264,48 @@ function buildFullReport(entry) {
   const scores  = r.scores  || entry.scores  || {};
   const overall = r.overall || entry.overall || '—';
   const mode    = entry.mode || '—';
+  const fb      = r.feedback || {};
 
-  // Score cells
-  const scoreCells = [['Task Response','TR'],['Coherence & Cohesion','CC'],['Lexical Resource','LR'],['Grammatical Range','GRA']].map(([label,key]) => `
-    <div class="score-cell">
-      <div class="score-key">${label}</div>
-      <div class="score-val" style="color:${bandColor(scores[key]||0)}">${scores[key]||'—'}</div>
-      ${scoreBarHTML(scores[key]||0)}
-    </div>`).join('');
+  // ── 4 criterion accordion cards ──────────────────────────────
+  const criteria = [
+    { key: 'TR',  label: 'Task Response',             icon: '📋', color: '#1A7A4A', colName: 'FeedbackTR'  },
+    { key: 'CC',  label: 'Coherence & Cohesion',      icon: '🔗', color: '#1565C0', colName: 'FeedbackCC'  },
+    { key: 'LR',  label: 'Lexical Resource',           icon: '📚', color: '#6d28d9', colName: 'FeedbackLR'  },
+    { key: 'GRA', label: 'Grammatical Range & Accuracy', icon: '⚠️', color: '#B91C1C', colName: 'FeedbackGRA' }
+  ];
 
-  // Overall VI
-  const overallVI = r.overall_feedback_vi ? `
-    <div class="section">
-      <div class="section-head"><span class="section-icon">💬</span><span class="section-title">Overall Assessment</span></div>
-      <div class="section-body"><div class="overall-vi">${esc(r.overall_feedback_vi)}</div></div>
-    </div>` : '';
-
-  // Task question
-  const questionHTML = entry.question ? `
-    <div class="section">
-      <div class="section-head"><span class="section-icon">❓</span><span class="section-title">Task Question</span></div>
-      <div class="section-body"><div style="font-size:.88rem;line-height:1.8;font-style:italic;color:var(--grey)">${esc(entry.question)}</div></div>
-    </div>` : '';
-
-  // Student writing
-  const writingHTML = entry.writing ? `
-    <div class="section">
-      <div class="section-head"><span class="section-icon">✍️</span><span class="section-title">Student's Writing</span></div>
-      <div class="section-body"><div class="essay-box">${esc(entry.writing)}</div></div>
-    </div>` : '';
+  const accordionHTML = criteria.map(c => {
+    const val = scores[c.key] || '—';
+    const pct = parseFloat(val) > 0 ? (parseFloat(val)/9*100)+'%' : '0%';
+    const clr = bandColor(val);
+    const uid = 'acc-' + c.key;
+    return `
+    <div class="acc-card" id="${uid}-card">
+      <div class="acc-head" onclick="toggleAccLazy('${uid}','${c.colName}')" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <span style="font-size:1.1rem">${c.icon}</span>
+          <div>
+            <div class="acc-label">${c.label}</div>
+            <div style="height:3px;width:80px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:4px;overflow:hidden">
+              <div style="height:100%;width:${pct};background:${clr};border-radius:2px"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="acc-score" style="color:${clr}">${val}</div>
+          <div class="acc-chevron" id="${uid}-chev">▼</div>
+        </div>
+      </div>
+      <div class="acc-body" id="${uid}-body" style="display:none">
+        <div class="section-body" id="${uid}-content">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;color:var(--grey);font-size:.85rem">
+            <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></div>
+            Loading…
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 
   // Corrected version
   const corrected = r.corrected_text || '';
@@ -298,82 +321,30 @@ function buildFullReport(entry) {
       </div>
     </div>` : '';
 
-  // TR Comments
-  const trComments = r.tr_comments || [];
-  const trHTML = trComments.length ? `
+  const overallVI = r.overall_feedback_vi ? `
     <div class="section">
-      <div class="section-head"><span class="section-icon">📋</span><span class="section-title">Task Response & Content</span><span class="section-count">${trComments.length}</span></div>
-      <div class="section-body">
-        ${trComments.map((c,i) => `
-          <div class="tr-card">
-            <div class="tr-num">Comment ${i+1}</div>
-            <div class="tr-row"><strong>Original idea:</strong> "${esc(c.original_idea||'')}"</div>
-            ${c.assessment_vi ? `<div class="tr-row"><strong>Assessment:</strong> ${esc(c.assessment_vi)}</div>` : ''}
-            ${c.suggestion_en ? `<div class="tr-suggestion">💡 ${esc(c.suggestion_en)}</div>` : ''}
-          </div>`).join('')}
-      </div>
+      <div class="section-head"><span class="section-icon">💬</span><span class="section-title">Overall Assessment</span></div>
+      <div class="section-body"><div class="overall-vi">${esc(r.overall_feedback_vi)}</div></div>
+    </div>` : (fb.general ? `
+    <div class="section">
+      <div class="section-head"><span class="section-icon">💬</span><span class="section-title">Overall Assessment</span></div>
+      <div class="section-body"><div class="overall-vi">${esc(fb.general)}</div></div>
+    </div>` : '');
+
+  const questionHTML = entry.question ? `
+    <div class="section">
+      <div class="section-head"><span class="section-icon">❓</span><span class="section-title">Task Question</span></div>
+      <div class="section-body"><div style="font-size:.88rem;line-height:1.8;font-style:italic;color:var(--grey)">${esc(entry.question)}</div></div>
     </div>` : '';
 
-  // GRA Errors
-  const graErrors = r.gra_errors || [];
-  const graHTML = graErrors.length ? `
+  const writingHTML = entry.writing ? `
     <div class="section">
-      <div class="section-head"><span class="section-icon">⚠️</span><span class="section-title">Grammar Errors</span><span class="section-count">${graErrors.length}</span></div>
-      <div class="section-body">
-        ${graErrors.map((e,i) => `
-          <div class="gra-card">
-            <div class="gra-badge">Error ${i+1}</div>
-            <div class="gra-diff">
-              <span class="gra-wrong">${esc(e.wrong||'')}</span>
-              <span class="gra-arrow">→</span>
-              <span class="gra-correct">${esc(e.correct||'')}</span>
-            </div>
-            ${e.explanation_vi ? `<div class="gra-expl">${esc(e.explanation_vi)}</div>` : ''}
-          </div>`).join('')}
-      </div>
+      <div class="section-head"><span class="section-icon">✍️</span><span class="section-title">Student's Writing</span></div>
+      <div class="section-body"><div class="essay-box">${esc(entry.writing)}</div></div>
     </div>` : '';
 
-  // LR Issues
-  const lrIssues = r.lr_issues || [];
-  const lrHTML = lrIssues.length ? `
-    <div class="section">
-      <div class="section-head"><span class="section-icon">📚</span><span class="section-title">Vocabulary Improvements</span><span class="section-count">${lrIssues.length}</span></div>
-      <div class="section-body">
-        ${lrIssues.map(iss => `
-          <div class="lr-card">
-            <div class="lr-pair">"${esc(iss.original||'')} → ${esc(iss.better||'')}"</div>
-            ${iss.explanation_vi ? `<div class="lr-expl">${esc(iss.explanation_vi)}</div>` : ''}
-            ${(iss.alternatives||[]).length ? `<div class="lr-alts"><strong>Alternatives:</strong> ${iss.alternatives.map(a=>esc(a)).join(' · ')}</div>` : ''}
-          </div>`).join('')}
-      </div>
-    </div>` : '';
-
-  // CC Feedback
-  const cc = r.cc_feedback || null;
-  const ccFallback = (!cc && r.feedback?.CC) ? `<div class="cc-assess">${esc(r.feedback.CC)}</div>` : '';
-  const ccHTML = (cc || ccFallback) ? `
-    <div class="section">
-      <div class="section-head"><span class="section-icon">🔗</span><span class="section-title">Coherence & Cohesion</span></div>
-      <div class="section-body">
-        ${cc ? `
-          ${cc.assessment_vi ? `<div class="cc-assess">${esc(cc.assessment_vi)}</div>` : ''}
-          ${(cc.issues||[]).length ? `<div class="cc-sub">❌ Issues</div><ul class="cc-list">${cc.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : ''}
-          ${(cc.suggestions||[]).length ? `<div class="cc-sub">💡 Suggestions</div><ul class="cc-list">${cc.suggestions.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>` : ''}
-        ` : ccFallback}
-      </div>
-    </div>` : '';
-
-  // Fallback feedback (old format)
-  const fb = r.feedback || {};
-  const fallbackFbHTML = (!trComments.length && !graErrors.length && !lrIssues.length && !cc && fb.general) ? `
-    <div class="section">
-      <div class="section-head"><span class="section-icon">💡</span><span class="section-title">AI Feedback</span></div>
-      <div class="section-body">
-        ${fb.general ? `<div class="overall-vi" style="margin-bottom:12px">${esc(fb.general)}</div>` : ''}
-        ${[['Task Response','TR'],['Coherence','CC'],['Lexical','LR'],['Grammar','GRA']].filter(([,k])=>fb[k]).map(([l,k])=>`
-          <div style="margin-bottom:12px"><strong style="font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--grey)">${l}</strong><div style="font-size:.85rem;margin-top:4px;line-height:1.7;color:#444">${esc(fb[k])}</div></div>`).join('')}
-      </div>
-    </div>` : '';
+  const hasAnyFeedback = r.overall_feedback_vi || r.tr_comments?.length || r.gra_errors?.length
+    || r.lr_issues?.length || r.cc_feedback || r.corrected_text || fb.general;
 
   return `
     <!-- Header -->
@@ -397,26 +368,149 @@ function buildFullReport(entry) {
           <div class="band-lbl">Overall Band</div>
         </div>
       </div>
-      <div class="scores-row">
-        ${scoreCells}
+      <!-- 4 criterion accordion cards in scores-row -->
+      <div class="scores-row" style="display:block;padding:0">
+        ${accordionHTML}
       </div>
     </div>
 
-    <!-- Sections -->
+    <!-- Overall + Essay + Corrected -->
     ${overallVI}
     ${questionHTML}
     ${writingHTML}
     ${correctedHTML}
-    ${trHTML}
-    ${graHTML}
-    ${lrHTML}
-    ${ccHTML}
-    ${fallbackFbHTML}
+
+    ${!hasAnyFeedback && entry.writing ? `
+    <div class="section" id="loading-feedback-section" style="border-color:var(--border);background:#fff">
+      <div class="section-body" style="display:flex;align-items:center;gap:14px;padding:20px">
+        <div style="width:22px;height:22px;border:2px solid rgba(180,83,9,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></div>
+        <div style="font-size:.88rem;color:var(--grey)">Loading feedback…</div>
+      </div>
+    </div>` : ''}
 
     <div style="text-align:center;padding:28px 0 0;font-size:.75rem;color:var(--grey)">
       Developed by Duong Thanh Tu — DNU English Faculty
     </div>`;
 }
+
+// ── Accordion: lazy fetch 1 cột khi click ────────────────────
+async function toggleAccLazy(uid, colName) {
+  const body = document.getElementById(uid + '-body');
+  const chev = document.getElementById(uid + '-chev');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  // Toggle đóng/mở
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.textContent = isOpen ? '▼' : '▲';
+  if (isOpen) return; // Đang đóng lại → không cần fetch
+
+  const content = document.getElementById(uid + '-content');
+  if (!content) return;
+
+  // Nếu đã load rồi (không còn spinner) → không fetch lại
+  if (!content.querySelector('[style*="border-radius:50%"]')) return;
+
+  const entry = S.currentEntry;
+  if (!entry) return;
+
+  // Check cache
+  const cacheKey = 'arw_col_' + (entry.name||'').toLowerCase().replace(/\s+/g,'_')
+                 + '_' + (entry.timestamp||entry.submittedAt||'').substring(0,10)
+                 + '_' + colName;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    content.innerHTML = renderColContent(colName, cached);
+    return;
+  }
+
+  // Fetch 1 cột từ GAS
+  try {
+    const res = await gasGet('write.getOneFeedback', {
+      name:      entry.name,
+      timestamp: entry.timestamp || entry.submittedAt || '',
+      column:    colName,
+      sessionToken: S.sessionToken || ''
+    });
+    if (res?.success) {
+      const value = res.value || '';
+      localStorage.setItem(cacheKey, value);
+      content.innerHTML = renderColContent(colName, value);
+    } else {
+      content.innerHTML = `<div style="color:var(--grey);font-size:.85rem">No feedback available.</div>`;
+    }
+  } catch(e) {
+    content.innerHTML = `<div style="color:var(--grey);font-size:.85rem">Could not load feedback.</div>`;
+  }
+}
+
+// Render nội dung 1 cột feedback thành HTML
+function renderColContent(colName, value) {
+  if (!value || !value.trim()) {
+    return '<div style="color:var(--grey);font-size:.85rem">No detailed feedback for this criterion.</div>';
+  }
+  function tryParse(s) { try { return JSON.parse(s); } catch(e) { return null; } }
+  const parsed = tryParse(value);
+
+  if (colName === 'FeedbackTR') {
+    const arr = Array.isArray(parsed) ? parsed : null;
+    if (arr && arr.length) return arr.map((c,i) => `
+      <div class="tr-card">
+        <div class="tr-num">Comment ${i+1}</div>
+        ${c.original_idea ? `<div class="tr-row"><strong>Original idea:</strong> "${esc(c.original_idea)}"</div>` : ''}
+        ${c.assessment_vi ? `<div class="tr-row"><strong>Assessment:</strong> ${esc(c.assessment_vi)}</div>` : ''}
+        ${c.suggestion_en ? `<div class="tr-suggestion">💡 ${esc(c.suggestion_en)}</div>` : ''}
+      </div>`).join('');
+    return `<div class="cc-assess">${esc(value)}</div>`;
+  }
+
+  if (colName === 'FeedbackCC') {
+    const cc = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    if (cc) return `
+      ${cc.assessment_vi ? `<div class="cc-assess">${esc(cc.assessment_vi)}</div>` : ''}
+      ${(cc.issues||[]).length ? `<div class="cc-sub">❌ Issues</div><ul class="cc-list">${cc.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+      ${(cc.suggestions||[]).length ? `<div class="cc-sub">💡 Suggestions</div><ul class="cc-list">${cc.suggestions.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>` : ''}`;
+    return `<div class="cc-assess">${esc(value)}</div>`;
+  }
+
+  if (colName === 'FeedbackLR') {
+    const arr = Array.isArray(parsed) ? parsed : null;
+    if (arr && arr.length) return arr.map(iss => `
+      <div class="lr-card">
+        <div class="lr-pair">"${esc(iss.original||'')} → ${esc(iss.better||'')}"</div>
+        ${iss.explanation_vi ? `<div class="lr-expl">${esc(iss.explanation_vi)}</div>` : ''}
+        ${(iss.alternatives||[]).length ? `<div class="lr-alts"><strong>Alternatives:</strong> ${iss.alternatives.map(a=>esc(a)).join(' · ')}</div>` : ''}
+      </div>`).join('');
+    return `<div class="cc-assess">${esc(value)}</div>`;
+  }
+
+  if (colName === 'FeedbackGRA') {
+    const arr = Array.isArray(parsed) ? parsed : null;
+    if (arr && arr.length) return arr.map((e,i) => `
+      <div class="gra-card">
+        <div class="gra-badge">Error ${i+1}</div>
+        <div class="gra-diff">
+          <span class="gra-wrong">${esc(e.wrong||'')}</span>
+          <span class="gra-arrow">→</span>
+          <span class="gra-correct">${esc(e.correct||'')}</span>
+        </div>
+        ${e.explanation_vi ? `<div class="gra-expl">${esc(e.explanation_vi)}</div>` : ''}
+      </div>`).join('');
+    return `<div class="cc-assess">${esc(value)}</div>`;
+  }
+
+  // Default: plain text
+  return `<div class="cc-assess">${esc(value)}</div>`;
+}
+
+function toggleAcc(uid) {
+  const body = document.getElementById(uid + '-body');
+  const chev = document.getElementById(uid + '-chev');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.textContent = isOpen ? '▼' : '▲';
+}
+
 
 // ── Build mini card for latest tab ───────────────────────────
 function buildResultCard(entry) {
@@ -467,6 +561,49 @@ function viewFullReport(entry) {
   document.getElementById('btn-export').style.display = '';
   document.getElementById('btn-print').style.display = '';
   window.scrollTo(0, 0);
+
+  // Fetch Overall + Corrected ngay (không cần click) nếu chưa có
+  const r = entry.result || {};
+  if (!r.overall_feedback_vi && !r.corrected_text && entry.writing) {
+    fetchOverallAndCorrected(entry);
+  }
+}
+
+async function fetchOverallAndCorrected(entry) {
+  const name = entry.name || S.name;
+  const ts   = entry.timestamp || entry.submittedAt || '';
+
+  // Fetch Overall
+  const ckOverall = 'arw_col_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + ts.substring(0,10) + '_FeedbackOverall';
+  const ckCorrected = 'arw_col_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + ts.substring(0,10) + '_EssayCorrected';
+
+  let overall   = localStorage.getItem(ckOverall)   || '';
+  let corrected = localStorage.getItem(ckCorrected) || '';
+
+  // Fetch nếu chưa cache
+  if (!overall) {
+    try {
+      const res = await gasGet('write.getOneFeedback', { name, timestamp: ts, column: 'FeedbackOverall', sessionToken: S.sessionToken||'' });
+      if (res?.success) { overall = res.value || ''; localStorage.setItem(ckOverall, overall); }
+    } catch(e) {}
+  }
+  if (!corrected) {
+    try {
+      const res = await gasGet('write.getOneFeedback', { name, timestamp: ts, column: 'EssayCorrected', sessionToken: S.sessionToken||'' });
+      if (res?.success) { corrected = res.value || ''; localStorage.setItem(ckCorrected, corrected); }
+    } catch(e) {}
+  }
+
+  if (!overall && !corrected) return;
+
+  // Cập nhật entry.result và re-render chỉ phần overall + corrected
+  if (!S.currentEntry || S.currentEntry.name !== name) return;
+  S.currentEntry.result = S.currentEntry.result || {};
+  if (overall)   S.currentEntry.result.overall_feedback_vi = overall;
+  if (corrected) S.currentEntry.result.corrected_text      = corrected;
+
+  // Re-render toàn bộ report với data mới
+  document.getElementById('report-view').innerHTML = buildFullReport(S.currentEntry);
 }
 
 function goBack() {
@@ -566,6 +703,10 @@ function loadLatestFromStorage() {
     const entry = JSON.parse(raw);
     S.currentEntry = entry;
     if (entry.name) { S.name = entry.name; S.code = entry.code || ''; }
+    // Cache feedback so History tab can show it without network call
+    if (entry.result && entry.name && (entry.submittedAt || entry.timestamp)) {
+      fbCacheSet(entry.name, entry.submittedAt || entry.timestamp, entry.result);
+    }
     el.innerHTML = buildResultCard(entry);
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error loading result</div></div>`;
@@ -576,7 +717,14 @@ function loadLatestFromStorage() {
 function fetchHistory() {
   const el = document.getElementById('history-content');
   if (!S.name && !S.code) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-title">Not logged in</div><p>Open from ArticuWrite after submitting.</p></div>`;
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔒</div>
+        <div class="empty-title">Sign in to view history</div>
+        <p style="margin-bottom:20px">Your past submissions are saved in Language Hub. Sign in to load them here.</p>
+        <a href="./index.html" style="display:inline-block;background:var(--red);color:#fff;padding:11px 28px;border-radius:9px;font-weight:700;font-size:.9rem;text-decoration:none">← Sign in to Language Hub</a>
+        <div style="margin-top:12px;font-size:.78rem;color:var(--grey)">After signing in, come back to ArticuWrite → My History</div>
+      </div>`;
     return;
   }
   gasGet('write.getMyResults', { name: S.name, code: S.code, sessionToken: S.sessionToken })
@@ -622,29 +770,202 @@ function renderHistoryTable(rows) {
     </div>`;
 }
 
-function viewHistoryRow(idx) {
-  const row = S.rows[idx];
-  if (!row) return;
-  let result = {};
-  try { result = JSON.parse(row.FeedbackJSON || row.feedbackJson || '{}'); } catch(e) {}
-  const entry = {
-    name:       row.StudentName || row.studentName || S.name,
-    code:       row.AccessCode  || row.accessCode  || S.code,
-    class:      row.Class       || row.class       || '',
-    mode:       row.Mode        || row.mode        || '—',
-    question:   row.Question    || row.question    || '',
-    writing:    row.Essay       || row.essay       || '',
-    startedAt:  row.StartedAt   || row.startedAt   || '',
-    submittedAt:row.SubmittedAt || row.submittedAt || row.Timestamp || '',
-    timestamp:  row.SubmittedAt || row.Timestamp   || '',
-    overall:    row.OverallBand || row.overall     || '',
-    scores:     { TR: row.TaskResponse||'', CC: row.Coherence||'', LR: row.Lexical||'', GRA: row.Grammar||'' },
-    result:     result
-  };
-  viewFullReport(entry);
+// ── Feedback cache (localStorage) ────────────────────────────
+function fbCacheKey(name, ts) {
+  return 'arw_fb_' + (name||'').toLowerCase().replace(/\s+/g,'_') + '_' + (ts||'').substring(0,10);
+}
+function fbCacheGet(name, ts) {
+  try { const v = localStorage.getItem(fbCacheKey(name,ts)); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+function fbCacheSet(name, ts, result) {
+  try {
+    localStorage.setItem(fbCacheKey(name,ts), JSON.stringify(result));
+    // Prune old cache keys (keep max 20)
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('arw_fb_'));
+    if (keys.length > 20) keys.slice(0, keys.length-20).forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
 }
 
-// ── GAS JSONP ────────────────────────────────────────────────
+async function viewHistoryRow(idx) {
+  const row = S.rows[idx];
+  if (!row) return;
+  const ts   = row.SubmittedAt || row.Timestamp || row.timestamp || '';
+  const name = row.StudentName || row.studentName || S.name;
+
+  // Build entry với data đã có từ list (scores, question, writing truncate)
+  const entry = {
+    name, ts,
+    code:        row.AccessCode  || row.accessCode  || S.code,
+    class:       row.Class       || row.class       || '',
+    mode:        row.Mode        || row.mode        || '—',
+    question:    row.Question    || row.question    || '',
+    writing:     row.Essay       || row.essay       || '',
+    startedAt:   row.StartedAt   || row.startedAt   || '',
+    submittedAt: ts,
+    timestamp:   ts,
+    overall:     row.OverallBand || row.overall     || '',
+    scores:      { TR: row.TaskResponse||'', CC: row.Coherence||'', LR: row.Lexical||'', GRA: row.Grammar||'' },
+    result:      {}
+  };
+
+  // Check localStorage cache trước
+  const cached = fbCacheGet(name, ts);
+  if (cached) {
+    entry.result = cached;
+    viewFullReport(entry);
+    return;
+  }
+
+  // Hiện report ngay với điểm số, đồng thời fetch feedback
+  viewFullReport(entry);
+
+  // Fetch 7 cột feedback nhỏ từ GAS (nhẹ hơn getRowDetail nhiều)
+  try {
+    const res = await gasGet('write.getFeedback', {
+      name, timestamp: ts, sessionToken: S.sessionToken || ''
+    });
+    if (res?.success && res.feedback) {
+      const fb = res.feedback;
+      // Parse các cột thành result object
+      const result = buildResultFromFeedbackCols(fb);
+      entry.result  = result;
+      if (fb.essay)    entry.writing  = fb.essay;
+      if (fb.question) entry.question = fb.question;
+      // Cache và re-render
+      fbCacheSet(name, ts, result);
+      S.currentEntry = entry;
+      document.getElementById('report-view').innerHTML = buildFullReport(entry);
+    }
+  } catch(e) {
+    console.warn('getFeedback error:', e.message);
+  }
+}
+
+// Parse 7 cột feedback → result object mà buildFullReport hiểu được
+function buildResultFromFeedbackCols(fb) {
+  function tryParse(s) { try { return s ? JSON.parse(s) : null; } catch(e) { return null; } }
+  const result = {
+    overall_feedback_vi: fb.overall || '',
+    corrected_text:      fb.corrected || '',
+    tr_comments:  tryParse(fb.TR)  || (fb.TR  ? [{assessment_vi: fb.TR}]  : []),
+    cc_feedback:  tryParse(fb.CC)  || (fb.CC  ? {assessment_vi: fb.CC}    : null),
+    lr_issues:    tryParse(fb.LR)  || (fb.LR  ? [{explanation_vi: fb.LR}] : []),
+    gra_errors:   tryParse(fb.GRA) || (fb.GRA ? [{explanation_vi: fb.GRA}]: []),
+    feedback:     { general: fb.overall||'', TR: fb.TR||'', CC: fb.CC||'', LR: fb.LR||'', GRA: fb.GRA||'' },
+    scores:       {}
+  };
+  return result;
+}
+
+// ── Auto re-grade silently when history row has no feedback ──
+async function autoRegrade() {
+  const entry = S.currentEntry;
+  if (!entry || !entry.writing) return;
+  try {
+    const gasResp = await gasGet('write.regrade', {
+      writing:      entry.writing,
+      question:     entry.question || '',
+      mode:         entry.mode     || 'IELTS Task 2',
+      sessionToken: S.sessionToken || ''
+    });
+    if (!gasResp?.success || !gasResp?.result) {
+      // Failed silently — show minimal message, don't block
+      const sec = document.getElementById('auto-regrade-section');
+      if (sec) sec.innerHTML = '<div class="section-body" style="padding:14px 20px;font-size:.82rem;color:var(--grey)">⚠️ Could not load feedback. Check connection or try again later.</div>';
+      return;
+    }
+    const result = gasResp.result;
+    // Merge + re-render full report
+    S.currentEntry = { ...entry, result, overall: result.overall || entry.overall, scores: result.scores || entry.scores };
+    document.getElementById('report-view').innerHTML = buildFullReport(S.currentEntry);
+    // Save back to sheet
+    saveRegradeResult(S.currentEntry, result);
+    // Cache locally so History shows feedback next time without network
+    fbCacheSet(S.currentEntry.name, S.currentEntry.timestamp || S.currentEntry.submittedAt, result);
+    // Save to localStorage cache
+    fbCacheSet(S.currentEntry.name, S.currentEntry.timestamp || S.currentEntry.submittedAt, result);
+  } catch(e) {
+    const sec = document.getElementById('auto-regrade-section');
+    if (sec) sec.innerHTML = '<div class="section-body" style="padding:14px 20px;font-size:.82rem;color:var(--grey)">⚠️ Could not load feedback.</div>';
+  }
+}
+
+// ── Re-grade via GAS (uses teacher AI key, no student key needed) ──
+async function reGrade() {
+  const entry = S.currentEntry;
+  if (!entry || !entry.writing) return;
+
+  const btn = document.getElementById('btn-regrade');
+  if (btn) { btn.textContent = '\u23F3 Grading\u2026'; btn.disabled = true; }
+
+  try {
+    const payload = {
+      writing:      entry.writing,
+      question:     entry.question || '',
+      mode:         entry.mode     || 'IELTS Task 2',
+      sessionToken: S.sessionToken || ''
+    };
+
+    // Try JSONP GET (works cross-origin)
+    const gasResp = await gasGet('write.regrade', payload);
+
+    if (gasResp?.error === 'RATE_LIMIT') throw new Error('Daily re-grade limit reached (5/day). Try again tomorrow.');
+    if (!gasResp?.success) throw new Error(gasResp?.error || 'Re-grade failed. Please try again later.');
+
+    const result = gasResp.result;
+    if (!result) throw new Error('No result returned.');
+
+    // Merge and re-render
+    S.currentEntry = { ...entry, result, overall: result.overall || entry.overall, scores: result.scores || entry.scores };
+    document.getElementById('report-view').innerHTML = buildFullReport(S.currentEntry);
+
+    // Save back to sheet so next open no re-grade needed
+    saveRegradeResult(S.currentEntry, result);
+
+  } catch(e) {
+    alert('Re-grade failed: ' + e.message);
+    if (btn) { btn.textContent = '\u2728 Re-grade with AI'; btn.disabled = false; }
+  }
+}
+
+// ── Save re-grade result back to sheet ───────────────────────
+function saveRegradeResult(entry, result) {
+  const scores = result.scores || entry.scores || {};
+  const payload = {
+    name:        entry.name        || S.name || '',
+    timestamp:   entry.submittedAt || entry.timestamp || '',
+    feedbackJSON: JSON.stringify(result),
+    overall:     String(result.overall || entry.overall || ''),
+    TR:  String(scores.TR  || ''),
+    CC:  String(scores.CC  || ''),
+    LR:  String(scores.LR  || ''),
+    GRA: String(scores.GRA || ''),
+    sessionToken: S.sessionToken || ''
+  };
+  fetch(HUB_GAS, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'write.updateFeedback', payload, sessionToken: S.sessionToken || '' })
+  }).catch(() => {});
+}
+
+
+// ── gasPost: fetch POST (faster, no JSONP timeout) ──
+async function gasPost(action, payload) {
+  payload = payload || {};
+  const body = JSON.stringify({ action, payload, sessionToken: S.sessionToken || '' });
+  try {
+    const resp = await fetch(HUB_GAS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body
+    });
+    if (resp.ok) return await resp.json();
+  } catch(e) {}
+  return null;
+}
+
 function gasGet(action, payload) {
   payload = payload || {};
   return new Promise((resolve, reject) => {
@@ -665,15 +986,23 @@ function gasGet(action, payload) {
 
 // ── Boot ─────────────────────────────────────────────────────
 (function() {
-  // Hub session
-  const tok = sessionStorage.getItem('ielts_hub_token');
-  const usr = sessionStorage.getItem('ielts_hub_user');
+  // Hub session — try sessionStorage first, then localStorage (persists across tabs)
+  const tok = sessionStorage.getItem('ielts_hub_token') || localStorage.getItem('ielts_hub_token');
+  const usr = sessionStorage.getItem('ielts_hub_user')  || localStorage.getItem('ielts_hub_user');
   if (tok && usr) {
     try { const u = JSON.parse(usr); S.name = u.fullName||u.FullName||''; S.sessionToken = tok; } catch(e) {}
   }
-  const arTok = sessionStorage.getItem('articu_session');
+  const arTok = sessionStorage.getItem('articu_session') || localStorage.getItem('articu_session');
   if (arTok) S.sessionToken = S.sessionToken || arTok;
   S.code = localStorage.getItem('arw_student_code') || '';
+
+  // Fallback: get name from last result in localStorage
+  if (!S.name) {
+    try {
+      const last = JSON.parse(localStorage.getItem('arw_last_result') || '{}');
+      if (last.name) { S.name = last.name; S.code = S.code || last.code || ''; }
+    } catch(e) {}
+  }
 
   // ?row= param from teacher dashboard
   const urlParams = new URLSearchParams(window.location.search);
@@ -683,7 +1012,24 @@ function gasGet(action, payload) {
       const entry = JSON.parse(decodeURIComponent(rowParam));
       S.name = entry.name || S.name;
       S.code = entry.code || S.code;
-      setTimeout(() => viewFullReport(entry), 50);
+      if (entry.needDetail) {
+        // Fetch full FeedbackJSON from GAS via POST (fast, no CORS timeout)
+        setTimeout(async () => {
+          try {
+            const res = await gasPost('write.getRowDetail', {
+              name: entry.name,
+              timestamp: entry.timestamp || entry.submittedAt || ''
+            });
+            if (res?.success && res.row?.FeedbackJSON) {
+              try { entry.result = JSON.parse(res.row.FeedbackJSON); } catch(e) {}
+              if (res.row.Essay) entry.writing = res.row.Essay;
+            }
+          } catch(e) {}
+          viewFullReport(entry);
+        }, 50);
+      } else {
+        setTimeout(() => viewFullReport(entry), 50);
+      }
     } catch(e) { console.warn('Invalid row param:', e); }
   }
 
