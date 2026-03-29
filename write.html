@@ -986,17 +986,39 @@ function callGAS(fnName,...args){
   });
 }
 
-// ── +1 MOTIVATION BOOST (silent, not shown to students) ──
-// Applied after AI returns scores to gently encourage learners
-// +1.0 per criterion, overall = avg of 4 boosted criteria
-function applyMotivationBoost(scores) {
+// ── BAND ROUNDING (theo quy tắc IELTS thực tế) ──────────────
+// AI trả về X.5 nếu borderline, code làm tròn theo số lỗi:
+//   X.5 + < 4 lỗi  → làm tròn LÊN  (X+1) — bài tương đối tốt
+//   X.5 + ≥ 4 lỗi  → làm tròn XUỐNG (X)  — bài có nhiều vấn đề
+//   Số nguyên      → giữ nguyên (AI đã quyết định rõ)
+// Component luôn là số nguyên. Overall mới được 0.5.
+function countErrors(result, criterion) {
+  if (!result) return 99;
+  switch (criterion) {
+    case 'GRA': return (result.gra_errors  || []).length;
+    case 'LR':  return (result.lr_issues   || []).length;
+    case 'TR':  return (result.tr_comments || []).length;
+    case 'CC': {
+      const cc = result.cc_feedback || {};
+      return (cc.issues || []).length + (cc.suggestions || []).length;
+    }
+    default: return 0;
+  }
+}
+function applyMotivationBoost(scores, result) {
   if (!scores || typeof scores !== 'object') return scores;
-  const boosted = {};
+  const rounded = {};
   ['TR','CC','LR','GRA'].forEach(k => {
     const v = parseFloat(scores[k]);
-    boosted[k] = !isNaN(v) ? Math.round(Math.min(9.0, v + 1.0) * 2) / 2 : scores[k];
+    if (isNaN(v)) { rounded[k] = scores[k]; return; }
+    // Số nguyên → giữ nguyên
+    if (Number.isInteger(v)) { rounded[k] = v; return; }
+    // X.5 (borderline) → làm tròn theo số lỗi
+    const base = Math.floor(v);
+    const errCount = countErrors(result, k);
+    rounded[k] = errCount < 4 ? base + 1 : base;
   });
-  return boosted;
+  return rounded;
 }
 function calcOverallFromBoosted(s) {
   const vals = ['TR','CC','LR','GRA'].map(k => parseFloat(s[k])).filter(v => !isNaN(v));
@@ -1007,15 +1029,15 @@ function applyBoostToResult(result) {
   if (!result) return result;
   const r = JSON.parse(JSON.stringify(result));
   if (r.scores) {
-    r.scores = applyMotivationBoost(r.scores);
+    r.scores = applyMotivationBoost(r.scores, r);
     r.overall = calcOverallFromBoosted(r.scores);
   }
   if (r.task1 && r.task1.scores) {
-    r.task1.scores = applyMotivationBoost(r.task1.scores);
+    r.task1.scores = applyMotivationBoost(r.task1.scores, r.task1);
     r.task1.overall = calcOverallFromBoosted(r.task1.scores);
   }
   if (r.task2 && r.task2.scores) {
-    r.task2.scores = applyMotivationBoost(r.task2.scores);
+    r.task2.scores = applyMotivationBoost(r.task2.scores, r.task2);
     r.task2.overall = calcOverallFromBoosted(r.task2.scores);
   }
   if (r.task1 && r.task2) {
@@ -1033,48 +1055,44 @@ async function gradeWithGemini(payload, geminiKey) {
   const imgDesc  = payload.imgDesc || '';
 
     const prompt =
-`You are a certified IELTS Writing examiner. Grade this essay using the OFFICIAL IELTS Band Descriptors.
+`You are an IELTS Writing examiner. You will grade the specific essay provided below by the student.
+IMPORTANT: ALL feedback, errors, vocabulary issues, and corrections MUST be taken directly from the student's essay below. Do NOT use examples from other essays. Do NOT fabricate errors. Only quote text that actually appears in the student's essay.
 
-OFFICIAL IELTS BAND DESCRIPTORS:
+IELTS WRITING BAND DESCRIPTORS (official):
 
 TASK RESPONSE (Task 2) / TASK ACHIEVEMENT (Task 1):
-Band 9: Fully addresses all parts. Position clear throughout. Ideas fully developed.
-Band 8: Sufficiently addresses all parts. Position clear. Ideas well developed.
-Band 7: Addresses all parts, some more fully. Clear position. Main ideas extended.
-Band 6: Addresses all parts but conclusions may be unclear. Relevant ideas but insufficiently developed.
-Band 5: Addresses task only partially. Position sometimes unclear. Ideas limited/repetitive.
-Band 4: Responds to task minimally. Position unclear. Ideas not developed or irrelevant.
+Band 7: Covers all requirements. Clear position throughout. Main ideas developed, though detail sometimes lacking.
+Band 6: Addresses all parts but some inadequately. Position sometimes unclear. Main ideas relevant but not always well-developed.
+Band 5: Addresses task only partially. Position hard to follow. Limited development.
+Band 4: Barely addresses task. Position not clear. Ideas undeveloped or irrelevant.
 
 COHERENCE & COHESION:
-Band 9: Seamless cohesion. Paragraphing fully appropriate.
-Band 8: Sequences information flexibly. Varied cohesion. Paragraphing appropriate.
-Band 7: Logical progression. Uses range of cohesive devices. Paragraphing generally effective.
-Band 6: Cohesive devices used but some under/over-use. Paragraphing present but not always logical.
-Band 5: Some organisation but lacks overall progression. Limited cohesive devices.
-Band 4: Information not arranged coherently. Basic cohesion; some inaccurate use.
+Band 7: Logical sequence. Variety of cohesive devices. Paragraphing adequate.
+Band 6: Coherent but not always logical. Some misuse of cohesive devices. Paragraphing present but not always effective.
+Band 5: Some organisation but lacks overall progression. Limited cohesive devices; may be repetitive.
+Band 4: Ideas not coherently arranged. Inaccurate cohesive devices. Paragraphing inadequate.
 
 LEXICAL RESOURCE:
-Band 9: Full flexibility. Rare minor errors.
-Band 8: Wide resource. Rare errors in word choice/collocation/spelling.
-Band 7: Sufficient range. Some errors but not impeding communication.
-Band 6: Adequate range. Errors in word choice/spelling but meaning clear.
-Band 5: Limited range. Frequent errors. May make meaning partially unclear.
-Band 4: Basic vocabulary. Limited control. Errors may cause misunderstanding.
+Band 7: Uses range of vocabulary flexibly. Some errors in word choice/spelling/collocation that do not impede communication.
+Band 6: Adequate range. Errors in word choice, collocation, spelling noticeable but not blocking meaning.
+Band 5: Limited range. Errors in vocabulary frequently impede communication.
+Band 4: Basic vocabulary. Very limited control. Errors cause difficulty for reader.
 
 GRAMMATICAL RANGE & ACCURACY:
-Band 9: Full range. Rare minor errors.
-Band 8: Wide range. Majority error-free sentences.
-Band 7: Uses complex forms. Frequent error-free sentences. Some grammar errors.
-Band 6: Mix of simple and complex. Some error-free sentences. Errors in complex structures.
-Band 5: Limited range. Frequent grammatical errors that cause difficulty.
-Band 4: Very limited range. Predominantly simple sentences. Frequent errors impede meaning.
+Band 7: Uses complex structures. Frequently produces error-free sentences. A few errors remain.
+Band 6: Mix of simple and complex structures. Some error-free sentences. Errors in complex structures present.
+Band 5: Limited range of structures. Errors frequent and sometimes cause difficulty for reader.
+Band 4: Mostly simple sentences. Frequent errors causing difficulty.
 
-CRITICAL SCORING RULES — MUST FOLLOW EXACTLY:
-1. Component scores (TR, CC, LR, GRA) MUST be WHOLE NUMBERS only: 4, 5, 6, 7, 8, or 9. NEVER use decimals (no 6.5, no 7.5) for components.
-2. Overall band = average of 4 components, rounded to nearest 0.5. Example: (6+7+6+7)/4 = 6.5 overall.
-3. DO NOT inflate. Most university students score 5–6. Band 7 requires genuinely good writing. Band 8+ is near-native.
-4. Score EACH criterion independently. Rarely should all 4 be equal — differentiate based on evidence.
-5. Choose LOWER band when borderline.
+SCORING RULES — FOLLOW STRICTLY:
+1. Components (TR, CC, LR, GRA): Use whole numbers (5, 6, 7...) OR half-band (5.5, 6.5) ONLY when truly borderline between two bands.
+2. Overall = (TR+CC+LR+GRA)/4, rounded to nearest 0.5.
+3. ANTI-INFLATION: Most university students are Band 5-6. Band 7 means genuinely good. Band 8+ is near-native — very rare.
+4. Grammar mistakes present → GRA 5 or 6, not 7. Basic/repetitive vocabulary → LR 5 or 6.
+5. Band 8 or 9 only if essay is exceptional, near-native, almost no errors.
+6. Differentiate scores between criteria — rarely all the same band.
+7. When borderline (e.g. 6.5): report that exact value — the system will round up or down based on error count.
+8. corrected_text: REPRODUCE the student's essay EXACTLY word-for-word. ONLY add ~~wrong~~correct~~ markers on actual errors. Do NOT rewrite sentences, do NOT add new content, do NOT replace with a model answer.
 
 TASK: \${question}
 \${imgDesc ? 'DIAGRAM: ' + imgDesc : ''}
@@ -1083,43 +1101,18 @@ ESSAY:
 
 Return ONLY valid JSON (no markdown):
 {
-  "scores": {"TR": 6, "CC": 6, "LR": 6, "GRA": 6},
-  "overall": 6.0,
+  "scores": {"TR": 6, "CC": 6.5, "LR": 5, "GRA": 6},
+  "overall": 5.875,
   "band_description": "Competent User",
-  "overall_feedback_vi": "Nhận xét tổng quan bằng tiếng Việt (3-4 câu): điểm mạnh, điểm yếu chính, lời khuyên cụ thể để lên band.",
-  "tr_comments": [
-    {
-      "original_idea": "exact quote from essay",
-      "assessment_vi": "Nhận xét bằng tiếng Việt",
-      "suggestion_en": "Improved version in English"
-    }
-  ],
-  "gra_errors": [
-    {
-      "wrong": "exact wrong phrase",
-      "correct": "corrected version",
-      "explanation_vi": "Giải thích ngắn gọn bằng tiếng Việt"
-    }
-  ],
-  "lr_issues": [
-    {
-      "original": "word from essay",
-      "better": "better word/phrase",
-      "explanation_vi": "Giải thích bằng tiếng Việt",
-      "alternatives": ["example sentence 1", "example sentence 2"]
-    }
-  ],
-  "cc_feedback": {
-    "assessment_vi": "Nhận xét CC bằng tiếng Việt",
-    "issues": ["issue 1", "issue 2"],
-    "suggestions": ["suggestion 1", "suggestion 2"]
-  },
-  "corrected_text": "FULL essay. Mark wrong words only: ~~wrong~~correct~~ Never wrap whole sentences."
-}
+  "overall_feedback_vi": "Nhận xét tổng quan (3-4 câu tiếng Việt): điểm mạnh, điểm yếu chính, lời khuyên lên band.",
+  "tr_comments": [{"original_idea": "EXACT quote from THIS student essay above", "assessment_vi": "nhận xét VI", "suggestion_en": "improved version EN"}],
+  "gra_errors": [{"wrong": "EXACT wrong phrase from THIS essay", "correct": "corrected version", "explanation_vi": "giải thích VI"}],
+  "lr_issues": [{"original": "EXACT word/phrase from THIS essay", "better": "better alternative", "explanation_vi": "giải thích VI", "alternatives": ["example sentence"]}],
+  "cc_feedback": {"assessment_vi": "nhận xét CC dựa trên bài này", "issues": ["vấn đề cụ thể trong bài này"], "suggestions": ["gợi ý cụ thể"]},
+  "corrected_text": "Copy THIS student essay word-for-word. Mark errors: ~~wrong~~correct~~. Never rewrite or substitute with another essay."
+}`;
 
-RULES: tr_comments: 2-4 ideas. gra_errors: 3-5 real errors. lr_issues: 2-4 improvements. corrected_text must be the FULL essay.`;
-
-  const maxTokens = 10000;
+  const maxTokens = 8000;
   const resp = await fetch(
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey,
     {
@@ -1128,9 +1121,8 @@ RULES: tr_comments: 2-4 ideas. gra_errors: 3-5 real errors. lr_issues: 2-4 impro
       body: JSON.stringify({
         contents: [{parts: [{text: prompt}]}],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: maxTokens,
-          responseMimeType: 'application/json'
+          temperature: 0.1,
+          maxOutputTokens: maxTokens
         }
       })
     }
