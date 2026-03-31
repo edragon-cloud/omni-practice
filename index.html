@@ -1959,9 +1959,12 @@ function _renderAsnLogTable(rows) {
   if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--grey-400)">No submissions yet.</td></tr>'; return; }
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
   tbody.innerHTML = sorted.map((r,i) => {
-    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
+    const score   = parseInt(r.Score||0);
+    const hasRaw  = total > 0 && (correct > 0 || score === 0);
+    const pct     = hasRaw ? Math.round(correct/total*100) : score;
+    const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
     const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
     const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
     return '<tr>'
@@ -1974,7 +1977,7 @@ function _renderAsnLogTable(rows) {
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.LastAttempt)}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt||r.LastAttempt)}</td>`
       + `<td style="${th};text-align:center">${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--grey-400)">—</span>'}</td>`
-      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>`
       + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
       + '</tr>';
   }).join('');
@@ -2018,9 +2021,12 @@ function _renderRevLogTable(rows) {
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
   const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
   tbody.innerHTML = sorted.map((r,i) => {
-    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
+    const score   = parseInt(r.Score||0);
+    const hasRaw  = total > 0 && (correct > 0 || score === 0);
+    const pct     = hasRaw ? Math.round(correct/total*100) : score;
+    const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
     const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
     return '<tr>'
       + `<td style="${th};color:var(--grey-400)">${sorted.length-i}</td>`
@@ -2030,7 +2036,7 @@ function _renderRevLogTable(rows) {
       + `<td style="${th};font-size:12px">${revMap[r.ReviewID]||r.ReviewID||'—'}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.SubmittedAt)}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt)}</td>`
-      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>`
       + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
       + '</tr>';
   }).join('');
@@ -2561,6 +2567,7 @@ function _writeRenderTable(rows) {
       timestamp: r.SubmittedAt||r.Timestamp||'',
       overall: r.OverallBand||'',
       scores: { TR: r.TaskResponse||'', CC: r.Coherence||'', LR: r.Lexical||'', GRA: r.Grammar||'' },
+      submissionId: r.SubmissionID||'',
       needDetail: true
     }));
     return `<tr>

@@ -1905,9 +1905,12 @@ function renderAssignmentHistory(rows) {
   wrap.innerHTML = _histTable(
     ['#','Bài tập','Bắt đầu','Nộp bài','Học từ vựng','Đúng / Tổng','Từ sai'],
     rows.map((r,i) => {
-      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-      const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-      const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
+      const score   = parseInt(r.Score||0);
+      const hasRaw  = total > 0 && (correct > 0 || score === 0);
+      const pct     = hasRaw ? Math.round(correct/total*100) : score;
+      const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
       const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
       const title = asnMap[r.AssignmentID] || r.AssignmentID || '—';
       return `<tr>
@@ -1918,7 +1921,7 @@ function renderAssignmentHistory(rows) {
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center">
           ${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓ Có</span>':'<span style="color:var(--grey-400)">Không</span>'}
         </td>
-        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,8).join(', ')}${wrongs.length>8?'…':''}</td>
       </tr>`;
     })
@@ -1933,9 +1936,12 @@ function renderInclassHistory(rows) {
   wrap.innerHTML = _histTable(
     ['#','Review','Bắt đầu','Nộp bài','Đúng / Tổng','Từ sai'],
     rows.map((r,i) => {
-      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-      const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-      const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
+      const score   = parseInt(r.Score||0);
+      const hasRaw  = total > 0 && (correct > 0 || score === 0);
+      const pct     = hasRaw ? Math.round(correct/total*100) : score;
+      const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
       const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
       const title = revMap[r.ReviewID] || r.ReviewID || '—';
       return `<tr>
@@ -1943,7 +1949,7 @@ function renderInclassHistory(rows) {
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100)"><strong>${esc(title)}</strong></td>
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.StartedAt)}</td>
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);white-space:nowrap">${fmtHistDate(r.SubmittedAt)}</td>
-        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);max-width:200px;font-size:11px;color:var(--red)">${wrongs.slice(0,8).join(', ')}${wrongs.length>8?'…':''}</td>
       </tr>`;
     })
@@ -1955,9 +1961,12 @@ function renderFreeHistory(rows) {
   wrap.innerHTML = _histTable(
     ['#','Topic','Bắt đầu','Nộp bài','Học từ vựng','Đúng / Tổng','Từ sai',''],
     rows.map((r,i) => {
-      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||r.WordCount||60);
-      const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-      const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||r.WordCount||0);
+      const score   = parseInt(r.Score||0);
+      const hasRaw  = total > 0 && (correct > 0 || score === 0);
+      const pct     = hasRaw ? Math.round(correct/total*100) : score;
+      const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+      const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
       const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
       const rowEnc = encodeURIComponent(JSON.stringify({
         timestamp:r.Timestamp||'', startedAt:r.StartedAt||'', submittedAt:r.SubmittedAt||'',
@@ -1976,7 +1985,7 @@ function renderFreeHistory(rows) {
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center">
           ${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓ Có</span>':'<span style="color:var(--grey-400)">Không</span>'}
         </td>
-        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100);max-width:160px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>
         <td style="padding:9px 12px;border-bottom:1px solid var(--grey-100)">
           <a href="vocab-detail.html?row=${rowEnc}" target="_blank"

@@ -986,12 +986,7 @@ function callGAS(fnName,...args){
   });
 }
 
-// ── BAND ROUNDING (theo quy tắc IELTS thực tế) ──────────────
-// AI trả về X.5 nếu borderline, code làm tròn theo số lỗi:
-//   X.5 + < 4 lỗi  → làm tròn LÊN  (X+1) — bài tương đối tốt
-//   X.5 + ≥ 4 lỗi  → làm tròn XUỐNG (X)  — bài có nhiều vấn đề
-//   Số nguyên      → giữ nguyên (AI đã quyết định rõ)
-// Component luôn là số nguyên. Overall mới được 0.5.
+// ── MOTIVATION BOOST +1 (silent) ────────────────────────────
 function countErrors(result, criterion) {
   if (!result) return 99;
   switch (criterion) {
@@ -1005,20 +1000,24 @@ function countErrors(result, criterion) {
     default: return 0;
   }
 }
+// Cộng thêm 1 band cho mỗi tiêu chí để khích lệ sinh viên
+// Tối đa 9, overall tính lại từ 4 tiêu chí sau boost
 function applyMotivationBoost(scores, result) {
   if (!scores || typeof scores !== 'object') return scores;
-  const rounded = {};
+  const boosted = {};
   ['TR','CC','LR','GRA'].forEach(k => {
     const v = parseFloat(scores[k]);
-    if (isNaN(v)) { rounded[k] = scores[k]; return; }
-    // Số nguyên → giữ nguyên
-    if (Number.isInteger(v)) { rounded[k] = v; return; }
-    // X.5 (borderline) → làm tròn theo số lỗi
-    const base = Math.floor(v);
-    const errCount = countErrors(result, k);
-    rounded[k] = errCount < 4 ? base + 1 : base;
+    if (isNaN(v)) { boosted[k] = scores[k]; return; }
+    // Nếu AI cho X.5 (borderline) → làm tròn theo số lỗi trước khi boost
+    let base = v;
+    if (!Number.isInteger(v)) {
+      const errCount = countErrors(result, k);
+      base = errCount < 4 ? Math.floor(v) + 1 : Math.floor(v);
+    }
+    // Boost +1, tối đa 9
+    boosted[k] = Math.min(9, base + 1);
   });
-  return rounded;
+  return boosted;
 }
 function calcOverallFromBoosted(s) {
   const vals = ['TR','CC','LR','GRA'].map(k => parseFloat(s[k])).filter(v => !isNaN(v));
@@ -1054,65 +1053,39 @@ async function gradeWithGemini(payload, geminiKey) {
   const question = payload.question || '';
   const imgDesc  = payload.imgDesc || '';
 
-    const prompt =
-`You are an IELTS Writing examiner. You will grade the specific essay provided below by the student.
-IMPORTANT: ALL feedback, errors, vocabulary issues, and corrections MUST be taken directly from the student's essay below. Do NOT use examples from other essays. Do NOT fabricate errors. Only quote text that actually appears in the student's essay.
+    // Tách thành system + user để Gemini không confuse essay với instruction
+    const systemInstruction = `You are a strict IELTS Writing examiner. Grade only the essay provided by the student. Every piece of feedback must quote directly from that essay. Never invent examples or use content from other essays.
 
-IELTS WRITING BAND DESCRIPTORS (official):
+IELTS BAND DESCRIPTORS:
+TR/TA: Band 7=covers all parts, clear position, ideas developed. Band 6=addresses parts but some inadequately. Band 5=partial, limited. Band 4=minimal.
+CC: Band 7=logical, varied cohesion, good paragraphing. Band 6=mostly coherent, some misuse. Band 5=some org, limited devices. Band 4=incoherent.
+LR: Band 7=flexible range, minor errors. Band 6=adequate, noticeable errors. Band 5=limited, impedes. Band 4=basic, causes difficulty.
+GRA: Band 7=complex structures, frequent error-free sentences. Band 6=mix, some error-free. Band 5=limited, frequent errors. Band 4=mostly simple, many errors.
 
-TASK RESPONSE (Task 2) / TASK ACHIEVEMENT (Task 1):
-Band 7: Covers all requirements. Clear position throughout. Main ideas developed, though detail sometimes lacking.
-Band 6: Addresses all parts but some inadequately. Position sometimes unclear. Main ideas relevant but not always well-developed.
-Band 5: Addresses task only partially. Position hard to follow. Limited development.
-Band 4: Barely addresses task. Position not clear. Ideas undeveloped or irrelevant.
+SCORING RULES:
+- Components: whole numbers or X.5 if truly borderline.
+- Overall = average of 4, round to 0.5.
+- Most students score 5-6. Band 7 = genuinely good. Band 8+ = near-native, very rare.
+- Grammar errors → GRA ≤ 6. Basic vocab → LR ≤ 6.
+- corrected_text: copy essay word-for-word, only add ~~wrong~~correct~~ on real errors found.
 
-COHERENCE & COHESION:
-Band 7: Logical sequence. Variety of cohesive devices. Paragraphing adequate.
-Band 6: Coherent but not always logical. Some misuse of cohesive devices. Paragraphing present but not always effective.
-Band 5: Some organisation but lacks overall progression. Limited cohesive devices; may be repetitive.
-Band 4: Ideas not coherently arranged. Inaccurate cohesive devices. Paragraphing inadequate.
+Return ONLY a JSON object with these fields: scores(TR,CC,LR,GRA), overall, band_description, overall_feedback_vi, tr_comments(array of {original_idea,assessment_vi,suggestion_en}), gra_errors(array of {wrong,correct,explanation_vi}), lr_issues(array of {original,better,explanation_vi,alternatives}), cc_feedback({assessment_vi,issues,suggestions}), corrected_text.`;
 
-LEXICAL RESOURCE:
-Band 7: Uses range of vocabulary flexibly. Some errors in word choice/spelling/collocation that do not impede communication.
-Band 6: Adequate range. Errors in word choice, collocation, spelling noticeable but not blocking meaning.
-Band 5: Limited range. Errors in vocabulary frequently impede communication.
-Band 4: Basic vocabulary. Very limited control. Errors cause difficulty for reader.
+    const userMessage = `Grade this IELTS essay.
 
-GRAMMATICAL RANGE & ACCURACY:
-Band 7: Uses complex structures. Frequently produces error-free sentences. A few errors remain.
-Band 6: Mix of simple and complex structures. Some error-free sentences. Errors in complex structures present.
-Band 5: Limited range of structures. Errors frequent and sometimes cause difficulty for reader.
-Band 4: Mostly simple sentences. Frequent errors causing difficulty.
+TASK: ${question}
+${imgDesc ? 'DIAGRAM: ' + imgDesc : ''}
 
-SCORING RULES — FOLLOW STRICTLY:
-1. Components (TR, CC, LR, GRA): Use whole numbers (5, 6, 7...) OR half-band (5.5, 6.5) ONLY when truly borderline between two bands.
-2. Overall = (TR+CC+LR+GRA)/4, rounded to nearest 0.5.
-3. ANTI-INFLATION: Most university students are Band 5-6. Band 7 means genuinely good. Band 8+ is near-native — very rare.
-4. Grammar mistakes present → GRA 5 or 6, not 7. Basic/repetitive vocabulary → LR 5 or 6.
-5. Band 8 or 9 only if essay is exceptional, near-native, almost no errors.
-6. Differentiate scores between criteria — rarely all the same band.
-7. When borderline (e.g. 6.5): report that exact value — the system will round up or down based on error count.
-8. corrected_text: REPRODUCE the student's essay EXACTLY word-for-word. ONLY add ~~wrong~~correct~~ markers on actual errors. Do NOT rewrite sentences, do NOT add new content, do NOT replace with a model answer.
+STUDENT ESSAY TO GRADE:
+---
+${text}
+---
 
-TASK: \${question}
-\${imgDesc ? 'DIAGRAM: ' + imgDesc : ''}
-ESSAY:
-\${text}
+Important: All feedback fields (tr_comments, gra_errors, lr_issues, corrected_text) must only reference text from the student essay above.`;
 
-Return ONLY valid JSON (no markdown):
-{
-  "scores": {"TR": 6, "CC": 6.5, "LR": 5, "GRA": 6},
-  "overall": 5.875,
-  "band_description": "Competent User",
-  "overall_feedback_vi": "Nhận xét tổng quan (3-4 câu tiếng Việt): điểm mạnh, điểm yếu chính, lời khuyên lên band.",
-  "tr_comments": [{"original_idea": "EXACT quote from THIS student essay above", "assessment_vi": "nhận xét VI", "suggestion_en": "improved version EN"}],
-  "gra_errors": [{"wrong": "EXACT wrong phrase from THIS essay", "correct": "corrected version", "explanation_vi": "giải thích VI"}],
-  "lr_issues": [{"original": "EXACT word/phrase from THIS essay", "better": "better alternative", "explanation_vi": "giải thích VI", "alternatives": ["example sentence"]}],
-  "cc_feedback": {"assessment_vi": "nhận xét CC dựa trên bài này", "issues": ["vấn đề cụ thể trong bài này"], "suggestions": ["gợi ý cụ thể"]},
-  "corrected_text": "Copy THIS student essay word-for-word. Mark errors: ~~wrong~~correct~~. Never rewrite or substitute with another essay."
-}`;
+    const prompt = systemInstruction + '\n\n' + userMessage;
 
-  const maxTokens = 8000;
+  const maxTokens = 12000;
   const resp = await fetch(
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey,
     {
@@ -1133,7 +1106,13 @@ Return ONLY valid JSON (no markdown):
   }
   const data = await resp.json();
   const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if (!raw) throw new Error('Gemini returned empty response');
+  const finishReason = data?.candidates?.[0]?.finishReason || '';
+  if (!raw) {
+    // Kiểm tra safety block
+    if (finishReason === 'SAFETY') throw new Error('Gemini blocked this content (safety filter). Please rephrase your essay.');
+    if (finishReason === 'RECITATION') throw new Error('Gemini flagged content as recitation. Please try again.');
+    throw new Error('Gemini returned empty response (finishReason: ' + finishReason + ')');
+  }
 
   // Parse JSON — strip markdown/thinking tags defensively
   let clean = raw
@@ -1149,7 +1128,10 @@ Return ONLY valid JSON (no markdown):
     if (clean[ci]==='{') depth++;
     else if (clean[ci]==='}') { depth--; if(depth===0){ei=ci;break;} }
   }
-  if (si===-1||ei===-1) throw new Error('No valid JSON in Gemini response');
+  if (si===-1||ei===-1) {
+    console.error('Raw Gemini response (first 500):', raw.substring(0,500));
+    throw new Error('No valid JSON in Gemini response. Raw: ' + raw.substring(0,200));
+  }
   const result = JSON.parse(clean.substring(si, ei+1));
   return applyBoostToResult(result);
 }
@@ -1207,22 +1189,25 @@ async function submitWriting(){
     S.lastResult=result;
     hideLdg();
     showResults(result,S.writingText);
-    saveData(result);
-    // Save full result to localStorage for write-detail.html
-    try {
-      localStorage.setItem('arw_last_result', JSON.stringify({
-        timestamp:   new Date().toISOString(),
-        startedAt:   S.startedAt   || '',
-        submittedAt: new Date().toISOString(),
-        name:        S.name,
-        code:        S.code,
-        class:       S.class || '',
-        mode:        ({1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing'),
-        question:    S.question || '',
-        writing:     S.writingText || '',
-        result:      result
-      }));
-    } catch(e2) {}
+
+    // Save to localStorage FIRST (synchronous, always works)
+    const submittedAt = new Date().toISOString();
+    const lsEntry = {
+      timestamp:   submittedAt,
+      startedAt:   S.startedAt   || '',
+      submittedAt: submittedAt,
+      name:        S.name,
+      code:        S.code,
+      class:       S.class || '',
+      mode:        ({1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing'),
+      question:    S.question || '',
+      writing:     S.writingText || '',
+      result:      result
+    };
+    try { localStorage.setItem('arw_last_result', JSON.stringify(lsEntry)); } catch(e2) {}
+
+    // Save to GAS (async, fire and forget — update submissionId when done)
+    saveData(result, submittedAt, lsEntry);
   }catch(e){
     hideLdg();
     const msg=e.message||String(e);
@@ -1364,12 +1349,11 @@ function bandName(b){if(b>=9)return'Expert User';if(b>=8)return'Very Good User';
 
 
 // ── SAVE ──
-async function saveData(result){
-  // Keep payload SMALL to fit JSONP URL limit (~6000 chars)
-  // Send full data via POST (no URL length limit) so GAS can create Google Doc + full feedback
+async function saveData(result, submittedAt, lsEntry){
   const mode = {1:'Free Writing',2:'IELTS Task 1',3:'IELTS Task 2',5:'Test Simulation'}[S.mode]||'Writing';
+  submittedAt = submittedAt || new Date().toISOString();
   try {
-    await gasPostFetch('saveResult', {
+    const res = await gasPostFetch('saveResult', {
       name:        S.name,
       email:       S.email      || '',
       code:        S.code       || '',
@@ -1381,10 +1365,19 @@ async function saveData(result){
       overall:     result.overall || '',
       result:      result,
       startedAt:   S.startedAt   || '',
-      submittedAt: new Date().toISOString(),
+      submittedAt: submittedAt,
       sessionToken: S.sessionToken || ''
     });
-    console.log('[ArticuWrite] saveData OK');
+    // Update localStorage với submissionId từ GAS
+    if (res && res.submissionId) {
+      S.lastSubmissionId = res.submissionId;
+      try {
+        const entry = lsEntry || JSON.parse(localStorage.getItem('arw_last_result') || '{}');
+        entry.submissionId = res.submissionId;
+        localStorage.setItem('arw_last_result', JSON.stringify(entry));
+      } catch(e2) {}
+    }
+    console.log('[ArticuWrite] saveData OK, subId:', res && res.submissionId);
   } catch(e) {
     console.warn('[ArticuWrite] saveData error:', e.message);
   }

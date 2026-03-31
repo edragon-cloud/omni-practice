@@ -423,14 +423,20 @@ async function toggleAccLazy(uid, colName) {
     return;
   }
 
-  // Fetch 1 cột từ GAS
+  // Fetch 1 cột từ GAS — ưu tiên submissionId, fallback name+timestamp
   try {
-    const res = await gasGet('write.getOneFeedback', {
-      name:      entry.name,
-      timestamp: entry.timestamp || entry.submittedAt || '',
-      column:    colName,
-      sessionToken: S.sessionToken || ''
-    });
+    const subId = entry?.submissionId || '';
+    let res;
+    if (subId) {
+      res = await gasGet('write.getBySubId', {
+        submissionId: subId, column: colName, sessionToken: S.sessionToken || ''
+      });
+    } else {
+      res = await gasGet('write.getOneFeedback', {
+        name: entry.name, timestamp: entry.timestamp || entry.submittedAt || '',
+        column: colName, sessionToken: S.sessionToken || ''
+      });
+    }
     if (res?.success) {
       const value = res.value || '';
       localStorage.setItem(cacheKey, value);
@@ -544,9 +550,14 @@ function buildResultCard(entry) {
           </div>`).join('')}
       </div>
       <div style="padding:18px 20px;border-top:1.5px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:#fff;border-radius:0 0 12px 12px">
-        <button class="btn btn-outline btn-sm" onclick='viewFullReport(${JSON.stringify(entry).replace(/'/g,"&#39;")})'>👁 View Full Report →</button>
+        <button class="btn btn-outline btn-sm" onclick="viewLatestFullReport()">👁 View Full Report →</button>
       </div>
     </div>`;
+}
+
+function viewLatestFullReport() {
+  const entry = S.latestEntry || S.currentEntry;
+  if (entry) viewFullReport(entry);
 }
 
 // ── View full report ─────────────────────────────────────────
@@ -562,34 +573,74 @@ function viewFullReport(entry) {
   document.getElementById('btn-print').style.display = '';
   window.scrollTo(0, 0);
 
-  // Fetch Overall + Corrected ngay (không cần click) nếu chưa có
-  const r = entry.result || {};
-  if (!r.overall_feedback_vi && !r.corrected_text && entry.writing) {
-    fetchOverallAndCorrected(entry);
+  const r  = entry.result || {};
+  const ts = entry.submittedAt || entry.timestamp || '';
+  const nm = (entry.name || S.name || '').toLowerCase().replace(/\s+/g,'_');
+
+  // Nếu entry.result đã có đủ feedback (vừa chấm xong) → cache vào localStorage
+  // để toggleAccLazy và fetchOverallAndCorrected không cần fetch GAS
+  if (r.overall_feedback_vi || r.tr_comments?.length || r.gra_errors?.length
+      || r.lr_issues?.length || r.cc_feedback || r.corrected_text) {
+    const dayKey = ts.substring(0, 10);
+    const pre = 'arw_col_' + nm + '_' + dayKey + '_';
+    // Cache Overall
+    if (r.overall_feedback_vi)
+      localStorage.setItem(pre + 'FeedbackOverall', r.overall_feedback_vi);
+    // Cache Corrected
+    if (r.corrected_text)
+      localStorage.setItem(pre + 'EssayCorrected', r.corrected_text);
+    // Cache TR
+    if (r.tr_comments?.length)
+      localStorage.setItem(pre + 'FeedbackTR', JSON.stringify(r.tr_comments));
+    else if (r.feedback?.TR)
+      localStorage.setItem(pre + 'FeedbackTR', r.feedback.TR);
+    // Cache CC
+    if (r.cc_feedback)
+      localStorage.setItem(pre + 'FeedbackCC', JSON.stringify(r.cc_feedback));
+    else if (r.feedback?.CC)
+      localStorage.setItem(pre + 'FeedbackCC', r.feedback.CC);
+    // Cache LR
+    if (r.lr_issues?.length)
+      localStorage.setItem(pre + 'FeedbackLR', JSON.stringify(r.lr_issues));
+    else if (r.feedback?.LR)
+      localStorage.setItem(pre + 'FeedbackLR', r.feedback.LR);
+    // Cache GRA
+    if (r.gra_errors?.length)
+      localStorage.setItem(pre + 'FeedbackGRA', JSON.stringify(r.gra_errors));
+    else if (r.feedback?.GRA)
+      localStorage.setItem(pre + 'FeedbackGRA', r.feedback.GRA);
+    return; // Đã có đủ data, không cần fetch GAS
   }
+
+  // Không có feedback → fetch Overall + Corrected từ GAS
+  if (entry.writing) fetchOverallAndCorrected(entry);
 }
 
 async function fetchOverallAndCorrected(entry) {
-  const name = entry.name || S.name;
-  const ts   = entry.timestamp || entry.submittedAt || '';
+  const name  = entry.name || S.name;
+  const ts    = entry.timestamp || entry.submittedAt || '';
+  const subId = entry.submissionId || '';
 
-  // Fetch Overall
-  const ckOverall = 'arw_col_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + ts.substring(0,10) + '_FeedbackOverall';
+  const ckOverall   = 'arw_col_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + ts.substring(0,10) + '_FeedbackOverall';
   const ckCorrected = 'arw_col_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + ts.substring(0,10) + '_EssayCorrected';
 
   let overall   = localStorage.getItem(ckOverall)   || '';
   let corrected = localStorage.getItem(ckCorrected) || '';
 
-  // Fetch nếu chưa cache
+  // Fetch nếu chưa cache — ưu tiên submissionId
   if (!overall) {
     try {
-      const res = await gasGet('write.getOneFeedback', { name, timestamp: ts, column: 'FeedbackOverall', sessionToken: S.sessionToken||'' });
+      const res = subId
+        ? await gasGet('write.getBySubId', { submissionId: subId, column: 'FeedbackOverall', sessionToken: S.sessionToken||'' })
+        : await gasGet('write.getOneFeedback', { name, timestamp: ts, column: 'FeedbackOverall', sessionToken: S.sessionToken||'' });
       if (res?.success) { overall = res.value || ''; localStorage.setItem(ckOverall, overall); }
     } catch(e) {}
   }
   if (!corrected) {
     try {
-      const res = await gasGet('write.getOneFeedback', { name, timestamp: ts, column: 'EssayCorrected', sessionToken: S.sessionToken||'' });
+      const res = subId
+        ? await gasGet('write.getBySubId', { submissionId: subId, column: 'EssayCorrected', sessionToken: S.sessionToken||'' })
+        : await gasGet('write.getOneFeedback', { name, timestamp: ts, column: 'EssayCorrected', sessionToken: S.sessionToken||'' });
       if (res?.success) { corrected = res.value || ''; localStorage.setItem(ckCorrected, corrected); }
     } catch(e) {}
   }
@@ -702,6 +753,7 @@ function loadLatestFromStorage() {
   try {
     const entry = JSON.parse(raw);
     S.currentEntry = entry;
+    S.latestEntry  = entry;  // giữ reference đầy đủ, không embed vào HTML
     if (entry.name) { S.name = entry.name; S.code = entry.code || ''; }
     // Cache feedback so History tab can show it without network call
     if (entry.result && entry.name && (entry.submittedAt || entry.timestamp)) {
