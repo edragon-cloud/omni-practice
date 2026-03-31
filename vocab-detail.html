@@ -180,6 +180,23 @@ const HUB_GAS = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uT
 
 var SESSION = null;
 
+// ── JSONP helper to fetch detail from GAS ──
+function fetchFreeReadDetail(studentId, timestamp) {
+  return new Promise(function(resolve, reject) {
+    var cb = 'frDetail_' + Date.now() + '_' + Math.floor(Math.random()*99999);
+    var params = 'callback=' + encodeURIComponent(cb)
+      + '&action=vocab.getFreeReadDetail'
+      + '&payload=' + encodeURIComponent(JSON.stringify({ studentId: studentId, timestamp: timestamp }));
+    var s = document.createElement('script');
+    s.src = HUB_GAS + '?' + params;
+    var t = setTimeout(function() { cleanup(); reject(new Error('Timeout')); }, 20000);
+    window[cb] = function(r) { cleanup(); resolve(r); };
+    var cleanup = function() { clearTimeout(t); delete window[cb]; s.parentNode && s.parentNode.removeChild(s); };
+    s.onerror = function() { cleanup(); reject(new Error('Network error')); };
+    document.head.appendChild(s);
+  });
+}
+
 // ── Boot ──
 (function() {
   const params = new URLSearchParams(window.location.search);
@@ -192,11 +209,46 @@ var SESSION = null;
     // Fallback: load from localStorage (student just finished)
     try { SESSION = JSON.parse(localStorage.getItem('vd_last_fr') || 'null'); } catch(e) {}
   }
-  if (SESSION) render();
-  else {
+
+  if (!SESSION) {
     document.getElementById('app-content').innerHTML =
       '<div style="text-align:center;padding:60px"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:1rem;font-weight:700;margin-bottom:6px">No session data</div><p style="color:var(--grey)">Please open this page from the teacher dashboard or after completing a Free Reading quiz.</p></div>';
+    return;
   }
+
+  // Check if large fields are missing/empty (happened because JSONP truncated them)
+  const vocabArr = Array.isArray(SESSION.vocabulary) ? SESSION.vocabulary : [];
+  const qArr     = Array.isArray(SESSION.questions)  ? SESSION.questions  : [];
+  const needsFetch = (vocabArr.length === 0 && qArr.length === 0 && !SESSION.passage);
+
+  if (!needsFetch) {
+    render();
+    return;
+  }
+
+  // Show loading state then fetch detail from GAS
+  document.getElementById('app-content').innerHTML =
+    '<div style="text-align:center;padding:60px">'
+    + '<div style="font-size:2rem;margin-bottom:14px">⏳</div>'
+    + '<div style="font-size:1rem;font-weight:700;margin-bottom:6px">Loading detail…</div>'
+    + '<p style="color:var(--grey);font-size:.85rem">Fetching reading passage & vocabulary from server</p>'
+    + '</div>';
+
+  const sid = SESSION.studentId || SESSION.studentName || '';
+  const ts  = SESSION.timestamp || SESSION.startedAt   || '';
+
+  fetchFreeReadDetail(sid, ts).then(function(res) {
+    if (res && res.success) {
+      SESSION.passage    = res.passage || '';
+      try { SESSION.vocabulary = JSON.parse(res.vocabularyJSON || '[]'); } catch(e) { SESSION.vocabulary = []; }
+      try { SESSION.questions  = JSON.parse(res.questionsJSON  || '[]'); } catch(e) { SESSION.questions  = []; }
+    }
+    render();
+  }).catch(function(err) {
+    // Fetch failed — render with whatever we have (wrong words still visible)
+    console.warn('Detail fetch failed:', err);
+    render();
+  });
 })();
 
 // ── Render ──
