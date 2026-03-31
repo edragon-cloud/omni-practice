@@ -558,7 +558,7 @@ tr:hover td{background:var(--grey-100)}
       <!-- Sub-tabs -->
       <div style="display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:20px">
         <button class="vocab-subtab active" id="vstab-assignments" onclick="showVocabSubtab('assignments')" style="flex:1;padding:8px;border:none;background:#fff;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;box-shadow:var(--shadow-sm)">📚 Assignments</button>
-        <button class="vocab-subtab" id="vstab-asn-log" onclick="showVocabSubtab('asn-log');renderAsnSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Asn Log</button>
+
         <button class="vocab-subtab" id="vstab-inclass" onclick="showVocabSubtab('inclass')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">🔄 In-Class</button>
         <button class="vocab-subtab" id="vstab-inclass-log" onclick="showVocabSubtab('inclass-log');renderInclassSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Review Log</button>
         <button class="vocab-subtab" id="vstab-freeread" onclick="showVocabSubtab('freeread');loadFreeReadResults()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📖 Free Reading</button>
@@ -1827,7 +1827,7 @@ async function teacherCheckPunishment(asnId, studentId, checked, checkbox) {
 
 // ── VOCAB SUBTABS ──
 function showVocabSubtab(tab) {
-  ['assignments','asn-log','inclass','inclass-log','freeread','matrix'].forEach(function(t) {
+  ['assignments','inclass','inclass-log','freeread','matrix'].forEach(function(t) {
     var sec = document.getElementById('vsec-' + t);
     var btn = document.getElementById('vstab-' + t);
     if (sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -1985,13 +1985,12 @@ function _sortAsnLog(field) {
   _renderAsnLogTable(_asnLogRows);
 }
 
-function _renderAsnLogTable(rows) {
-  const tbody = document.getElementById('asn-log-tbody');
+function _renderAsnLogTable(rows, tbodyId) {
+  tbodyId = tbodyId || 'asn-log-tbody';
+  const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
-  // Build assignment title map
   const asnMap = {};
   (App.teacherData.assignments||[]).forEach(a => { asnMap[a.ID] = a.Title||a.ID; });
-  // Sort
   let sorted = [...rows];
   if (_asnLogSort.field) {
     sorted.sort((a,b) => {
@@ -2002,12 +2001,15 @@ function _renderAsnLogTable(rows) {
   }
   if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--grey-400)">No submissions yet.</td></tr>'; return; }
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
+  const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
   tbody.innerHTML = sorted.map((r,i) => {
-    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
+    const score   = parseInt(r.Score||0);
+    const hasRaw  = total > 0 && (correct > 0 || score === 0);
+    const pct     = hasRaw ? Math.round(correct/total*100) : score;
+    const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+    const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
     const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
-    const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
     return '<tr>'
       + `<td style="${th};color:var(--grey-400)">${sorted.length-i}</td>`
       + `<td style="${th};font-family:var(--font-mono);font-size:11px">${r.StudentID||'—'}</td>`
@@ -2018,7 +2020,7 @@ function _renderAsnLogTable(rows) {
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.LastAttempt)}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt||r.LastAttempt)}</td>`
       + `<td style="${th};text-align:center">${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--grey-400)">—</span>'}</td>`
-      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>`
       + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
       + '</tr>';
   }).join('');
@@ -2027,7 +2029,6 @@ function _renderAsnLogTable(rows) {
 async function renderAsnSubmissionLog(force) {
   _asnLogRows = (App.teacherData.submissions||[]).slice().reverse();
   if (!_asnLogRows.length || force) {
-    // Reload from stats if needed
     const res = await api('teacher.getClassStats');
     if (res.success) { App.teacherData.submissions = res.submissions||[]; _asnLogRows = (res.submissions||[]).slice().reverse(); }
   }
@@ -3100,17 +3101,26 @@ window.addEventListener('load', () => {
 
     headHtml += asns.map(function(a) {
       var title = a.Title || a.ID || '—';
+      var safeId = (a.ID||'').replace(/'/g,"\\'");
       return '<th style="'
         + 'position:sticky;top:0;z-index:3;background:#FAFAF8;'
         + 'min-width:' + colW + 'px;max-width:' + colW + 'px;'
-        + 'padding:10px 8px;text-align:center;'
+        + 'padding:8px 6px;text-align:center;'
         + 'font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.04em;text-transform:uppercase;'
         + 'border-bottom:2px solid var(--grey-200);border-right:1px solid var(--grey-100);'
         + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
         + '" title="' + title.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '">'
-        + '<div style="max-width:' + (colW-10) + 'px;overflow:hidden;text-overflow:ellipsis;margin:0 auto">'
+        + '<div style="max-width:' + (colW-10) + 'px;overflow:hidden;text-overflow:ellipsis;margin:0 auto 4px">'
         + title.replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        + '</div></th>';
+        + '</div>'
+        + (_modeAsn ? '<button onclick="openAsnLogModal(\'' + safeId + '\')" style="'
+          + 'font-size:9px;padding:2px 7px;border-radius:5px;border:1px solid var(--grey-200);'
+          + 'background:#fff;color:var(--grey-600);cursor:pointer;font-family:var(--font-body);font-weight:600;'
+          + 'transition:.12s;white-space:nowrap" '
+          + 'onmouseover="this.style.borderColor=\'var(--red)\';this.style.color=\'var(--red)\'" '
+          + 'onmouseout="this.style.borderColor=\'var(--grey-200)\';this.style.color=\'var(--grey-600)\'"'
+          + '>👁 Log</button>' : '')
+        + '</th>';
     }).join('');
 
     // ── Body rows ──
@@ -3202,7 +3212,134 @@ window.addEventListener('load', () => {
     renderProgressMatrix();
   };
 
+  // ── Open Assignment Log Modal ──
+  window.openAsnLogModal = function(asnId) {
+    var modal = document.getElementById('asn-log-modal');
+    var tbody = document.getElementById('alm-tbody');
+    var titleEl = document.getElementById('alm-title');
+    var subEl   = document.getElementById('alm-sub');
+    var statsEl = document.getElementById('alm-stats');
+    if (!modal || !tbody) return;
+
+    var asn  = (App.teacherData.assignments||[]).find(function(a){ return a.ID === asnId; });
+    var rows = (App.teacherData.submissions||[]).filter(function(r){ return r.AssignmentID === asnId; });
+
+    // Sort by date desc (latest first)
+    rows = rows.slice().sort(function(a,b){
+      return new Date(b.LastAttempt||b.SubmittedAt||0) - new Date(a.LastAttempt||a.SubmittedAt||0);
+    });
+
+    var title = asn ? (asn.Title || asn.ID) : asnId;
+    titleEl.textContent = '📋 ' + title;
+    subEl.textContent   = rows.length + ' attempt(s) across all students';
+
+    // Stats: unique students, perfect count
+    var uniqStudents = new Set(rows.map(function(r){ return r.StudentID; })).size;
+    var perfectCount = rows.filter(function(r){ return parseInt(r.Score||0) >= 100; }).length;
+    statsEl.innerHTML =
+      '<span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border-radius:8px;padding:4px 11px;font-size:11px;font-weight:600">'
+      + uniqStudents + ' students</span>'
+      + '<span style="background:rgba(100,220,150,.15);color:#6EE7B7;border-radius:8px;padding:4px 11px;font-size:11px;font-weight:600">'
+      + perfectCount + ' perfect runs</span>';
+
+    var fmtS = function(s) {
+      try { if(!s) return '—'; var d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){ return '—'; }
+    };
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">No attempts found.</td></tr>';
+    } else {
+      var th = 'padding:9px 12px;border-bottom:1px solid #f4f4f2';
+      tbody.innerHTML = rows.map(function(r, i) {
+        var correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
+        var score   = parseInt(r.Score||0);
+        var hasRaw  = total > 0 && (correct > 0 || score === 0);
+        var pct     = hasRaw ? Math.round(correct/total*100) : score;
+        var isPerfect = pct >= 100;
+        var clr     = isPerfect ? 'var(--green)' : pct>=80 ? 'var(--green)' : pct>=60 ? 'var(--gold)' : 'var(--red)';
+        var scoreLbl = hasRaw ? (correct+'/'+total) : (score+'%');
+        var wrongs  = (function(){ try{ return JSON.parse(r.WrongWords||'[]'); }catch(e){ return []; } })();
+        var rowBg   = isPerfect ? 'background:#F0FDF4' : '';
+        return '<tr style="' + rowBg + '">'
+          + '<td style="'+th+';color:var(--grey-400);font-size:11px">' + (i+1) + '</td>'
+          + '<td style="'+th+';font-family:var(--font-mono);font-size:11px">' + (r.StudentID||'—') + '</td>'
+          + '<td style="'+th+'"><strong>' + (r.FullName||'—') + '</strong></td>'
+          + '<td style="'+th+'"><span class="badge badge-grey">' + (r.Class||'—') + '</span></td>'
+          + '<td style="'+th+';text-align:center;font-weight:700">' + (r.AttemptCount||1) + '</td>'
+          + '<td style="'+th+';font-size:11px;white-space:nowrap">' + fmtS(r.StartedAt||r.LastAttempt) + '</td>'
+          + '<td style="'+th+';font-size:11px;white-space:nowrap">' + fmtS(r.SubmittedAt||r.LastAttempt) + '</td>'
+          + '<td style="'+th+';text-align:center">' + (r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--grey-400)">—</span>') + '</td>'
+          + '<td style="'+th+';text-align:center;font-weight:700;color:'+clr+'">'
+          + (isPerfect ? '⭐ ' : '') + scoreLbl + '</td>'
+          + '<td style="'+th+';max-width:200px;font-size:11px;color:var(--red)">'
+          + wrongs.slice(0,8).join(', ') + (wrongs.length>8?'…':'') + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    modal.style.display = 'flex';
+    // Close on backdrop click
+    modal.onclick = function(e) { if (e.target === modal) closeAsnLogModal(); };
+  };
+
+  window.closeAsnLogModal = function() {
+    var modal = document.getElementById('asn-log-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
 })();
 </script>
+<!-- ╔══════════════════════════════════════╗
+     ║   ASSIGNMENT LOG MODAL (from Matrix) ║
+     ╚══════════════════════════════════════╝ -->
+<div id="asn-log-modal" style="
+  display:none;position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;
+">
+  <div style="
+    background:#fff;border-radius:18px;width:100%;max-width:1020px;
+    max-height:90vh;display:flex;flex-direction:column;
+    box-shadow:0 24px 80px rgba(0,0,0,.28);overflow:hidden;
+  ">
+    <!-- Header -->
+    <div style="background:var(--black);padding:18px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <div style="flex:1">
+        <div style="font-family:var(--font-display);font-size:1.05rem;color:#fff" id="alm-title">Assignment Log</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px" id="alm-sub">All attempts for this assignment</div>
+      </div>
+      <!-- Stats badges -->
+      <div id="alm-stats" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <button onclick="closeAsnLogModal()" style="
+        background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);
+        width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0
+      ">✕</button>
+    </div>
+    <!-- Table -->
+    <div style="overflow:auto;flex:1;padding:0">
+      <table style="min-width:860px;width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="position:sticky;top:0;z-index:2">
+          <tr style="background:var(--grey-100)">
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">#</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Student ID</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Name</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Class</th>
+            <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Attempt #</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Start</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Submit</th>
+            <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Studied</th>
+            <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Score</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Wrong Words</th>
+          </tr>
+        </thead>
+        <tbody id="alm-tbody">
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
