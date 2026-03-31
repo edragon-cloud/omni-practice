@@ -208,6 +208,35 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
 .qs-student{background:var(--g100);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7;font-style:italic;color:var(--g800)}
 .qs-corr{background:var(--green-light);border-left:3px solid var(--green);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7}
 .qs-sugg{background:var(--blue-light);border-left:3px solid var(--blue-mid);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7}
+/* ── Error highlighting ── */
+.corr-text{font-size:13px;line-height:1.85;background:var(--g100);border-radius:7px;padding:10px 13px;word-break:break-word}
+.corr-perfect{font-size:13px;color:var(--green);font-weight:600;padding:8px 0}
+.err-wrap{position:relative;display:inline}
+.err-wrong{text-decoration:line-through;color:#DC2626;font-weight:600}
+.err-arrow{color:var(--g400);margin:0 3px;font-size:11px}
+.err-right{color:#16A34A;font-weight:700;background:#DCFCE7;border-radius:4px;padding:0 4px}
+.err-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1A16;color:#fff;font-size:11px;padding:5px 9px;border-radius:7px;white-space:nowrap;z-index:99;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.err-wrap:hover .err-tip{display:block}
+/* ── Score rows ── */
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:4px}
+.score-row{background:var(--g100);border-radius:8px;padding:8px 11px;display:flex;align-items:flex-start;gap:8px}
+.score-badge{min-width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-weight:700;font-size:1rem;flex-shrink:0}
+.score-badge.hi{background:#DCFCE7;color:#15803D}
+.score-badge.mid{background:#FEF9C3;color:#854D0E}
+.score-badge.lo{background:#FEE2E2;color:#DC2626}
+.score-detail{flex:1;min-width:0}
+.score-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600)}
+.score-cmt{font-size:11px;color:var(--g800);margin-top:2px;line-height:1.5}
+/* ── Upgrade answer ── */
+.btn-upgrade{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:9px;border:1.5px solid #7C3AED;background:transparent;color:#7C3AED;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
+.btn-upgrade:hover{background:#7C3AED;color:#fff}
+.btn-upgrade:disabled{opacity:.45;cursor:not-allowed}
+.upgrade-box{margin-top:10px;background:linear-gradient(135deg,#FAF5FF,#F3E8FF);border:1.5px solid #C4B5FD;border-radius:9px;padding:12px 14px;font-size:13px;line-height:1.85}
+.upgrade-box .up-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#7C3AED;margin-bottom:7px}
+.upgrade-box .up-text{color:#1A1A16;word-break:break-word}
+.up-added{background:#DDD6FE;color:#5B21B6;border-radius:4px;padding:0 4px;font-weight:700;cursor:help}
+.up-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.up-chip{background:#EDE9FE;color:#6D28D9;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600}
 .qa-sg{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
 .qa-sr{background:var(--g100);border-radius:7px;padding:7px 11px;display:flex;align-items:center;justify-content:space-between}
 .qa-sn{font-size:11px;color:var(--g600);font-weight:600}
@@ -980,6 +1009,18 @@ async function submitAll(){
       answered[i].studentAnswer = await transcribeAudio(answered[i].audioBase64, answered[i].mimeType||'audio/webm');
     }
     gStep('Transcription done ✓',true);
+
+    // ── Per-question grading (scores + error highlighting) ──
+    gStep('Grading each answer…');
+    for(let i=0;i<answered.length;i++){
+      gStep(`Grading Q${i+1}/${answered.length}…`);
+      try {
+        const qGrade = await gradeOneQuestion(answered[i].question, answered[i].studentAnswer);
+        Object.assign(answered[i], qGrade);
+      } catch(eg) { console.warn('Grade Q'+(i+1)+' failed:', eg); }
+    }
+    gStep('Grading done ✓',true);
+
     gStep('Generating IELTS report with Gemini…');
     const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
     let report='';
@@ -999,9 +1040,163 @@ async function submitAll(){
   }
 }
 
-// ══════════════════════════════════════════════
-// GEMINI LIVE API — WebSocket
-// ══════════════════════════════════════════════
+// ── GRADE ONE QUESTION — returns {scores, overall, errors, suggestion} ──
+async function gradeOneQuestion(question, answer) {
+  if (!answer || answer.trim().length < 5) return {};
+  const prompt = `You are a strict IELTS speaking examiner. Grade this single answer.
+
+Question: "${question}"
+Student answer: "${answer}"
+
+IMPORTANT: This is spoken English — ignore punctuation and spelling. Focus on:
+- Fluency & Coherence (flow, hesitation, linking)
+- Lexical Resource (vocabulary range, accuracy)  
+- Grammar Range & Accuracy (structures, errors)
+- Pronunciation (sounds, stress, intonation — inferred from transcript)
+
+Return ONLY valid JSON, no markdown fences:
+{
+  "overall": 6.0,
+  "scores": {
+    "fluency":      {"score": 6.0, "comment": "brief vi comment"},
+    "lexical":      {"score": 6.0, "comment": "brief vi comment"},
+    "grammar":      {"score": 6.0, "comment": "brief vi comment"},
+    "pronunciation":{"score": 6.0, "comment": "brief vi comment"}
+  },
+  "errors": [
+    {"wrong": "exact phrase from answer", "correct": "corrected phrase", "reason": "ngắn gọn tiếng Việt"}
+  ],
+  "suggestion": "1-2 câu gợi ý cải thiện bằng tiếng Việt"
+}
+
+Rules:
+- "errors": max 4 most important errors only. Empty array [] if perfect.
+- "wrong" must be an EXACT substring of the student answer.
+- scores: whole numbers or .5 steps (5, 5.5, 6, 6.5, 7…)
+- overall = average of 4 scores rounded to nearest 0.5`;
+
+  const raw = await gemFetch('You are a strict IELTS examiner. Return only valid JSON.', prompt, 800);
+  const clean = raw.replace(/```json|```/g,'').trim();
+  const si = clean.indexOf('{'), ei = clean.lastIndexOf('}');
+  if (si === -1 || ei === -1) return {};
+  return JSON.parse(clean.substring(si, ei+1));
+}
+
+// ── RENDER CORRECTED TEXT — highlight errors inline ──
+function renderCorrected(studentAnswer, errors) {
+  if (!errors || !errors.length) {
+    return `<div class="corr-perfect">✅ Không phát hiện lỗi nghiêm trọng</div>`;
+  }
+  // Sort errors by position descending to replace from end → no offset shift
+  const positioned = errors.map(e => {
+    const idx = studentAnswer.indexOf(e.wrong);
+    return {...e, idx};
+  }).filter(e => e.idx >= 0).sort((a,b) => b.idx - a.idx);
+
+  // Replace in original string (not escaped) then escape safely
+  let result = studentAnswer;
+  positioned.forEach(e => {
+    const before = result.substring(0, e.idx);
+    const after  = result.substring(e.idx + e.wrong.length);
+    result = before
+      + `\x00WRONG\x00${e.wrong}\x00CORRECT\x00${e.correct}\x00REASON\x00${e.reason}\x00END\x00`
+      + after;
+  });
+
+  // Now escape HTML and convert markers to styled spans
+  return result
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\x00WRONG\x00(.*?)\x00CORRECT\x00(.*?)\x00REASON\x00(.*?)\x00END\x00/g,
+      (_,wrong,correct,reason) =>
+        `<span class="err-wrap" title="${esc(reason)}"><span class="err-wrong">${esc(wrong)}</span>`+
+        `<span class="err-arrow">→</span><span class="err-right">${esc(correct)}</span>`+
+        `<span class="err-tip">${esc(reason)}</span></span>`
+    );
+}
+
+// ── UPGRADE ANSWER — lazy, called on button click ──────────────────────
+// Stores results per question index to avoid re-fetching
+const _upgradeCache = {};
+
+async function upgradeAnswer(idx) {
+  const btn = document.getElementById('upg-btn-'+idx);
+  const box = document.getElementById('upg-box-'+idx);
+  if (!btn || !box) return;
+
+  // Return cached result if already fetched
+  if (_upgradeCache[idx]) {
+    box.style.display = 'block';
+    btn.style.display = 'none';
+    return;
+  }
+
+  // Get the result object for this question
+  const r = (window._lastResults || [])[idx];
+  if (!r || !r.studentAnswer) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid #7C3AED;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle"></span> Đang nâng cấp…';
+
+  const prompt = `You are an IELTS Band 8 speaking coach. Your job is to ENHANCE the student's answer — NOT rewrite it from scratch.
+
+Question: "${r.question}"
+Student's answer: "${r.studentAnswer}"
+
+Rules (STRICTLY follow):
+1. Keep the student's original sentence structure and meaning intact.
+2. Only REPLACE or INSERT words/phrases to upgrade vocabulary, add idioms, or use better collocations.
+3. Do NOT add new ideas or change the topic.
+4. Highlight every upgraded word/phrase with double asterisks: **upgraded phrase**
+5. Keep at least 60% of the original wording.
+6. The result should sound natural for IELTS speaking (NOT academic writing).
+
+Return ONLY valid JSON, no markdown:
+{
+  "enhanced": "the full upgraded sentence with **highlighted** upgrades",
+  "upgrades": [
+    {"original": "original word/phrase", "upgraded": "new word/phrase", "type": "vocabulary|idiom|collocation", "reason": "ngắn gọn tiếng Việt tại sao hay hơn"}
+  ]
+}`;
+
+  try {
+    const raw = await gemFetch(
+      'You are an IELTS speaking coach. Return only valid JSON.',
+      prompt, 600
+    );
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const si = clean.indexOf('{'), ei = clean.lastIndexOf('}');
+    if (si === -1) throw new Error('No JSON');
+    const data = JSON.parse(clean.substring(si, ei+1));
+
+    // Render enhanced text — **word** → purple highlight span
+    const enhancedHtml = esc(data.enhanced || '')
+      .replace(/\*\*(.+?)\*\*/g,
+        '<span class="up-added" title="nâng cấp">$1</span>');
+
+    // Render upgrade chips
+    const chips = (data.upgrades || []).map(u => {
+      const typeIcon = {vocabulary:'📚', idiom:'💬', collocation:'🔗'}[u.type] || '✨';
+      return `<div class="up-chip" title="${esc(u.reason)}">${typeIcon} <em>${esc(u.original)}</em> → <strong>${esc(u.upgraded)}</strong></div>`;
+    }).join('');
+
+    const html = `<div class="upgrade-box">
+      <div class="up-label">✨ Câu nâng cấp (Band 7–8)</div>
+      <div class="up-text">${enhancedHtml}</div>
+      ${chips ? `<div class="up-chips">${chips}</div>` : ''}
+      <div style="font-size:10px;color:#9CA3AF;margin-top:8px">Hover lên từ tím để xem lý do · Hover chip để xem giải thích</div>
+    </div>`;
+
+    _upgradeCache[idx] = html;
+    box.innerHTML = html;
+    box.style.display = 'block';
+    btn.style.display = 'none';
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Nâng cấp câu trả lời';
+    toast('Lỗi nâng cấp: ' + e.message, 'error', 4000);
+  }
+}
 
 // ── SYSTEM PROMPTS ────────────────────────────────────────────────────
 function buildCEFRSystemPrompt(level){
@@ -1513,6 +1708,7 @@ function renderLiveResults(report,startStr,endStr,durStr,qCount){
 }
 
 function renderResults(results,report,mode,liveData){
+  window._lastResults = results; // store for upgradeAnswer lazy calls
   document.getElementById('res-mode').textContent='IELTS SPEAKING';
   const oa=results.map(r=>r.overall||0).filter(s=>s>0);
   const avg=oa.length?Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2:0;
@@ -1526,11 +1722,74 @@ function renderResults(results,report,mode,liveData){
   saveToGAS(S.mode||'ielts', results, report, _dur);
   if(report){document.getElementById('rpt-card').style.display='block';document.getElementById('rpt-body').innerHTML=md(report);}
   const qaList=document.getElementById('qa-list');qaList.innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div>';
-  results.forEach((r,i)=>{const el=document.createElement('div');el.className='qacc';el.innerHTML=`<div class="qacc-hdr" onclick="togQA(this)"><div class="qa-n">${i+1}</div><div class="qa-qp">${r.question}</div><div class="qa-bp">Band ${r.overall||'—'}</div><span class="qa-cv">▼</span></div><div class="qacc-body" id="qab-${i}"><div class="qs-lbl">Your Answer</div><div class="qs-student">${r.studentAnswer||'[No transcript]'}</div>${r.corrected?`<div class="qs-lbl">Corrected</div><div class="qs-corr">${r.corrected}</div>`:''} ${r.suggestion?`<div class="qs-lbl">Suggestion</div><div class="qs-sugg">${r.suggestion}</div>`:''} ${r.scores?`<div class="qs-lbl">Scores</div><div class="qa-sg">${Object.entries(r.scores).map(([k,v])=>`<div class="qa-sr"><span class="qa-sn">${k}</span><span><span class="qa-sv">${v.score||'—'}</span><span class="qa-sc">${v.comment||''}</span></span></div>`).join('')}</div>`:''}</div>`;qaList.appendChild(el);});
+  results.forEach((r,i)=>{
+    const el=document.createElement('div');
+    el.className='qacc';
+
+    // Score badge color
+    const scoreColor = sc => sc >= 7 ? 'hi' : sc >= 5.5 ? 'mid' : 'lo';
+    const bandVal = r.overall || '—';
+
+    // Build scores HTML
+    const scoreNames = {fluency:'Fluency & Coherence', lexical:'Lexical Resource', grammar:'Grammar Range', pronunciation:'Pronunciation'};
+    let scoresHtml = '';
+    if (r.scores) {
+      scoresHtml = `<div class="qs-lbl" style="margin-top:13px">📊 Điểm thành phần</div>
+        <div class="score-grid">${Object.entries(r.scores).map(([k,v])=>{
+          const sc = parseFloat(v.score||0);
+          return `<div class="score-row">
+            <div class="score-badge ${scoreColor(sc)}">${sc||'—'}</div>
+            <div class="score-detail">
+              <div class="score-name">${scoreNames[k]||k}</div>
+              <div class="score-cmt">${esc(v.comment||'')}</div>
+            </div>
+          </div>`;
+        }).join('')}</div>`;
+    }
+
+    // Build error-highlighted corrected text
+    const corrHtml = (r.errors !== undefined)
+      ? `<div class="qs-lbl" style="margin-top:13px">📝 Transcript + Lỗi</div>
+         <div class="corr-text">${renderCorrected(r.studentAnswer||'', r.errors||[])}</div>`
+      : (r.studentAnswer
+          ? `<div class="qs-lbl">Your Answer</div><div class="qs-student">${esc(r.studentAnswer)}</div>`
+          : '');
+
+    // Suggestion
+    const suggHtml = r.suggestion
+      ? `<div class="qs-lbl" style="margin-top:13px">💡 Gợi ý cải thiện</div>
+         <div class="qs-sugg">${esc(r.suggestion)}</div>`
+      : '';
+
+    // Upgrade button (lazy — only calls Gemini on click)
+    const upgradeBtn = `
+      <div id="upg-wrap-${i}">
+        <button class="btn-upgrade" onclick="upgradeAnswer(${i})" id="upg-btn-${i}">
+          ✨ Nâng cấp câu trả lời
+        </button>
+        <div id="upg-box-${i}" style="display:none"></div>
+      </div>`;
+
+    el.innerHTML=`
+      <div class="qacc-hdr" onclick="togQA(this)">
+        <div class="qa-n">${i+1}</div>
+        <div class="qa-qp">${esc(r.question)}</div>
+        <div class="qa-bp">Band ${bandVal}</div>
+        <span class="qa-cv">▼</span>
+      </div>
+      <div class="qacc-body ${i===0?'open':''}" id="qab-${i}">
+        ${corrHtml}
+        ${scoresHtml}
+        ${suggHtml}
+        ${upgradeBtn}
+      </div>`;
+    qaList.appendChild(el);
+  });
   SS('S-results');
 }
 
 function gStep(msg,done){const wrap=document.getElementById('g-steps');const el=document.createElement('div');el.className='gstep '+(done?'done':'now');el.innerHTML=`<div class="dot">${done?'✓':'…'}</div><span>${msg}</span>`;wrap.appendChild(el);document.getElementById('g-title').textContent=msg.replace(' ✓','');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function togQA(h){const b=h.nextElementSibling;b.classList.toggle('open');h.querySelector('.qa-cv').textContent=b.classList.contains('open')?'▲':'▼';}
 
 function md(s){
