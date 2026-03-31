@@ -562,6 +562,7 @@ tr:hover td{background:var(--grey-100)}
         <button class="vocab-subtab" id="vstab-inclass" onclick="showVocabSubtab('inclass')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">🔄 In-Class</button>
         <button class="vocab-subtab" id="vstab-inclass-log" onclick="showVocabSubtab('inclass-log');renderInclassSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Review Log</button>
         <button class="vocab-subtab" id="vstab-freeread" onclick="showVocabSubtab('freeread');loadFreeReadResults()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📖 Free Reading</button>
+        <button class="vocab-subtab" id="vstab-matrix" onclick="showVocabSubtab('matrix');renderProgressMatrix()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📊 Matrix</button>
       </div>
 
       <!-- Assignments sub-section -->
@@ -654,6 +655,49 @@ tr:hover td{background:var(--grey-100)}
           </table>
         </div>
       </div>
+    </div>
+
+      <!-- Progress Matrix sub-section -->
+      <div id="vsec-matrix" style="display:none">
+        <!-- Filters + Toggle -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700;flex:1">📊 Progress Matrix</div>
+          <!-- Mode toggle -->
+          <div style="display:flex;gap:0;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--grey-200)">
+            <button id="matrix-mode-asn" onclick="toggleMatrixMode(true)"
+              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--red);color:#fff;transition:.15s">
+              📚 Assignment
+            </button>
+            <button id="matrix-mode-rev" onclick="toggleMatrixMode(false)"
+              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--grey-100);color:var(--grey-600);transition:.15s;border-left:1.5px solid var(--grey-200)">
+              🔄 In-Class
+            </button>
+          </div>
+          <select id="matrix-class-filter" onchange="renderProgressMatrix()" style="padding:7px 12px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:140px">
+            <option value="">All Classes</option>
+          </select>
+          <input id="matrix-search" oninput="renderProgressMatrix()" type="text" placeholder="🔍 Search student…" style="padding:7px 12px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:180px">
+          <button class="btn btn-secondary btn-sm" onclick="renderProgressMatrix()">🔄 Refresh</button>
+        </div>
+        <!-- Info bar -->
+        <div id="matrix-info-bar" style="font-size:12px;color:var(--grey-600);margin-bottom:12px;min-height:18px"></div>
+        <!-- Matrix container -->
+        <div id="matrix-container" style="position:relative;overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--grey-200);border-radius:var(--radius-lg);background:#FAFAF8">
+          <div style="text-align:center;padding:60px;color:var(--grey-400)">Click "Matrix" tab to load.</div>
+        </div>
+        <!-- Tooltip (DOM-built, no innerHTML injection) -->
+        <div id="matrix-tooltip" style="
+          position:fixed;pointer-events:none;z-index:9999;
+          background:#1A1A16;color:#fff;
+          border-radius:11px;padding:13px 15px;
+          font-family:'DM Sans',sans-serif;
+          font-size:12px;line-height:1.65;
+          box-shadow:0 10px 36px rgba(0,0,0,.32);
+          max-width:240px;word-break:break-word;
+          opacity:0;transition:opacity .15s;
+        "></div>
+      </div>
+
     </div>
 
     <!-- WRITE TAB -->
@@ -1783,7 +1827,7 @@ async function teacherCheckPunishment(asnId, studentId, checked, checkbox) {
 
 // ── VOCAB SUBTABS ──
 function showVocabSubtab(tab) {
-  ['assignments','asn-log','inclass','inclass-log','freeread'].forEach(function(t) {
+  ['assignments','asn-log','inclass','inclass-log','freeread','matrix'].forEach(function(t) {
     var sec = document.getElementById('vsec-' + t);
     var btn = document.getElementById('vstab-' + t);
     if (sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -1959,12 +2003,9 @@ function _renderAsnLogTable(rows) {
   if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--grey-400)">No submissions yet.</td></tr>'; return; }
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
   tbody.innerHTML = sorted.map((r,i) => {
-    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
-    const score   = parseInt(r.Score||0);
-    const hasRaw  = total > 0 && (correct > 0 || score === 0);
-    const pct     = hasRaw ? Math.round(correct/total*100) : score;
-    const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
-    const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
     const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
     const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
     return '<tr>'
@@ -1977,7 +2018,7 @@ function _renderAsnLogTable(rows) {
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.LastAttempt)}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt||r.LastAttempt)}</td>`
       + `<td style="${th};text-align:center">${r.UsedPretest==='Y'?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--grey-400)">—</span>'}</td>`
-      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
       + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
       + '</tr>';
   }).join('');
@@ -2021,12 +2062,9 @@ function _renderRevLogTable(rows) {
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
   const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
   tbody.innerHTML = sorted.map((r,i) => {
-    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||0);
-    const score   = parseInt(r.Score||0);
-    const hasRaw  = total > 0 && (correct > 0 || score === 0);
-    const pct     = hasRaw ? Math.round(correct/total*100) : score;
-    const clr     = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
-    const correctLbl = hasRaw ? `${correct}/${total}` : `${score}%`;
+    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
+    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
     const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
     return '<tr>'
       + `<td style="${th};color:var(--grey-400)">${sorted.length-i}</td>`
@@ -2036,7 +2074,7 @@ function _renderRevLogTable(rows) {
       + `<td style="${th};font-size:12px">${revMap[r.ReviewID]||r.ReviewID||'—'}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.SubmittedAt)}</td>`
       + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt)}</td>`
-      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correctLbl}</td>`
+      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
       + `<td style="${th};max-width:180px;font-size:11px;color:var(--red)">${wrongs.slice(0,6).join(', ')}${wrongs.length>6?'…':''}</td>`
       + '</tr>';
   }).join('');
@@ -2825,6 +2863,346 @@ window.addEventListener('load', () => {
     showPage('page-auth');
   }, 1800);
 });
+
+// ══════════════════════════════════════════════════════
+// PROGRESS MATRIX
+// ══════════════════════════════════════════════════════
+(function() {
+  'use strict';
+
+  var GOAL = 3;
+  // Store tooltip data in a JS Map keyed by cell index — avoids HTML attribute escaping issues
+  var _tooltipStore = new Map();
+  var _modeAsn = true; // true = Assignment 3/3, false = In-Class score
+
+  // ── Format date ──
+  function fmtDate(s) {
+    try {
+      if (!s) return '—';
+      var d = new Date(s);
+      if (isNaN(d)) return '—';
+      return d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'})
+           + ' ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit', hour12:false});
+    } catch(e) { return '—'; }
+  }
+
+  // ── Build ASSIGNMENT matrix data ──
+  function buildAsnMatrix(submissions, assignments, classFilter, search) {
+    var asnIds = new Set((submissions||[]).map(function(s){ return s.AssignmentID; }));
+    var asns   = (assignments||[]).filter(function(a){ return asnIds.has(a.ID); });
+    var cellMap = {}, studentMeta = {};
+
+    (submissions||[]).forEach(function(row) {
+      var sid = row.StudentID||'', aid = row.AssignmentID||'';
+      var name = row.FullName||sid, cls = row.Class||'';
+      if (classFilter && cls !== classFilter) return;
+      if (search) { var q=search.toLowerCase(); if (name.toLowerCase().indexOf(q)<0 && sid.toLowerCase().indexOf(q)<0) return; }
+      if (!studentMeta[sid]) studentMeta[sid] = {name:name, cls:cls, sid:sid};
+      var key = sid+'||'+aid;
+      if (!cellMap[key]) cellMap[key] = [];
+      cellMap[key].push(row);
+    });
+
+    var students = Object.values(studentMeta).sort(function(a,b){
+      return a.cls<b.cls?-1:a.cls>b.cls?1:a.name<b.name?-1:a.name>b.name?1:0;
+    });
+    return {students:students, assignments:asns, cellMap:cellMap};
+  }
+
+  // ── Build IN-CLASS REVIEW matrix data ──
+  function buildRevMatrix(reviewSubs, reviewSessions, classFilter, search) {
+    var revIds = new Set((reviewSubs||[]).map(function(s){ return s.ReviewID; }));
+    var revs   = (reviewSessions||[]).filter(function(r){ return revIds.has(r.ID); });
+    var cellMap = {}, studentMeta = {};
+
+    (reviewSubs||[]).forEach(function(row) {
+      var sid = row.StudentID||'', rid = row.ReviewID||'';
+      var name = row.FullName||sid, cls = row.Class||'';
+      if (classFilter && cls !== classFilter) return;
+      if (search) { var q=search.toLowerCase(); if (name.toLowerCase().indexOf(q)<0 && sid.toLowerCase().indexOf(q)<0) return; }
+      if (!studentMeta[sid]) studentMeta[sid] = {name:name, cls:cls, sid:sid};
+      var key = sid+'||'+rid;
+      if (!cellMap[key]) cellMap[key] = [];
+      cellMap[key].push(row);
+    });
+
+    var students = Object.values(studentMeta).sort(function(a,b){
+      return a.cls<b.cls?-1:a.cls>b.cls?1:a.name<b.name?-1:a.name>b.name?1:0;
+    });
+    return {students:students, assignments:revs, cellMap:cellMap};
+  }
+
+  // ── Cell progress (Assignment 3/3 mode) ──
+  function cellProgressAsn(attempts) {
+    if (!attempts||!attempts.length) return {perfect:0, total:0, lastDate:null, wrongs:[]};
+    var perfect = attempts.filter(function(a){ return parseInt(a.Score||0)>=100; }).length;
+    var byDate  = attempts.slice().sort(function(a,b){ return new Date(b.LastAttempt||b.SubmittedAt||0)-new Date(a.LastAttempt||a.SubmittedAt||0); });
+    var lastDate = byDate[0] ? (byDate[0].LastAttempt||byDate[0].SubmittedAt||null) : null;
+    var wrongSet = {};
+    attempts.forEach(function(a){ try{JSON.parse(a.WrongWords||'[]').forEach(function(w){wrongSet[w.toLowerCase()]=w;});}catch(e){} });
+    return {perfect:Math.min(perfect,GOAL), total:attempts.length, lastDate:lastDate, wrongs:Object.values(wrongSet).slice(0,10)};
+  }
+
+  // ── Cell progress (In-Class score mode) ──
+  function cellProgressRev(attempts) {
+    if (!attempts||!attempts.length) return {score:null, total:0, lastDate:null, wrongs:[]};
+    // Only 1 attempt per review per student, but take highest just in case
+    var byDate = attempts.slice().sort(function(a,b){ return new Date(b.SubmittedAt||0)-new Date(a.SubmittedAt||0); });
+    var best = byDate[0];
+    var score = parseInt(best.Score||0);
+    var lastDate = best.SubmittedAt||null;
+    var wrongSet = {};
+    attempts.forEach(function(a){ try{JSON.parse(a.WrongWords||'[]').forEach(function(w){wrongSet[w.toLowerCase()]=w;});}catch(e){} });
+    return {score:score, total:attempts.length, lastDate:lastDate, wrongs:Object.values(wrongSet).slice(0,8)};
+  }
+
+  // ── Cell style: Assignment 3/3 mode ──
+  function cellStyleAsn(perfect) {
+    if (perfect===0)    return {bg:'#F4F4F2', color:'#BBBBB4', border:'#E0E0DA'};
+    if (perfect<GOAL)   return {bg:'#FFF3CD', color:'#92650A', border:'#FFD97D'};
+    return                     {bg:'#D1FAE5', color:'#065F46', border:'#6EE7B7'};
+  }
+
+  // ── Cell style: In-Class score mode ──
+  function cellStyleRev(score) {
+    if (score===null)  return {bg:'#F4F4F2', color:'#BBBBB4', border:'#E0E0DA'};
+    if (score>=80)     return {bg:'#D1FAE5', color:'#065F46', border:'#6EE7B7'};
+    if (score>=60)     return {bg:'#FFF3CD', color:'#92650A', border:'#FFD97D'};
+    return                    {bg:'#FFE4E6', color:'#9B1C1C', border:'#FCA5A5'};
+  }
+
+  // ── Tooltip ──
+  function showTooltip(e, cellKey) {
+    var tt  = document.getElementById('matrix-tooltip');
+    var data = _tooltipStore.get(cellKey);
+    if (!tt || !data) return;
+
+    // Build HTML safely via DOM
+    tt.innerHTML = '';
+
+    var title = document.createElement('div');
+    title.style.cssText = 'font-weight:700;font-size:13px;margin-bottom:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:6px';
+    title.textContent = data.asnTitle;
+    tt.appendChild(title);
+
+    function row(label, value) {
+      var d = document.createElement('div');
+      d.style.cssText = 'font-size:11px;margin-bottom:3px;color:rgba(255,255,255,.55)';
+      var s = document.createElement('strong');
+      s.style.color = '#fff';
+      s.textContent = value;
+      d.textContent = label + ': ';
+      d.appendChild(s);
+      tt.appendChild(d);
+    }
+
+    row('Student', data.studentName);
+    if (_modeAsn) {
+      row('Perfect (100%)', data.perfect + ' / ' + GOAL);
+    } else {
+      row('Score', data.score !== null ? data.score + '%' : '—');
+    }
+    row('Total attempts', data.total);
+    row('Last attempt', fmtDate(data.lastDate));
+
+    if (data.wrongs && data.wrongs.length) {
+      var lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-top:7px;margin-bottom:4px';
+      lbl.textContent = 'Missed words';
+      tt.appendChild(lbl);
+      var chips = document.createElement('div');
+      chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px';
+      data.wrongs.forEach(function(w) {
+        var chip = document.createElement('span');
+        chip.style.cssText = 'background:rgba(255,255,255,.13);border-radius:4px;padding:2px 7px;font-size:11px;color:#fff';
+        chip.textContent = w;
+        chips.appendChild(chip);
+      });
+      tt.appendChild(chips);
+    }
+
+    tt.style.opacity = '1';
+    positionTooltip(e);
+  }
+
+  function positionTooltip(e) {
+    var tt = document.getElementById('matrix-tooltip');
+    if (!tt || tt.style.opacity==='0') return;
+    var x = e.clientX+16, y = e.clientY+16;
+    var tw = tt.offsetWidth||220, th = tt.offsetHeight||120;
+    if (x+tw > window.innerWidth-12)  x = e.clientX-tw-16;
+    if (y+th > window.innerHeight-12) y = e.clientY-th-16;
+    tt.style.left = x+'px';
+    tt.style.top  = y+'px';
+  }
+
+  function hideTooltip() {
+    var tt = document.getElementById('matrix-tooltip');
+    if (tt) tt.style.opacity = '0';
+  }
+
+  // ── Populate class dropdown ──
+  function populateClassFilter() {
+    var sel = document.getElementById('matrix-class-filter');
+    if (!sel || sel.options.length > 1) return;
+    var classes = Array.from(new Set(
+      (App.teacherData.students||[]).map(function(s){ return s.Class||s.class||''; }).filter(Boolean)
+    )).sort();
+    classes.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ── Render ──
+  window.renderProgressMatrix = function() {
+    var container = document.getElementById('matrix-container');
+    var infoBar   = document.getElementById('matrix-info-bar');
+    if (!container) return;
+
+    populateClassFilter();
+    var classFilter = (document.getElementById('matrix-class-filter')||{}).value || '';
+    var search      = (document.getElementById('matrix-search')||{}).value || '';
+    _tooltipStore.clear();
+
+    var data, colLabel;
+    if (_modeAsn) {
+      data     = buildAsnMatrix(App.teacherData.submissions||[], App.teacherData.assignments||[], classFilter, search);
+      colLabel = 'Assignment';
+    } else {
+      data     = buildRevMatrix(App.teacherData.reviewSubs||[], App.teacherData.reviewSessions||[], classFilter, search);
+      colLabel = 'In-Class Review';
+    }
+
+    if (!data.students.length || !data.assignments.length) {
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">'
+        + (data.students.length ? 'No ' + colLabel.toLowerCase() + ' data found.' : 'No students match the current filter.')
+        + '</div>';
+      if (infoBar) infoBar.textContent = '';
+      return;
+    }
+
+    var asns     = data.assignments;
+    var students = data.students;
+
+    if (infoBar) infoBar.textContent = students.length + ' student(s) · ' + asns.length + ' '
+      + colLabel.toLowerCase() + '(s)' + (_modeAsn ? ' · Goal: 100% score × ' + GOAL + ' times' : ' · Score shown (1 attempt per session)');
+
+    // ── Dimensions ──
+    var colW  = 96, nameW = 200;
+
+    // ── Header row ──
+    var headHtml = '<th style="position:sticky;left:0;top:0;z-index:5;background:#FAFAF8;'
+      + 'min-width:' + nameW + 'px;padding:11px 16px;text-align:left;'
+      + 'font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.06em;text-transform:uppercase;'
+      + 'border-bottom:2px solid var(--grey-200);border-right:2px solid var(--grey-200);">STUDENT</th>';
+
+    headHtml += asns.map(function(a) {
+      var title = a.Title || a.ID || '—';
+      return '<th style="'
+        + 'position:sticky;top:0;z-index:3;background:#FAFAF8;'
+        + 'min-width:' + colW + 'px;max-width:' + colW + 'px;'
+        + 'padding:10px 8px;text-align:center;'
+        + 'font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.04em;text-transform:uppercase;'
+        + 'border-bottom:2px solid var(--grey-200);border-right:1px solid var(--grey-100);'
+        + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+        + '" title="' + title.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '">'
+        + '<div style="max-width:' + (colW-10) + 'px;overflow:hidden;text-overflow:ellipsis;margin:0 auto">'
+        + title.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        + '</div></th>';
+    }).join('');
+
+    // ── Body rows ──
+    var cellIdx = 0;
+    var bodyHtml = students.map(function(st) {
+      var nameTd = '<td style="'
+        + 'position:sticky;left:0;z-index:2;background:#fff;'
+        + 'min-width:' + nameW + 'px;max-width:' + nameW + 'px;'
+        + 'padding:10px 16px;'
+        + 'border-right:2px solid var(--grey-200);border-bottom:1px solid #F4F4F2;">'
+        + '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)">'
+        + st.name.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>'
+        + '<div style="font-size:10px;color:var(--grey-400);margin-top:2px">'
+        + (st.cls||'—') + ' · ' + st.sid + '</div></td>';
+
+      var cells = asns.map(function(a) {
+        var key  = st.sid + '||' + a.ID;
+        var idx  = cellIdx++;
+        var sty, label, icon;
+
+        if (_modeAsn) {
+          var prog = cellProgressAsn(data.cellMap[key]);
+          sty   = cellStyleAsn(prog.perfect);
+          label = prog.perfect + '/' + GOAL;
+          icon  = prog.perfect >= GOAL ? '✓ ' : '';
+          _tooltipStore.set(idx, {
+            asnTitle: a.Title||a.ID, studentName: st.name,
+            perfect: prog.perfect, total: prog.total,
+            lastDate: prog.lastDate, wrongs: prog.wrongs
+          });
+        } else {
+          var prog = cellProgressRev(data.cellMap[key]);
+          sty   = cellStyleRev(prog.score);
+          label = prog.score !== null ? prog.score + '%' : '—';
+          icon  = prog.score >= 80 ? '✓ ' : '';
+          _tooltipStore.set(idx, {
+            asnTitle: a.Title||a.ID, studentName: st.name,
+            score: prog.score, total: prog.total,
+            lastDate: prog.lastDate, wrongs: prog.wrongs
+          });
+        }
+
+        return '<td style="padding:7px 6px;text-align:center;border-right:1px solid #F4F4F2;border-bottom:1px solid #F4F4F2;">'
+          + '<div class="pm-cell" data-idx="' + idx + '" style="'
+          + 'display:inline-flex;align-items:center;justify-content:center;'
+          + 'width:68px;height:36px;border-radius:9px;cursor:default;user-select:none;'
+          + 'background:' + sty.bg + ';color:' + sty.color + ';'
+          + 'border:1.5px solid ' + sty.border + ';'
+          + 'font-weight:700;font-size:13px;font-family:var(--font-mono);'
+          + 'transition:transform .12s,box-shadow .12s;'
+          + '">' + icon + label.replace(/&/g,'&amp;') + '</div></td>';
+      }).join('');
+
+      return '<tr>' + nameTd + cells + '</tr>';
+    }).join('');
+
+    var minW = nameW + asns.length * colW;
+    container.innerHTML = '<table style="border-collapse:collapse;width:100%;min-width:' + minW + 'px">'
+      + '<thead><tr>' + headHtml + '</tr></thead>'
+      + '<tbody>' + bodyHtml + '</tbody>'
+      + '</table>';
+
+    // ── Attach hover events (uses JS Map — no attribute escaping issue) ──
+    container.querySelectorAll('.pm-cell').forEach(function(el) {
+      var idx = parseInt(el.getAttribute('data-idx'), 10);
+      el.addEventListener('mouseenter', function(e) {
+        el.style.transform  = 'scale(1.1)';
+        el.style.boxShadow  = '0 4px 16px rgba(0,0,0,.16)';
+        el.style.zIndex     = '10';
+        showTooltip(e, idx);
+      });
+      el.addEventListener('mousemove', positionTooltip);
+      el.addEventListener('mouseleave', function() {
+        el.style.transform  = '';
+        el.style.boxShadow  = '';
+        el.style.zIndex     = '';
+        hideTooltip();
+      });
+    });
+  };
+
+  // ── Toggle Assignment / In-Class ──
+  window.toggleMatrixMode = function(isAsn) {
+    _modeAsn = isAsn;
+    var btnAsn = document.getElementById('matrix-mode-asn');
+    var btnRev = document.getElementById('matrix-mode-rev');
+    if (btnAsn) { btnAsn.style.background = isAsn ? 'var(--red)' : 'var(--grey-100)'; btnAsn.style.color = isAsn ? '#fff' : 'var(--grey-600)'; }
+    if (btnRev) { btnRev.style.background = isAsn ? 'var(--grey-100)' : 'var(--red)'; btnRev.style.color = isAsn ? 'var(--grey-600)' : '#fff'; }
+    renderProgressMatrix();
+  };
+
+})();
 </script>
 </body>
 </html>
