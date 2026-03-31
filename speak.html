@@ -1449,6 +1449,8 @@ function saveToGAS(mode, results, report, durationSec) {
   const user = S.user || {};
   const now  = new Date();
   const startTime = S.liveStartTime || S.t0 || new Date(now - (durationSec||0)*1000);
+  // startTime may be an ISO string (S.t0) or a Date object (S.liveStartTime) — normalise both
+  const startTimeISO = (startTime instanceof Date) ? startTime.toISOString() : String(startTime);
   // Build per-Q array
   const qArr = (results||[]).map(r => r.question || '');
   const rArr = (results||[]).map(r => ({
@@ -1459,7 +1461,7 @@ function saveToGAS(mode, results, report, durationSec) {
     suggestion:    r.suggestion    || ''
   }));
   const payload = {
-    startingTime:   startTime.toISOString(),
+    startingTime:   startTimeISO,
     submittingTime: now.toISOString(),
     studentName:    user.fullName || user.FullName || '',
     accessCode:     user.studentId || user.StudentID || '',
