@@ -209,24 +209,25 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
 .qs-corr{background:var(--green-light);border-left:3px solid var(--green);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7}
 .qs-sugg{background:var(--blue-light);border-left:3px solid var(--blue-mid);border-radius:7px;padding:9px 11px;font-size:13px;line-height:1.7}
 /* ── Error highlighting ── */
-.corr-text{font-size:13px;line-height:1.85;background:var(--g100);border-radius:7px;padding:10px 13px;word-break:break-word}
+.corr-text{font-size:13px;line-height:2;background:var(--g100);border-radius:8px;padding:11px 14px;word-break:break-word}
 .corr-perfect{font-size:13px;color:var(--green);font-weight:600;padding:8px 0}
-.err-wrap{position:relative;display:inline}
-.err-wrong{text-decoration:line-through;color:#DC2626;font-weight:600}
-.err-arrow{color:var(--g400);margin:0 3px;font-size:11px}
-.err-right{color:#16A34A;font-weight:700;background:#DCFCE7;border-radius:4px;padding:0 4px}
-.err-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1A1A16;color:#fff;font-size:11px;padding:5px 9px;border-radius:7px;white-space:nowrap;z-index:99;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.err-wrap{position:relative;display:inline;white-space:nowrap}
+.err-wrong{text-decoration:line-through;color:#DC2626;font-weight:600;background:#FEE2E2;border-radius:3px;padding:1px 3px}
+.err-arrow{color:var(--g400);font-size:11px;margin:0 2px}
+.err-right{color:#15803D;font-weight:700;background:#DCFCE7;border-radius:4px;padding:1px 5px}
+.err-tip{display:none;position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#1A1A16;color:#fff;font-size:11px;line-height:1.5;padding:6px 10px;border-radius:8px;white-space:nowrap;z-index:200;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.28);max-width:240px;white-space:normal;text-align:center}
+.err-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1A1A16}
 .err-wrap:hover .err-tip{display:block}
-/* ── Score rows ── */
-.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:4px}
-.score-row{background:var(--g100);border-radius:8px;padding:8px 11px;display:flex;align-items:flex-start;gap:8px}
-.score-badge{min-width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-weight:700;font-size:1rem;flex-shrink:0}
+/* ── Score grid ── */
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.score-row{background:var(--g100);border-radius:9px;padding:9px 12px;display:flex;align-items:flex-start;gap:9px}
+.score-badge{min-width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-weight:800;font-size:1.05rem;flex-shrink:0;letter-spacing:-.02em}
 .score-badge.hi{background:#DCFCE7;color:#15803D}
-.score-badge.mid{background:#FEF9C3;color:#854D0E}
+.score-badge.mid{background:#FEF9C3;color:#92400E}
 .score-badge.lo{background:#FEE2E2;color:#DC2626}
 .score-detail{flex:1;min-width:0}
-.score-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g600)}
-.score-cmt{font-size:11px;color:var(--g800);margin-top:2px;line-height:1.5}
+.score-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);margin-bottom:3px}
+.score-cmt{font-size:11px;color:var(--g800);line-height:1.5}
 /* ── Upgrade answer ── */
 .btn-upgrade{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:9px;border:1.5px solid #7C3AED;background:transparent;color:#7C3AED;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
 .btn-upgrade:hover{background:#7C3AED;color:#fff}
@@ -1043,43 +1044,98 @@ async function submitAll(){
 // ── GRADE ONE QUESTION — returns {scores, overall, errors, suggestion} ──
 async function gradeOneQuestion(question, answer) {
   if (!answer || answer.trim().length < 5) return {};
-  const prompt = `You are a strict IELTS speaking examiner. Grade this single answer.
+
+  const RUBRIC = `
+IELTS SPEAKING BAND DESCRIPTORS (Official — use STRICTLY):
+
+FLUENCY & COHERENCE:
+Band 9: Speaks fluently with only rare repetition or self-correction; coherence is a feature; effortlessly uses cohesive devices.
+Band 8: Speaks fluently with only occasional repetition or self-correction; hesitation is usually content-related; coherently develops topics.
+Band 7: Speaks at length without noticeable effort; some hesitation but self-corrects well; uses a range of connectives and discourse markers.
+Band 6: Willing to speak at length; some hesitation/repetition; uses basic connectives consistently, not always coherently.
+Band 5: Maintains flow despite hesitation; uses simple connectives; limited range of discourse markers; may not always be coherent.
+Band 4: Hesitation is often noticeable; short or incomplete utterances; overuses basic connectives; coherence often lost.
+
+LEXICAL RESOURCE:
+Band 9: Uses vocabulary with full flexibility and precision; natural and sophisticated use of lexical features; rare minor errors.
+Band 8: Uses a wide vocabulary resource fluently and flexibly; sophisticated constructions; occasional errors in word choice.
+Band 7: Uses vocabulary flexibly; some less common items with some awareness of style; some errors in word choice/collocation, not impeding.
+Band 6: Adequate range; attempts less common vocabulary; some errors in word choice/collocation/spelling.
+Band 5: Manages to communicate despite limited vocabulary; paraphrases consistently; errors may cause some difficulty.
+Band 4: Limited vocabulary; errors cause strain; meanings sometimes unclear.
+
+GRAMMATICAL RANGE & ACCURACY:
+Band 9: Uses a full range of structures naturally and appropriately; only occasional slips.
+Band 8: Uses a wide range of structures flexibly; majority of sentences error-free; occasional non-systematic errors.
+Band 7: Uses a mix of simple and complex structures; frequently error-free sentences; some errors remain, not causing difficulty.
+Band 6: Mix of structures; some complex forms attempted; errors sometimes impede communication.
+Band 5: Produces basic forms reliably; limited complex structures; frequent errors but meaning usually clear.
+Band 4: Mostly simple sentences; frequent errors cause comprehension difficulty.
+
+PRONUNCIATION:
+Band 9: Uses a full range of pronunciation features with precision and subtlety; accent does not affect clarity.
+Band 8: Uses a wide range of pronunciation features; accent does not cause difficulty; mostly easy to understand throughout.
+Band 7: Easy to understand throughout; uses some features flexibly; accent and occasional errors rarely cause difficulty.
+Band 6: Generally easy to understand; some features may cause listener difficulty; accent noticeable but not impeding.
+Band 5: Understandable but mispronunciation noticeable; uses few features of connected speech; L1 accent sometimes intrusive.
+Band 4: Mispronunciation is frequent; hard to understand at times; very limited use of pronunciation features.
+
+SCORING RULES (FOLLOW STRICTLY):
+- Each criterion: score in 0.5 steps (4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0)
+- overall = mean of 4 criteria, rounded to nearest 0.5
+- ANTI-INFLATION: Most university EFL students score 5.0–6.5. Band 7 requires genuinely good performance. Band 8+ is near-native — very rare. Band 9 is exceptional.
+- DO NOT award all criteria the same score — differentiate based on actual performance.
+- A short or simple answer should NOT score above 6.0 on fluency regardless of accuracy.
+`;
+
+  const prompt = `${RUBRIC}
+
+TASK: Grade the following IELTS speaking answer per the rubric above.
 
 Question: "${question}"
-Student answer: "${answer}"
+Student's answer: "${answer}"
 
-IMPORTANT: This is spoken English — ignore punctuation and spelling. Focus on:
-- Fluency & Coherence (flow, hesitation, linking)
-- Lexical Resource (vocabulary range, accuracy)  
-- Grammar Range & Accuracy (structures, errors)
-- Pronunciation (sounds, stress, intonation — inferred from transcript)
+NOTE: This is SPOKEN English transcribed. Ignore punctuation/spelling. Judge spoken fluency, vocabulary, grammar structures, and inferred pronunciation.
 
-Return ONLY valid JSON, no markdown fences:
+Return ONLY raw JSON (no markdown, no explanation):
 {
   "overall": 6.0,
   "scores": {
-    "fluency":      {"score": 6.0, "comment": "brief vi comment"},
-    "lexical":      {"score": 6.0, "comment": "brief vi comment"},
-    "grammar":      {"score": 6.0, "comment": "brief vi comment"},
-    "pronunciation":{"score": 6.0, "comment": "brief vi comment"}
+    "fluency":       {"score": 6.0, "comment": "nhận xét ngắn tiếng Việt, 1 câu"},
+    "lexical":       {"score": 6.0, "comment": "nhận xét ngắn tiếng Việt, 1 câu"},
+    "grammar":       {"score": 6.0, "comment": "nhận xét ngắn tiếng Việt, 1 câu"},
+    "pronunciation": {"score": 6.0, "comment": "nhận xét ngắn tiếng Việt, 1 câu"}
   },
   "errors": [
-    {"wrong": "exact phrase from answer", "correct": "corrected phrase", "reason": "ngắn gọn tiếng Việt"}
+    {"wrong": "exact phrase copied from student answer", "correct": "corrected version", "reason": "lý do ngắn tiếng Việt"}
   ],
-  "suggestion": "1-2 câu gợi ý cải thiện bằng tiếng Việt"
+  "suggestion": "1-2 câu gợi ý cải thiện cụ thể nhất bằng tiếng Việt"
 }
 
-Rules:
-- "errors": max 4 most important errors only. Empty array [] if perfect.
-- "wrong" must be an EXACT substring of the student answer.
-- scores: whole numbers or .5 steps (5, 5.5, 6, 6.5, 7…)
-- overall = average of 4 scores rounded to nearest 0.5`;
+RULES for "errors":
+- "wrong" MUST be an exact substring copied verbatim from the student answer above.
+- Max 4 errors. Focus on grammar and vocabulary errors only. Empty array [] if no errors.
+- Do NOT flag pronunciation errors in "errors" (it is spoken text).`;
 
-  const raw = await gemFetch('You are a strict IELTS examiner. Return only valid JSON.', prompt, 800);
+  const raw = await gemFetch(
+    'You are a certified IELTS examiner. Return ONLY valid JSON. No markdown.',
+    prompt, 1200
+  );
+
+  // Robust JSON extraction
   const clean = raw.replace(/```json|```/g,'').trim();
-  const si = clean.indexOf('{'), ei = clean.lastIndexOf('}');
-  if (si === -1 || ei === -1) return {};
-  return JSON.parse(clean.substring(si, ei+1));
+  const si = clean.indexOf('{');
+  const ei = clean.lastIndexOf('}');
+  if (si === -1 || ei === -1) {
+    console.warn('gradeOneQuestion: no JSON in response', raw.substring(0,200));
+    return {};
+  }
+  try {
+    return JSON.parse(clean.substring(si, ei+1));
+  } catch(e) {
+    console.warn('gradeOneQuestion: JSON parse failed', e.message, clean.substring(si, si+300));
+    return {};
+  }
 }
 
 // ── RENDER CORRECTED TEXT — highlight errors inline ──
@@ -1087,31 +1143,47 @@ function renderCorrected(studentAnswer, errors) {
   if (!errors || !errors.length) {
     return `<div class="corr-perfect">✅ Không phát hiện lỗi nghiêm trọng</div>`;
   }
-  // Sort errors by position descending to replace from end → no offset shift
-  const positioned = errors.map(e => {
-    const idx = studentAnswer.indexOf(e.wrong);
-    return {...e, idx};
-  }).filter(e => e.idx >= 0).sort((a,b) => b.idx - a.idx);
 
-  // Replace in original string (not escaped) then escape safely
-  let result = studentAnswer;
-  positioned.forEach(e => {
-    const before = result.substring(0, e.idx);
-    const after  = result.substring(e.idx + e.wrong.length);
-    result = before
-      + `\x00WRONG\x00${e.wrong}\x00CORRECT\x00${e.correct}\x00REASON\x00${e.reason}\x00END\x00`
-      + after;
-  });
+  // Only keep errors where 'wrong' is actually found in the answer
+  const valid = errors
+    .map(e => ({ ...e, idx: studentAnswer.indexOf(e.wrong) }))
+    .filter(e => e.idx >= 0 && e.wrong && e.correct)
+    .sort((a, b) => a.idx - b.idx); // ascending for left-to-right build
 
-  // Now escape HTML and convert markers to styled spans
-  return result
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\x00WRONG\x00(.*?)\x00CORRECT\x00(.*?)\x00REASON\x00(.*?)\x00END\x00/g,
-      (_,wrong,correct,reason) =>
-        `<span class="err-wrap" title="${esc(reason)}"><span class="err-wrong">${esc(wrong)}</span>`+
-        `<span class="err-arrow">→</span><span class="err-right">${esc(correct)}</span>`+
-        `<span class="err-tip">${esc(reason)}</span></span>`
+  if (!valid.length) {
+    // errors returned but none matched verbatim — show plain transcript + note
+    return `<div class="corr-text">${esc(studentAnswer)}</div>
+      <div style="font-size:11px;color:var(--g400);margin-top:5px">
+        ⚠️ Gemini phát hiện lỗi nhưng không thể highlight chính xác vị trí trong transcript.
+      </div>`;
+  }
+
+  // Build result by walking through studentAnswer left-to-right
+  let cursor = 0;
+  let parts = [];
+  valid.forEach(e => {
+    if (e.idx < cursor) return; // skip overlapping
+    // Plain text before this error
+    if (e.idx > cursor) {
+      parts.push(esc(studentAnswer.substring(cursor, e.idx)));
+    }
+    // Error span
+    parts.push(
+      `<span class="err-wrap">` +
+        `<span class="err-wrong">${esc(e.wrong)}</span>` +
+        `<span class="err-arrow"> → </span>` +
+        `<span class="err-right">${esc(e.correct)}</span>` +
+        `<span class="err-tip">${esc(e.reason || '')}</span>` +
+      `</span>`
     );
+    cursor = e.idx + e.wrong.length;
+  });
+  // Remaining text
+  if (cursor < studentAnswer.length) {
+    parts.push(esc(studentAnswer.substring(cursor)));
+  }
+
+  return `<div class="corr-text">${parts.join('')}<div style="font-size:10px;color:var(--g400);margin-top:6px">Hover lên từ đỏ để xem gợi ý sửa</div></div>`;
 }
 
 // ── UPGRADE ANSWER — lazy, called on button click ──────────────────────

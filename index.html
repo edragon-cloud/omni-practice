@@ -508,9 +508,15 @@ tr:hover td{background:var(--grey-100)}
         <div class="table-wrap">
           <table id="ov-users-table">
             <thead><tr>
-              <th>Student ID</th><th>Full Name</th><th>Class</th><th>Email</th>
-              <th>Status</th><th>Package</th><th>Apps</th>
-              <th>Expiry Date</th><th>Days Left</th><th>Actions</th>
+              <th onclick="_ovSort('studentId')" style="cursor:pointer;user-select:none" id="ovth-studentId">Student ID <span id="ovth-studentId-ic">⇅</span></th>
+              <th onclick="_ovSort('fullName')" style="cursor:pointer;user-select:none" id="ovth-fullName">Full Name <span id="ovth-fullName-ic">⇅</span></th>
+              <th onclick="_ovSort('class')" style="cursor:pointer;user-select:none" id="ovth-class">Class <span id="ovth-class-ic">⇅</span></th>
+              <th>Email</th>
+              <th onclick="_ovSort('status')" style="cursor:pointer;user-select:none">Status <span id="ovth-status-ic">⇅</span></th>
+              <th>Package</th><th>Apps</th>
+              <th onclick="_ovSort('expiryDate')" style="cursor:pointer;user-select:none">Expiry <span id="ovth-expiryDate-ic">⇅</span></th>
+              <th onclick="_ovSort('daysLeft')" style="cursor:pointer;user-select:none">Days Left <span id="ovth-daysLeft-ic">⇅</span></th>
+              <th>Actions</th>
             </tr></thead>
             <tbody id="ov-users-tbody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
           </table>
@@ -537,8 +543,15 @@ tr:hover td{background:var(--grey-100)}
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Student ID</th><th>Full Name</th><th>Class</th><th>Email</th>
-            <th>Registered</th><th>Status</th><th>Package</th><th>Expiry</th><th>Apps</th><th>Actions</th>
+            <th onclick="_stSort('studentId')" style="cursor:pointer;user-select:none">Student ID <span id="stth-studentId-ic">⇅</span></th>
+            <th onclick="_stSort('fullName')" style="cursor:pointer;user-select:none">Full Name <span id="stth-fullName-ic">⇅</span></th>
+            <th onclick="_stSort('class')" style="cursor:pointer;user-select:none">Class <span id="stth-class-ic">⇅</span></th>
+            <th>Email</th>
+            <th onclick="_stSort('registeredAt')" style="cursor:pointer;user-select:none">Registered <span id="stth-registeredAt-ic">⇅</span></th>
+            <th onclick="_stSort('status')" style="cursor:pointer;user-select:none">Status <span id="stth-status-ic">⇅</span></th>
+            <th>Package</th>
+            <th onclick="_stSort('expiryDate')" style="cursor:pointer;user-select:none">Expiry <span id="stth-expiryDate-ic">⇅</span></th>
+            <th>Apps</th><th>Actions</th>
           </tr></thead>
           <tbody id="students-activation-tbody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
         </table>
@@ -626,7 +639,6 @@ tr:hover td{background:var(--grey-100)}
           </table>
         </div>
       </div>
-    </div>
 
       <!-- Progress Matrix sub-section -->
       <div id="vsec-matrix" style="display:none">
@@ -704,30 +716,74 @@ tr:hover td{background:var(--grey-100)}
     <div id="tsec-listen" class="teacher-section">
       <div class="section-header">
         <div><h1>LisDictation — Results</h1><p>Listening sessions & error analysis</p></div>
-        <div style="display:flex;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <!-- View toggle -->
+          <div style="display:flex;gap:0;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--grey-200)">
+            <button id="lis-view-matrix" onclick="lisSetView('matrix')"
+              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--red);color:#fff;transition:.15s">
+              📊 Matrix
+            </button>
+            <button id="lis-view-table" onclick="lisSetView('table')"
+              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--grey-100);color:var(--grey-600);transition:.15s;border-left:1.5px solid var(--grey-200)">
+              📋 Raw Table
+            </button>
+          </div>
+          <select id="lis-matrix-class" onchange="renderLisMatrix()" style="padding:6px 11px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none">
+            <option value="">All Classes</option>
+          </select>
+          <input id="lis-matrix-search" oninput="renderLisMatrix()" type="text" placeholder="🔍 Search student…"
+            style="padding:6px 11px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:160px">
           <button class="btn btn-secondary btn-sm" onclick="loadListenResults()">🔄 Refresh</button>
-          <button class="btn btn-outline btn-sm" onclick="regenerateErrorFlat()">⚙️ Regenerate Error Flat</button>
+          <button class="btn btn-outline btn-sm" onclick="regenerateErrorFlat()">⚙️ Regen Flat</button>
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>#</th>
-            <th>Start Time</th>
-            <th>Student ID</th>
-            <th>Student</th>
-            <th onclick="sortListenByClass()" style="cursor:pointer;user-select:none" title="Click to sort by class">Class <span id="listen-class-sort-icon">⇅</span></th>
-            <th>Submitting Time</th>
-            <th>Duration</th>
-            <th>Book–Test–Part</th>
-            <th style="text-align:center">Sentences Done</th>
-            <th style="text-align:center">Total Words</th>
-            <th style="text-align:center">Correct Words</th>
-            <th style="text-align:center">Accuracy</th>
-            <th style="text-align:center">Detail</th>
-          </tr></thead>
-          <tbody id="listen-results-tbody"><tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
-        </table>
+
+      <!-- Matrix view -->
+      <div id="lis-matrix-wrap">
+        <div id="lis-matrix-infobar" style="font-size:12px;color:var(--grey-600);margin-bottom:10px;min-height:18px"></div>
+        <div id="lis-matrix-container" style="overflow:auto;max-height:calc(100vh - 280px);border:1px solid var(--grey-200);border-radius:var(--radius-lg);background:#FAFAF8">
+          <div style="text-align:center;padding:60px;color:var(--grey-400)">Loading…</div>
+        </div>
+        <!-- Tooltip -->
+        <div id="lis-matrix-tooltip" style="
+          position:fixed;pointer-events:none;z-index:9999;
+          background:#1A1A16;color:#fff;border-radius:11px;padding:12px 15px;
+          font-family:var(--font-body);font-size:12px;line-height:1.65;
+          box-shadow:0 10px 36px rgba(0,0,0,.32);max-width:240px;word-break:break-word;
+          opacity:0;transition:opacity .15s;
+        "></div>
+        <!-- Legend -->
+        <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--grey-600);align-items:center;flex-wrap:wrap">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#D1FAE5;border:1.5px solid #6EE7B7;display:inline-block"></span>≥ 80%</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#FFF3CD;border:1.5px solid #FFD97D;display:inline-block"></span>60–79%</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#FFE4E6;border:1.5px solid #FCA5A5;display:inline-block"></span>&lt; 60%</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#F4F4F2;border:1.5px solid #E0E0DA;display:inline-block"></span>Chưa làm</span>
+          <span style="color:var(--grey-400)">· Số = accuracy tốt nhất · Hover để xem chi tiết</span>
+        </div>
+      </div>
+
+      <!-- Raw table view (hidden by default) -->
+      <div id="lis-table-wrap" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th>
+              <th>Start Time</th>
+              <th>Student ID</th>
+              <th>Student</th>
+              <th onclick="sortListenByClass()" style="cursor:pointer;user-select:none" title="Click to sort by class">Class <span id="listen-class-sort-icon">⇅</span></th>
+              <th>Submitting Time</th>
+              <th>Duration</th>
+              <th>Book–Test–Part</th>
+              <th style="text-align:center">Sentences Done</th>
+              <th style="text-align:center">Total Words</th>
+              <th style="text-align:center">Correct Words</th>
+              <th style="text-align:center">Accuracy</th>
+              <th style="text-align:center">Detail</th>
+            </tr></thead>
+            <tbody id="listen-results-tbody"><tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1353,7 +1409,7 @@ function showTeacherTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   if (secEl) secEl.classList.add('active');
   if (tab === 'write')    loadWriteResults();
-  if (tab === 'listen')   loadListenResults();
+  if (tab === 'listen')   { loadListenResults(); setTimeout(()=>lisSetView(_lisView||'matrix'), 100); }
   if (tab === 'speak')    loadSpeakResults();
   if (tab === 'settings') loadSettings();
 }
@@ -1399,6 +1455,51 @@ function renderOverviewTab() {
 }
 
 var _ovAllStudents = [];
+// ── OVERVIEW TABLE SORT ──────────────────────────────────────
+var _ovSortField = 'class', _ovSortAsc = true;
+var _stSortField = 'class', _stSortAsc = true;
+
+function _ovSort(field) {
+  if (_ovSortField === field) _ovSortAsc = !_ovSortAsc;
+  else { _ovSortField = field; _ovSortAsc = true; }
+  // Update header icons
+  ['studentId','fullName','class','status','expiryDate','daysLeft'].forEach(f => {
+    const ic = document.getElementById('ovth-'+f+'-ic');
+    if (ic) ic.textContent = f === _ovSortField ? (_ovSortAsc ? '↑' : '↓') : '⇅';
+  });
+  filterOverviewTable((document.getElementById('ov-search')||{}).value || '');
+}
+
+function _stSort(field) {
+  if (_stSortField === field) _stSortAsc = !_stSortAsc;
+  else { _stSortField = field; _stSortAsc = true; }
+  ['studentId','fullName','class','registeredAt','status','expiryDate'].forEach(f => {
+    const ic = document.getElementById('stth-'+f+'-ic');
+    if (ic) ic.textContent = f === _stSortField ? (_stSortAsc ? '↑' : '↓') : '⇅';
+  });
+  renderStudentsActivationTab();
+}
+
+function _sortStudents(arr, field, asc) {
+  return arr.slice().sort(function(a, b) {
+    let va = a[field] || '', vb = b[field] || '';
+    // numeric fields
+    if (field === 'daysLeft') {
+      va = isNaN(parseInt(va)) ? (asc ? 99999 : -99999) : parseInt(va);
+      vb = isNaN(parseInt(vb)) ? (asc ? 99999 : -99999) : parseInt(vb);
+      return asc ? va - vb : vb - va;
+    }
+    if (field === 'expiryDate' || field === 'registeredAt') {
+      va = va ? new Date(va).getTime() : 0;
+      vb = vb ? new Date(vb).getTime() : 0;
+      return asc ? va - vb : vb - va;
+    }
+    va = String(va).toLowerCase();
+    vb = String(vb).toLowerCase();
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+}
+
 function renderOverviewTable(students) {
   _ovAllStudents = students;
   filterOverviewTable('');
@@ -1416,8 +1517,17 @@ function filterOverviewTable(search) {
   const tbody = document.getElementById('ov-users-tbody');
   if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--grey-400)">No students found.</td></tr>'; return; }
 
+  // Apply sort — compute daysLeft as numeric for sorting
+  const now2 = new Date();
+  const withDays = filtered.map(s => {
+    let dl = 99999;
+    if (s.expiryDate) { const exp = new Date(s.expiryDate); if (!isNaN(exp)) dl = Math.round((exp - now2)/86400000); }
+    return {...s, daysLeft: dl};
+  });
+  const sorted = _sortStudents(withDays, _ovSortField, _ovSortAsc);
+
   const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️' };
-  tbody.innerHTML = filtered.map(s => {
+  tbody.innerHTML = sorted.map(s => {
     const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
     const appChips = apps.map(a => '<span title="' + a + '" style="font-size:16px">' + (appIcons[a]||a) + '</span>').join('');
 
@@ -1468,7 +1578,8 @@ function renderStudentsActivationTab() {
   if (!students.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">No students registered yet.</td></tr>'; return; }
 
   const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️' };
-  tbody.innerHTML = students.map(s => {
+  const sortedSt = _sortStudents(students, _stSortField, _stSortAsc);
+  tbody.innerHTML = sortedSt.map(s => {
     const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
     const appChips = ['vocab','write','listen','speak'].map(a =>
       '<span style="font-size:16px;opacity:' + (apps.includes(a)?'1':'0.2') + '" title="' + a + '">' + appIcons[a] + '</span>'
@@ -2728,13 +2839,390 @@ async function loadListenResults() {
     return Object.assign({}, r, { _class: info.cls, _sid: info.sid });
   });
   _listenSortAsc = null;
-  renderListenTable(_listenRows);
+  if (_lisView === 'matrix') renderLisMatrix();
+  else renderListenTable(_listenRows);
 }
 async function regenerateErrorFlat() {
   const res = await api('teacher.lis.regenerateFlat');
   if (res.success) toast(`Error_Flat regenerated: ${res.rowsWritten} rows.`, 'success');
   else toast(res.error||'Failed.', 'error');
 }
+
+// ══════════════════════════════════════════════
+// LIS DICTATION — MATRIX VIEW
+// ══════════════════════════════════════════════
+var _lisView = 'matrix';
+var _lisMatrixTipStore = new Map();
+
+function lisSetView(v) {
+  _lisView = v;
+  const btnM = document.getElementById('lis-view-matrix');
+  const btnT = document.getElementById('lis-view-table');
+  const wrapM = document.getElementById('lis-matrix-wrap');
+  const wrapT = document.getElementById('lis-table-wrap');
+  const sel   = document.getElementById('lis-matrix-class');
+  const srch  = document.getElementById('lis-matrix-search');
+  if (btnM)  { btnM.style.background = v==='matrix'?'var(--red)':'var(--grey-100)'; btnM.style.color = v==='matrix'?'#fff':'var(--grey-600)'; }
+  if (btnT)  { btnT.style.background = v==='table' ?'var(--red)':'var(--grey-100)'; btnT.style.color = v==='table' ?'#fff':'var(--grey-600)'; }
+  if (wrapM) wrapM.style.display = v==='matrix'?'block':'none';
+  if (wrapT) wrapT.style.display = v==='table' ?'block':'none';
+  if (sel)   sel.style.display   = v==='matrix'?'':'none';
+  if (srch)  srch.style.display  = v==='matrix'?'':'none';
+  if (v==='matrix') renderLisMatrix();
+  else renderListenTable(_listenRows);
+}
+
+function renderLisMatrix() {
+  const container = document.getElementById('lis-matrix-container');
+  const infoBar   = document.getElementById('lis-matrix-infobar');
+  if (!container) return;
+  _lisMatrixTipStore.clear();
+
+  const classFilter = (document.getElementById('lis-matrix-class')||{}).value || '';
+  const search      = ((document.getElementById('lis-matrix-search')||{}).value || '').toLowerCase();
+
+  if (!_listenRows || !_listenRows.length) {
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No data. Click Refresh to load.</div>';
+    if (infoBar) infoBar.textContent = '';
+    return;
+  }
+
+  // Populate class dropdown once
+  const sel = document.getElementById('lis-matrix-class');
+  if (sel && sel.options.length <= 1) {
+    const classes = [...new Set(_listenRows.map(r => r._class||'').filter(Boolean))].sort();
+    classes.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  }
+
+  // Filter rows
+  let rows = _listenRows.filter(r => {
+    if (classFilter && r._class !== classFilter) return false;
+    if (search) {
+      const n = (r.FullName||'').toLowerCase(), s = (r._sid||'').toLowerCase();
+      if (!n.includes(search) && !s.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if (!rows.length) {
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No students match filter.</div>';
+    if (infoBar) infoBar.textContent = '';
+    return;
+  }
+
+  // Group by student → sort sessions chronologically → assign Bài 1, 2, 3...
+  const studentMap = new Map();
+  rows.forEach(r => {
+    const key = (r._sid && r._sid !== '—') ? r._sid : (r.FullName||'?');
+    if (!studentMap.has(key)) {
+      studentMap.set(key, { name: r.FullName||key, cls: r._class||'—', sid: r._sid||'—', sessions: [] });
+    }
+    studentMap.get(key).sessions.push(r);
+  });
+
+  // Sort each student's sessions oldest→newest
+  studentMap.forEach(st => {
+    st.sessions.sort((a, b) => new Date(a.StartingTime||0) - new Date(b.StartingTime||0));
+  });
+
+  // Find max number of sessions across all students → that's the column count
+  let maxSessions = 0;
+  studentMap.forEach(st => { if (st.sessions.length > maxSessions) maxSessions = st.sessions.length; });
+
+  if (maxSessions === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No sessions found.</div>';
+    return;
+  }
+
+  // Sort students by class then name
+  const students = [...studentMap.values()].sort((a, b) =>
+    a.cls < b.cls ? -1 : a.cls > b.cls ? 1 : a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+  );
+
+  if (infoBar) infoBar.textContent =
+    students.length + ' student(s) · max ' + maxSessions + ' session(s) · Hover cell to see book & accuracy';
+
+  const nameW = 200, cellW = 88;
+
+  // Cell style
+  function cellSty(acc) {
+    if (acc === null) return { bg:'#F4F4F2', color:'#BBBBB4', border:'#E0E0DA' };
+    if (acc >= 80)   return { bg:'#D1FAE5', color:'#065F46', border:'#6EE7B7' };
+    if (acc >= 60)   return { bg:'#FFF3CD', color:'#92400E', border:'#FFD97D' };
+    return                  { bg:'#FFE4E6', color:'#9B1C1C', border:'#FCA5A5' };
+  }
+
+  function fmtDate(str) {
+    if (!str) return '—';
+    const d = new Date(str); if (isNaN(d)) return String(str).substring(0,16);
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})
+         + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  }
+
+  // ── Header ──
+  let headHtml = `<th style="position:sticky;left:0;top:0;z-index:5;background:#FAFAF8;
+    min-width:${nameW}px;padding:10px 14px;text-align:left;font-size:10px;font-weight:700;
+    color:var(--grey-600);letter-spacing:.06em;text-transform:uppercase;
+    border-bottom:2px solid var(--grey-200);border-right:2px solid var(--grey-200)">STUDENT</th>`;
+
+  for (let i = 1; i <= maxSessions; i++) {
+    headHtml += `<th style="position:sticky;top:0;z-index:3;background:#FAFAF8;
+      min-width:${cellW}px;max-width:${cellW}px;padding:8px 6px;text-align:center;
+      font-size:11px;font-weight:700;color:var(--grey-600);
+      border-bottom:2px solid var(--grey-200);border-right:1px solid var(--grey-100);">
+      <div style="margin-bottom:4px">Bài ${i}</div>
+      <button onclick="event.stopPropagation();openLisLogModal(${i})" style="
+        font-size:9px;padding:2px 8px;border-radius:5px;
+        border:1px solid var(--grey-200);background:#fff;color:var(--grey-500);
+        cursor:pointer;font-family:var(--font-body);font-weight:600;white-space:nowrap;transition:.12s"
+        onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+        onmouseout="this.style.borderColor='var(--grey-200)';this.style.color='var(--grey-500)'">
+        👁 Log</button>
+    </th>`;
+  }
+
+  // ── Body ──
+  let cellIdx = 0;
+  let bodyHtml = students.map(st => {
+    const nameTd = `<td style="position:sticky;left:0;z-index:2;background:#fff;
+      min-width:${nameW}px;max-width:${nameW}px;padding:9px 14px;
+      border-right:2px solid var(--grey-200);border-bottom:1px solid #F0F0EE;">
+      <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${st.name}</div>
+      <div style="font-size:10px;color:var(--grey-400);margin-top:1px">${st.cls} · ${st.sid}</div>
+    </td>`;
+
+    const cells = Array.from({ length: maxSessions }, (_, i) => {
+      const idx = cellIdx++;
+      const r = st.sessions[i] || null; // null = not done yet
+
+      if (!r) {
+        _lisMatrixTipStore.set(idx, null); // empty cell
+        const s = cellSty(null);
+        return `<td style="padding:6px;text-align:center;border-right:1px solid #F0F0EE;border-bottom:1px solid #F0F0EE;">
+          <div class="lm-cell" data-idx="${idx}" style="
+            display:inline-flex;align-items:center;justify-content:center;
+            width:68px;height:34px;border-radius:9px;cursor:default;user-select:none;
+            background:${s.bg};color:${s.color};border:1.5px solid ${s.border};
+            font-size:12px;font-family:var(--font-mono);font-weight:600;
+            transition:transform .12s,box-shadow .12s;">—</div></td>`;
+      }
+
+      const acc = Math.min(100, parseInt(String(r.Accuracy||'0').replace('%',''))||0);
+      const s   = cellSty(acc);
+      const icon = acc >= 80 ? '✓ ' : '';
+
+      _lisMatrixTipStore.set(idx, {
+        name:      st.name,
+        sessionNo: i + 1,
+        book:      r.BookTestPart || '—',
+        acc,
+        sentences: r.SentencesDone || '—',
+        date:      r.StartingTime  || null,
+        sessionId: r.SessionID     || ''
+      });
+
+      return `<td style="padding:6px;text-align:center;border-right:1px solid #F0F0EE;border-bottom:1px solid #F0F0EE;">
+        <div class="lm-cell" data-idx="${idx}" style="
+          display:inline-flex;align-items:center;justify-content:center;
+          width:68px;height:34px;border-radius:9px;cursor:default;user-select:none;
+          background:${s.bg};color:${s.color};border:1.5px solid ${s.border};
+          font-size:13px;font-family:var(--font-mono);font-weight:700;
+          transition:transform .12s,box-shadow .12s;">${icon}${acc}%</div></td>`;
+    }).join('');
+
+    return `<tr>${nameTd}${cells}</tr>`;
+  }).join('');
+
+  container.innerHTML = `<table style="border-collapse:collapse;width:100%;min-width:${nameW + maxSessions*cellW}px">
+    <thead><tr>${headHtml}</tr></thead>
+    <tbody>${bodyHtml}</tbody>
+  </table>`;
+
+  // Hover events
+  container.querySelectorAll('.lm-cell').forEach(el => {
+    const idx = parseInt(el.getAttribute('data-idx'), 10);
+    el.addEventListener('mouseenter', e => {
+      el.style.transform = 'scale(1.1)';
+      el.style.boxShadow = '0 4px 16px rgba(0,0,0,.16)';
+      el.style.zIndex    = '10';
+      _lisShowTip(e, idx);
+    });
+    el.addEventListener('mousemove', _lisTipPos);
+    el.addEventListener('mouseleave', () => {
+      el.style.transform = '';
+      el.style.boxShadow = '';
+      el.style.zIndex    = '';
+      _lisHideTip();
+    });
+  });
+}
+
+function _lisShowTip(e, idx) {
+  const tt   = document.getElementById('lis-matrix-tooltip');
+  const data = _lisMatrixTipStore.get(idx);
+  if (!tt) return;
+  tt.innerHTML = '';
+
+  if (!data) {
+    // Empty cell
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:12px;color:rgba(255,255,255,.5)';
+    d.textContent = 'Chưa làm bài này';
+    tt.appendChild(d);
+    tt.style.opacity = '1';
+    _lisTipPos(e);
+    return;
+  }
+
+  function addRow(label, val) {
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:11px;margin-bottom:3px;color:rgba(255,255,255,.55)';
+    const s = document.createElement('strong');
+    s.style.color = '#fff'; s.textContent = val;
+    d.textContent = label + ': '; d.appendChild(s);
+    tt.appendChild(d);
+  }
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-weight:700;font-size:13px;margin-bottom:7px;color:#fff;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:5px';
+  title.textContent = 'Bài ' + data.sessionNo;
+  tt.appendChild(title);
+
+  addRow('Học sinh', data.name);
+  addRow('Sách / Part', data.book);
+  addRow('Accuracy', data.acc + '%');
+  addRow('Sentences done', String(data.sentences));
+  addRow('Ngày làm', data.date ? (() => {
+    const d = new Date(data.date);
+    return isNaN(d) ? String(data.date) :
+      d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})
+      + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  })() : '—');
+
+  if (data.sessionId) {
+    const link = document.createElement('a');
+    link.href = `listen-detail.html?sessionId=${encodeURIComponent(data.sessionId)}&teacher=1`;
+    link.target = '_blank';
+    link.style.cssText = 'display:block;margin-top:8px;font-size:11px;color:#93C5FD;text-decoration:underline';
+    link.textContent = '🔍 Xem chi tiết →';
+    tt.appendChild(link);
+  }
+
+  tt.style.opacity = '1';
+  _lisTipPos(e);
+}
+
+function _lisTipPos(e) {
+  const tt = document.getElementById('lis-matrix-tooltip');
+  if (!tt || tt.style.opacity === '0') return;
+  let x = e.clientX+16, y = e.clientY+16;
+  const tw = tt.offsetWidth||220, th = tt.offsetHeight||120;
+  if (x+tw > window.innerWidth-12)  x = e.clientX-tw-16;
+  if (y+th > window.innerHeight-12) y = e.clientY-th-16;
+  tt.style.left = x+'px'; tt.style.top = y+'px';
+}
+function _lisHideTip() {
+  const tt = document.getElementById('lis-matrix-tooltip');
+  if (tt) tt.style.opacity = '0';
+}
+
+// ── LIS LOG MODAL ─────────────────────────────────────
+// sessionNo: 1-based index; shows all students' session #sessionNo
+window.openLisLogModal = function(sessionNo) {
+  const modal   = document.getElementById('lis-log-modal');
+  const tbody   = document.getElementById('llm-tbody');
+  const titleEl = document.getElementById('llm-title');
+  const subEl   = document.getElementById('llm-sub');
+  const statsEl = document.getElementById('llm-stats');
+  if (!modal || !tbody) return;
+
+  const classFilter = (document.getElementById('lis-matrix-class')||{}).value || '';
+  const search      = ((document.getElementById('lis-matrix-search')||{}).value || '').toLowerCase();
+
+  // Rebuild studentMap exactly as renderLisMatrix does
+  let rows = (_listenRows||[]).filter(r => {
+    if (classFilter && r._class !== classFilter) return false;
+    if (search) {
+      const n=(r.FullName||'').toLowerCase(), s=(r._sid||'').toLowerCase();
+      if (!n.includes(search) && !s.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Group & sort by student then chronological
+  const studentMap = new Map();
+  rows.forEach(r => {
+    const key = (r._sid && r._sid!=='—') ? r._sid : (r.FullName||'?');
+    if (!studentMap.has(key)) studentMap.set(key, { name:r.FullName||key, cls:r._class||'—', sid:r._sid||'—', sessions:[] });
+    studentMap.get(key).sessions.push(r);
+  });
+  studentMap.forEach(st => st.sessions.sort((a,b) => new Date(a.StartingTime||0)-new Date(b.StartingTime||0)));
+
+  // Collect the sessionNo-th session (0-indexed = sessionNo-1) for each student that has it
+  const slotRows = [];
+  studentMap.forEach(st => {
+    const r = st.sessions[sessionNo-1];
+    if (r) slotRows.push({ ...r, _name: st.name, _cls: st.cls, _sid2: st.sid });
+  });
+  slotRows.sort((a,b) => (a._cls||'').localeCompare(b._cls||'') || (a._name||'').localeCompare(b._name||''));
+
+  titleEl.textContent = '🎧 Bài ' + sessionNo + ' — Session Log';
+  subEl.textContent   = slotRows.length + ' student(s) completed this session';
+
+  const avgAcc = slotRows.length
+    ? Math.round(slotRows.reduce((s,r) => s + Math.min(100, parseInt(String(r.Accuracy||'0').replace('%',''))||0), 0) / slotRows.length)
+    : 0;
+
+  statsEl.innerHTML =
+    '<span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border-radius:8px;padding:4px 11px;font-size:11px;font-weight:600">'
+    + slotRows.length + ' students</span>'
+    + '<span style="background:rgba(100,220,150,.15);color:#6EE7B7;border-radius:8px;padding:4px 11px;font-size:11px;font-weight:600">'
+    + 'Avg ' + avgAcc + '%</span>';
+
+  function fmtT(str) {
+    if (!str) return '—';
+    const d = new Date(str); if (isNaN(d)) return String(str).substring(0,16);
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})
+         + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  }
+
+  const th = 'padding:9px 12px;border-bottom:1px solid #f4f4f2';
+
+  if (!slotRows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">No sessions found for this slot.</td></tr>';
+  } else {
+    tbody.innerHTML = slotRows.map((r, i) => {
+      const acc = Math.min(100, parseInt(String(r.Accuracy||'0').replace('%',''))||0);
+      const clr = acc>=80 ? 'var(--green)' : acc>=60 ? 'var(--gold)' : 'var(--red)';
+      const sid = r.SessionID || r.sessionId || '';
+      const detailBtn = sid
+        ? `<a href="listen-detail.html?sessionId=${encodeURIComponent(sid)}&teacher=1" target="_blank"
+             style="font-size:11px;padding:3px 9px;border-radius:5px;background:var(--blue,#3b82f6);color:#fff;text-decoration:none;white-space:nowrap">🔍 Detail</a>`
+        : '—';
+      const rowBg = acc >= 80 ? 'background:#F0FDF4' : '';
+      return `<tr style="${rowBg}">
+        <td style="${th};color:var(--grey-400);font-size:11px">${i+1}</td>
+        <td style="${th};font-family:var(--font-mono);font-size:11px">${r._sid2||r._sid||'—'}</td>
+        <td style="${th}"><strong>${r._name||r.FullName||'—'}</strong></td>
+        <td style="${th}"><span class="badge badge-grey">${r._cls||r._class||'—'}</span></td>
+        <td style="${th};font-size:12px">${r.BookTestPart||'—'}</td>
+        <td style="${th};font-size:11px;white-space:nowrap">${fmtT(r.StartingTime)}</td>
+        <td style="${th};font-size:11px;white-space:nowrap">${fmtT(r.SubmittingTime)}</td>
+        <td style="${th};text-align:center">${r.SentencesDone||'—'}</td>
+        <td style="${th};text-align:center;font-weight:700;color:${clr}">${acc ? acc+'%' : '—'}</td>
+        <td style="${th};text-align:center">${detailBtn}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  modal.style.display = 'flex';
+  modal.onclick = e => { if (e.target === modal) closeLisLogModal(); };
+};
+
+window.closeLisLogModal = function() {
+  const modal = document.getElementById('lis-log-modal');
+  if (modal) modal.style.display = 'none';
+};
 
 // ── SPEAK RESULTS ──
 async function loadSpeakResults() {
@@ -3254,6 +3742,54 @@ window.addEventListener('load', () => {
           </tr>
         </thead>
         <tbody id="alm-tbody">
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════════════╗
+     ║   LIS DICTATION LOG MODAL            ║
+     ╚══════════════════════════════════════╝ -->
+<div id="lis-log-modal" style="
+  display:none;position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;
+">
+  <div style="
+    background:#fff;border-radius:18px;width:100%;max-width:1020px;
+    max-height:90vh;display:flex;flex-direction:column;
+    box-shadow:0 24px 80px rgba(0,0,0,.28);overflow:hidden;
+  ">
+    <div style="background:var(--black);padding:18px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <div style="flex:1">
+        <div style="font-family:var(--font-display);font-size:1.05rem;color:#fff" id="llm-title">Session Log</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px" id="llm-sub">All sessions for this slot</div>
+      </div>
+      <div id="llm-stats" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <button onclick="closeLisLogModal()" style="
+        background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);
+        width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+    </div>
+    <div style="overflow:auto;flex:1;padding:0">
+      <table style="min-width:800px;width:100%;border-collapse:collapse;font-size:13px">
+        <thead style="position:sticky;top:0;z-index:2">
+          <tr style="background:var(--grey-100)">
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">#</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Student ID</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Name</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Class</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Book / Part</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Start</th>
+            <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Submit</th>
+            <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Sentences</th>
+            <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Accuracy</th>
+            <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--grey-600);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--grey-200)">Detail</th>
+          </tr>
+        </thead>
+        <tbody id="llm-tbody">
           <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Loading…</td></tr>
         </tbody>
       </table>
