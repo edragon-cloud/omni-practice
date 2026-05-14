@@ -199,8 +199,90 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .rv-original{font-size:.9rem;line-height:1.75;color:var(--black);font-style:italic}
 .submit-area{flex-shrink:0;padding:11px 18px;background:#fff;border-top:2px solid #e8edf8;display:none;align-items:center;justify-content:flex-end;gap:12px}
 .submit-area.visible{display:flex}
-/* ===== RESULT SCREEN ===== */
-#screen-result{overflow-y:auto;align-items:center;justify-content:flex-start;padding:32px 18px 60px;background:var(--grey-100);flex-direction:column}
+/* ===== COMPREHENSION QUIZ SCREEN ===== */
+#screen-quiz{overflow-y:auto;background:var(--grey-100);flex-direction:column;align-items:center}
+.quiz-wrap{width:100%;max-width:720px;padding:24px 18px 60px;margin:0 auto}
+.quiz-header-card{background:linear-gradient(135deg,#1a237e,#283593);color:#fff;border-radius:var(--radius-lg);padding:22px 28px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.quiz-header-icon{font-size:2.4rem;line-height:1}
+.quiz-header-text h2{font-family:var(--font-display);font-size:1.25rem;margin-bottom:3px}
+.quiz-header-text p{font-size:12px;color:rgba(255,255,255,.6);margin:0}
+.quiz-score-badge{margin-left:auto;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);border-radius:10px;padding:10px 18px;text-align:center}
+.quiz-score-badge .qsb-num{font-size:1.6rem;font-weight:900;font-family:var(--font-display)}
+.quiz-score-badge .qsb-lbl{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.05em;text-transform:uppercase}
+.quiz-q-card{background:#fff;border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:14px;box-shadow:0 2px 10px rgba(26,35,126,.07)}
+.quiz-q-num{font-size:10px;font-weight:700;color:#9aaac8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.quiz-q-text{font-size:.95rem;font-weight:600;color:var(--black);margin-bottom:14px;line-height:1.6}
+.quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quiz-opt{background:#f4f6fd;border:2px solid #e0e6f8;border-radius:10px;padding:10px 14px;font-size:.87rem;cursor:pointer;transition:all .15s;text-align:left;font-family:inherit;color:var(--black);font-weight:500}
+.quiz-opt:hover:not(:disabled){background:#e8eeff;border-color:#8899dd}
+.quiz-opt.selected{background:#e8eeff;border-color:var(--blue);color:var(--navy2);font-weight:700}
+.quiz-opt.correct{background:#e6f4ed;border-color:#1a7a4a;color:#0a4a2e!important}
+.quiz-opt.wrong{background:#fdecea;border-color:#c0392b;color:#7b1010!important}
+.quiz-opt:disabled{cursor:default}
+.quiz-opt-letter{font-weight:900;color:#8899dd;margin-right:7px;font-size:.82rem}
+.quiz-explain{margin-top:10px;padding:9px 13px;background:#f0f4ff;border-left:3px solid var(--blue);border-radius:0 8px 8px 0;font-size:.82rem;color:#333;line-height:1.6;display:none}
+.quiz-submit-bar{position:sticky;bottom:0;background:#fff;border-top:2px solid #e8edf8;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -4px 16px rgba(26,35,126,.08)}
+.quiz-progress-text{font-size:.82rem;color:#9aaac8;font-weight:600}
+/* ===== FILL-IN-BLANK SCREEN ===== */
+#screen-fitb{flex:1;overflow:hidden;flex-direction:column}
+.fitb-header{background:linear-gradient(135deg,#11998e,#38ef7d);padding:10px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.fitb-header-title{color:#fff;font-weight:700;font-size:.95rem;flex:1}
+.fitb-stats{display:flex;gap:14px}
+.fitb-stat{background:rgba(255,255,255,.18);border-radius:8px;padding:4px 12px;text-align:center}
+.fitb-stat-num{font-weight:900;font-size:1rem;color:#fff;font-family:var(--font-display)}
+.fitb-stat-lbl{font-size:9px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.04em}
+.fitb-body{flex:1;overflow-y:auto;padding:16px 18px;background:#f4f6fd}
+.fitb-sentence{background:#fff;border-radius:12px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #11998e;box-shadow:0 2px 8px rgba(17,153,142,.08)}
+.fitb-sentence.answered-correct{border-left-color:#1a7a4a;background:#f0fdf4}
+.fitb-sentence.answered-wrong{border-left-color:#c0392b;background:#fdecea}
+.fitb-sentence-label{font-size:9px;font-weight:700;color:#9aaac8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.fitb-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:.95rem;line-height:2}
+.fitb-word{color:var(--black)}
+.fitb-blank{display:inline-block;border-bottom:2px solid #38ef7d;min-width:80px;padding:2px 6px;background:#f0fdf8;border-radius:4px;font-family:var(--font-mono);font-size:.85rem;outline:none;transition:all .2s}
+.fitb-blank:focus{border-color:#11998e;background:#e0f7f4;box-shadow:0 0 0 3px rgba(17,153,142,.15)}
+.fitb-blank.correct{border-color:#1a7a4a;background:#e6f4ed;color:#0a4a2e}
+.fitb-blank.wrong{border-color:#c0392b;background:#fdecea;color:#7b1010}
+.fitb-blank.revealed{border-color:#9aaac8;background:#f0f4ff;color:#555;font-style:italic}
+.fitb-audio-btn{background:transparent;border:none;cursor:pointer;font-size:1rem;opacity:.6;transition:opacity .15s;padding:0 4px}
+.fitb-audio-btn:hover{opacity:1}
+.fitb-check-btn{background:linear-gradient(135deg,#11998e,#38ef7d);color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.fitb-check-btn:hover{opacity:.85}
+.fitb-footer{flex-shrink:0;padding:12px 18px;background:#fff;border-top:2px solid #e0e6f8;display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* ===== RESULT DASHBOARD (YourHomework style) ===== */
+.result-dashboard{width:100%;max-width:760px;margin:0 auto;padding:20px 18px 60px}
+.result-hero{background:linear-gradient(135deg,#0E0E0C,#1a237e);border-radius:var(--radius-lg);padding:24px 28px;color:#fff;display:flex;align-items:center;gap:24px;margin-bottom:18px;box-shadow:var(--shadow-lg)}
+.result-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+.result-ring-wrap svg{transform:rotate(-90deg)}
+.result-ring-bg{fill:none;stroke:rgba(255,255,255,.12);stroke-width:8}
+.result-ring-fg{fill:none;stroke:url(#scoreGrad);stroke-width:8;stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 1.2s ease}
+.result-ring-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.result-ring-score{font-size:1.8rem;font-weight:900;font-family:var(--font-display);color:#fff;line-height:1}
+.result-ring-denom{font-size:.7rem;color:rgba(255,255,255,.5)}
+.result-hero-info{flex:1}
+.result-hero-label{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.result-hero-title{font-family:var(--font-display);font-size:1.3rem;margin-bottom:8px}
+.result-hero-meta{display:flex;gap:12px;flex-wrap:wrap}
+.result-meta-chip{background:rgba(255,255,255,.1);border-radius:6px;padding:3px 10px;font-size:11px;color:rgba(255,255,255,.7)}
+.result-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.result-stat-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(26,35,126,.07);text-align:center}
+.result-stat-card.green{border-top:3px solid #1a7a4a}
+.result-stat-card.red{border-top:3px solid var(--red)}
+.result-stat-card.blue{border-top:3px solid var(--blue)}
+.result-stat-card.gold{border-top:3px solid var(--gold)}
+.rsc-num{font-size:1.5rem;font-weight:900;font-family:var(--font-display);color:var(--black)}
+.rsc-lbl{font-size:11px;color:var(--grey-600);margin-top:2px}
+.result-sent-table{background:#fff;border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 2px 8px rgba(26,35,126,.07);margin-bottom:18px}
+.rst-header{background:var(--grey-100);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #e8edf8}
+.rst-header h3{font-size:.9rem;font-weight:700;color:var(--navy2)}
+.rst-row{display:grid;grid-template-columns:50px 80px 1fr 1fr 80px;gap:8px;align-items:center;padding:10px 18px;border-bottom:1px solid #f0f4fb;font-size:.83rem}
+.rst-row:last-child{border-bottom:none}
+.rst-row.perfect{background:#f0fdf4}
+.rst-row.wrong{background:#fdecea}
+.rst-badge{padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700;display:inline-block}
+.rst-badge.ok{background:#e6f4ed;color:#1a7a4a}
+.rst-badge.err{background:#fdecea;color:#c0392b}
+.result-actions-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+
 .result-card{background:#fff;border-radius:var(--radius-lg);padding:36px;max-width:500px;width:100%;box-shadow:var(--shadow-lg);text-align:center;border-top:5px solid var(--gold)}
 .result-card h2{font-family:var(--font-display);font-size:1.8rem;color:var(--navy2);margin-bottom:6px}
 .big-score{font-size:4rem;font-weight:900;background:linear-gradient(135deg,var(--red),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:12px 0;font-family:var(--font-display)}
@@ -461,6 +543,72 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
   </div>
 </div>
 
+<!-- ===== COMPREHENSION QUIZ SCREEN ===== -->
+<div id="screen-quiz" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Language <em>Hub</em></div>
+    <div class="topbar-app">📝 Comprehension Quiz</div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="quiz-user"></span>
+      <span class="progress-pill" id="quiz-attempt-badge"></span>
+    </div>
+  </div>
+  <div class="quiz-wrap">
+    <div class="quiz-header-card">
+      <div class="quiz-header-icon">📝</div>
+      <div class="quiz-header-text">
+        <h2>Reading Comprehension Quiz</h2>
+        <p id="quiz-header-desc">Answer all questions correctly to unlock the dictation exercise.</p>
+      </div>
+      <div class="quiz-score-badge" id="quiz-score-badge" style="display:none">
+        <div class="qsb-num" id="quiz-score-num">0/0</div>
+        <div class="qsb-lbl">Score</div>
+      </div>
+    </div>
+    <!-- loading state -->
+    <div id="quiz-loading" style="text-align:center;padding:60px;color:var(--grey-400)">
+      <div class="spinner" style="margin:0 auto 12px;width:32px;height:32px;border-width:3px"></div>
+      <div>Generating questions from your script…</div>
+    </div>
+    <!-- questions -->
+    <div id="quiz-questions" style="display:none"></div>
+    <!-- submit bar -->
+    <div class="quiz-submit-bar" id="quiz-submit-bar" style="display:none">
+      <span class="quiz-progress-text" id="quiz-answered-count">0 / 0 answered</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary btn-sm" onclick="backToVocabFromQuiz()">← Back</button>
+        <button class="btn btn-primary" id="btn-quiz-submit" onclick="submitQuiz()" disabled>
+          Submit Quiz →
+        </button>
+      </div>
+    </div>
+    <!-- result banner (shown after submit) -->
+    <div id="quiz-result-banner" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ===== FILL-IN-BLANK SCREEN ===== -->
+<div id="screen-fitb" class="screen">
+  <div class="fitb-header">
+    <div class="fitb-header-title">📝 Fill in the Blanks — <span id="fitb-title"></span></div>
+    <div class="fitb-stats">
+      <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-done">0</div><div class="fitb-stat-lbl">Done</div></div>
+      <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-total">0</div><div class="fitb-stat-lbl">Sentences</div></div>
+      <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-score">—</div><div class="fitb-stat-lbl">Words</div></div>
+    </div>
+  </div>
+  <div class="fitb-body" id="fitb-body"></div>
+  <div class="fitb-footer">
+    <span style="font-size:.82rem;color:var(--grey-600)" id="fitb-status">Fill in the blanks for each sentence, then check.</span>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary btn-sm" onclick="skipFitb()">Skip Fill-in-Blank →</button>
+      <button class="btn btn-primary" id="btn-fitb-done" onclick="finishFitb()" style="display:none">
+        Continue to Dictation →
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== DICTATION SCREEN ===== -->
 <div id="screen-dictation" class="screen">
   <div class="topbar">
@@ -505,23 +653,75 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       <button class="topbar-back" onclick="goHome()">← Dashboard</button>
     </div>
   </div>
-  <div class="result-card">
-    <h2>🎉 Well Done!</h2>
-    <div class="big-score" id="final-score-pct">0%</div>
-    <div class="result-stats" id="result-stats"></div>
-    <p style="color:#bbb;font-size:.8rem;margin-top:10px" id="submit-status">Saving results…</p>
-    <div class="result-actions">
+  <div class="result-dashboard">
+    <!-- SVG gradient def -->
+    <svg width="0" height="0" style="position:absolute"><defs>
+      <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:#11998e"/>
+        <stop offset="100%" style="stop-color:#38ef7d"/>
+      </linearGradient>
+    </defs></svg>
+    <!-- Hero with ring -->
+    <div class="result-hero">
+      <div class="result-ring-wrap">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="result-ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="result-ring-fg" id="result-ring-fg" cx="50" cy="50" r="45"/>
+        </svg>
+        <div class="result-ring-num">
+          <div class="result-ring-score" id="result-ring-score">0%</div>
+          <div class="result-ring-denom">accuracy</div>
+        </div>
+      </div>
+      <div class="result-hero-info">
+        <div class="result-hero-label">Kết quả Dictation · Nghe chép chính tả</div>
+        <div class="result-hero-title" id="result-hero-title">—</div>
+        <div class="result-hero-meta">
+          <span class="result-meta-chip" id="result-meta-time">—</span>
+          <span class="result-meta-chip" id="result-meta-sentences">—</span>
+          <span class="result-meta-chip" id="result-meta-words">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Stat cards -->
+    <div class="result-stat-grid">
+      <div class="result-stat-card green"><div class="rsc-num" id="rsc-correct">—</div><div class="rsc-lbl">Câu đúng</div></div>
+      <div class="result-stat-card blue"><div class="rsc-num" id="rsc-words">—</div><div class="rsc-lbl">Từ đúng</div></div>
+      <div class="result-stat-card red"><div class="rsc-num" id="rsc-wrong-w">—</div><div class="rsc-lbl">Từ cần xem</div></div>
+      <div class="result-stat-card gold"><div class="rsc-num" id="rsc-time">—</div><div class="rsc-lbl">Thời gian</div></div>
+    </div>
+    <!-- Action buttons -->
+    <div class="result-actions-bar">
       <button class="btn btn-blue" onclick="goToReview()">🔍 Review My Answers</button>
+      <button class="btn btn-secondary" id="btn-quiz2" onclick="goToQuiz2()" style="display:none">📝 Take Quiz Again</button>
       <button class="btn btn-secondary" onclick="goHome()">← Dashboard</button>
     </div>
-  </div>
-  <div id="gpt-feedback-panel" class="gpt-panel" style="display:none">
-    <div class="gpt-panel-header">
-      <h4>🤖 AI Coach Feedback (Vietnamese)</h4>
-      <span class="gpt-badge">GPT-4o mini</span>
+    <!-- Per-sentence table -->
+    <div class="result-sent-table">
+      <div class="rst-header">
+        <h3>Tổng hợp kết quả từng câu</h3>
+        <span id="rst-summary" style="font-size:.8rem;color:var(--grey-600)"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="min-width:500px">
+          <div class="rst-row" style="background:var(--grey-100);font-weight:700;font-size:.78rem;color:var(--grey-600);text-transform:uppercase;letter-spacing:.04em">
+            <span>Câu</span><span>Kết quả</span><span>So sánh</span><span>Học sinh nhập</span><span>Thao tác</span>
+          </div>
+          <div id="rst-body"></div>
+        </div>
+      </div>
     </div>
-    <div id="gpt-feedback-body" class="gpt-loading">
-      <div class="spinner"></div><span>Analyzing your session…</span>
+    <!-- Save status -->
+    <p style="color:#bbb;font-size:.8rem;text-align:center" id="submit-status">Saving results…</p>
+    <!-- AI Feedback -->
+    <div id="gpt-feedback-panel" class="gpt-panel" style="display:none">
+      <div class="gpt-panel-header">
+        <h4>🤖 AI Coach Feedback (Vietnamese)</h4>
+        <span class="gpt-badge">Gemini</span>
+      </div>
+      <div id="gpt-feedback-body" class="gpt-loading">
+        <div class="spinner"></div><span>Analyzing your session…</span>
+      </div>
     </div>
   </div>
 </div>
@@ -601,7 +801,7 @@ const App = {
   sentences:[], sessionId:'', startTime:null, bookTestPart:'', maxReplays:2,
   audioBlobUrl:null,
   totalWords:0, correctWords:0, currentIdx:0,
-  lastCheckedIdx:-1,  // tracks the most recently checked sentence
+  lastCheckedIdx:-1,
   submitted:false, reviewData:[], attemptData:[],
   splitConfirmed:false, splitSentences:[],
   cdTimer:null, cdTotal:0, cdLeft:0,
@@ -610,6 +810,9 @@ const App = {
   zoomLabels:['70%','80%','90%','100%','110%','120%','130%','150%','170%'],
   currentFontSize:'100%',
   pendingNextIdx:-1,
+  _autoSaveTimer:null,
+  _progressTimer:null,
+  _dictationStatePushed:false   // back-trap flag — lives in App to reset on new session
 };
 
 (function init(){
@@ -618,7 +821,7 @@ const App = {
   if(!tok||!usr){window.location.href='./index.html';return;}
   App.token=tok; App.user=JSON.parse(usr);
   var name=App.user.fullName||App.user.FullName||'';
-  ['setup-user-name','vocab-user','dict-user','review-user'].forEach(function(id){
+  ['setup-user-name','vocab-user','dict-user','review-user','quiz-user'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.textContent='👤 '+name;
   });
   loadHistory();
@@ -744,7 +947,7 @@ function setAudioStatus(state){
 // ===== AI SPLIT =====
 var _splitSentences=[];
 var _splitConfirmed=false;
-var MIN_WORDS = 450; // minimum words threshold
+var MIN_WORDS = 480; // minimum words threshold
 
 function onScriptInput(){
   var val=document.getElementById('raw-script-input').value.trim();
@@ -796,7 +999,7 @@ function onScriptInput(){
       if (count < 300) {
         wordWarn.innerHTML = '<strong>⛔ Script quá ngắn (' + count + ' từ).</strong> '
           + 'Hệ thống yêu cầu tối thiểu <strong>' + MIN_WORDS + ' từ</strong> để đảm bảo sinh viên đã nghe đủ bài. '
-          + 'Trung bình 1 bài Cam 16 phần 1 có khoảng 500–700 từ. '
+          + 'Trung bình 1 bài nghe của IELTS có khoảng 500–700 từ. '
           + 'Vui lòng paste <strong>toàn bộ script</strong> của phần nghe.';
       } else {
         wordWarn.innerHTML = '<strong>⚠️ Script chỉ có ' + count + ' từ</strong> (cần ' + MIN_WORDS + ').'
@@ -831,7 +1034,11 @@ async function aiSplitScript(){
       + '   Replace any curly/smart apostrophes (\u2018 \u2019 \u02BC) with straight apostrophe \'.\n'
       + '3. Fix capitalization (first word of sentence, proper nouns).\n'
       + '4. Split into individual sentences — one sentence per array item.\n'
-      + 'CRITICAL: Include EVERY sentence. Do not skip, merge, or truncate.\n'
+      + 'CRITICAL splitting rules:\n'
+      + '- Each array item = exactly ONE sentence.\n'
+      + '- Short filler responses like "OK.", "Yes.", "No.", "Right.", "Fine.", "Sure.", "Well.", "Exactly.", "Indeed." MUST be their OWN separate item — NEVER merge with adjacent sentences.\n'
+      + '- Split at EVERY sentence boundary, even when the next sentence is very short.\n'
+      + '- Include EVERY sentence. Do not skip, merge, or truncate ANY sentence.\n'
       + 'Return ONLY a valid JSON array of strings. No markdown, no explanation.\n\n'
       + 'Script:\n' + script;
     var raw = await callGeminiLis(prompt);
@@ -962,16 +1169,292 @@ function renderTimer(secs){
 }
 function unlockDictation(){
   renderTimer(0);
-  var dictBtn=document.getElementById('btn-go-dictation');
-  if(dictBtn){
-    dictBtn.disabled=false; dictBtn.style.opacity='1'; dictBtn.style.cursor='pointer'; dictBtn.textContent='Start Dictation →';
-    var i=0,pulse=setInterval(function(){
-      dictBtn.style.transform=i%2===0?'scale(1.07)':'scale(1)';
-      if(++i>5){clearInterval(pulse);dictBtn.style.transform='';}
-    },180);
-  }
-  toast('Study time up! You can now start dictation.','success',3000);
+  // Go to comprehension quiz first
+  goToQuiz(false);
 }
+
+// ===== COMPREHENSION QUIZ =====
+var App_quiz = { questions:[], answers:{}, isRetry:false };
+
+function backToVocabFromQuiz(){ showScreen('screen-vocab'); }
+
+async function goToQuiz(isRetry){
+  App_quiz.questions = [];
+  App_quiz.answers   = {};
+  App_quiz.isRetry   = !!isRetry;
+  var badge = document.getElementById('quiz-attempt-badge');
+  var desc  = document.getElementById('quiz-header-desc');
+  if(badge) badge.textContent = isRetry ? 'Optional retry' : 'Required — must score 100%';
+  if(desc)  desc.textContent  = isRetry
+    ? 'Test your comprehension again. This attempt is optional.'
+    : 'Answer all questions correctly to unlock the dictation exercise.';
+  document.getElementById('quiz-loading').style.display    = 'block';
+  document.getElementById('quiz-questions').style.display  = 'none';
+  document.getElementById('quiz-submit-bar').style.display = 'none';
+  document.getElementById('quiz-result-banner').style.display = 'none';
+  document.getElementById('quiz-score-badge').style.display   = 'none';
+  showScreen('screen-quiz');
+  // Generate questions with Gemini
+  var key = getLisGeminiKey();
+  if(!key){
+    // No key — skip quiz
+    toast('No Gemini key set — skipping comprehension quiz.','warning',3000);
+    if(isRetry){ showScreen('screen-result'); return; }
+    goToFitb();
+    return;
+  }
+  var script = App.sentences.join(' ');
+  var prompt = 'You are an English reading comprehension test maker.\n' +
+    'Read this passage and generate EXACTLY 10 multiple-choice questions to test comprehension.\n\n' +
+    'PASSAGE:\n'+script+'\n\n' +
+    'RULES:\n' +
+    '- Each question has exactly 4 options: A, B, C, D\n' +
+    '- Only ONE correct answer\n' +
+    '- Questions test reading comprehension (main idea, details, inference)\n' +
+    '- Include a brief Vietnamese explanation for the correct answer\n' +
+    '- Return ONLY valid JSON, no markdown fences\n\n' +
+    'FORMAT:\n' +
+    '[{"q":"Question text?","opts":["A. option","B. option","C. option","D. option"],"answer":"A","explain_vi":"Giải thích ngắn gọn"}]';
+  try{
+    var raw = await callGeminiLis(prompt);
+    var text = raw&&raw.candidates&&raw.candidates[0]&&raw.candidates[0].content&&raw.candidates[0].content.parts&&raw.candidates[0].content.parts[0] ? raw.candidates[0].content.parts[0].text : '';
+    var clean = text.replace(/```json|```/g,'').trim();
+    var si = clean.indexOf('['), ei = clean.lastIndexOf(']')+1;
+    if(si<0||ei<=0) throw new Error('No JSON array');
+    App_quiz.questions = JSON.parse(clean.substring(si,ei)).slice(0,12);
+    renderQuizQuestions();
+  }catch(e){
+    document.getElementById('quiz-loading').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">⚠ Could not generate questions: '+escHtml(e.message)+'<br><br><button class="btn btn-secondary" onclick="goToFitb()">Skip Quiz →</button></div>';
+  }
+}
+
+function renderQuizQuestions(){
+  var qs = App_quiz.questions;
+  if(!qs.length){ goToFitb(); return; }
+  document.getElementById('quiz-loading').style.display = 'none';
+  var el = document.getElementById('quiz-questions');
+  el.style.display = 'block';
+  el.innerHTML = qs.map(function(q,i){
+    var opts = q.opts.map(function(o,oi){
+      var letter = ['A','B','C','D'][oi];
+      return '<button class="quiz-opt" id="qopt-'+i+'-'+oi+'" onclick="selectQuizOpt('+i+','+oi+')">' +
+        '<span class="quiz-opt-letter">'+letter+'.</span>'+escHtml(o.replace(/^[A-D]\.\s*/,''))+'</button>';
+    }).join('');
+    return '<div class="quiz-q-card" id="qcard-'+i+'">' +
+      '<div class="quiz-q-num">Question '+(i+1)+' of '+qs.length+'</div>' +
+      '<div class="quiz-q-text">'+escHtml(q.q)+'</div>' +
+      '<div class="quiz-opts">'+opts+'</div>' +
+      '<div class="quiz-explain" id="qexplain-'+i+'"></div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('quiz-submit-bar').style.display = 'flex';
+  document.getElementById('quiz-score-badge').style.display = 'block';
+  updateQuizProgress();
+}
+
+function selectQuizOpt(qi, oi){
+  var qs = App_quiz.questions;
+  var card = document.getElementById('qcard-'+qi);
+  if(card && card.dataset.answered) return; // already answered
+  App_quiz.answers[qi] = oi;
+  // Highlight selected
+  [0,1,2,3].forEach(function(k){
+    var btn = document.getElementById('qopt-'+qi+'-'+k);
+    if(btn){ btn.classList.toggle('selected', k===oi); }
+  });
+  updateQuizProgress();
+}
+
+function updateQuizProgress(){
+  var total = App_quiz.questions.length;
+  var answered = Object.keys(App_quiz.answers).length;
+  var el = document.getElementById('quiz-answered-count');
+  if(el) el.textContent = answered+' / '+total+' answered';
+  var btn = document.getElementById('btn-quiz-submit');
+  if(btn) btn.disabled = answered < total;
+  var badge = document.getElementById('quiz-score-num');
+  if(badge) badge.textContent = answered+'/'+total;
+}
+
+function submitQuiz(){
+  var qs = App_quiz.questions;
+  var correct = 0;
+  var wrongIdxs = [];
+  qs.forEach(function(q,i){
+    var chosen = App_quiz.answers[i];
+    if(chosen===undefined){ wrongIdxs.push(i); return; }
+    var chosenLetter = ['A','B','C','D'][chosen];
+    var isCorrect = (q.answer||'A').toUpperCase() === chosenLetter.toUpperCase();
+    if(isCorrect){ correct++; } else { wrongIdxs.push(i); }
+    // Color the options
+    [0,1,2,3].forEach(function(k){
+      var btn = document.getElementById('qopt-'+i+'-'+k);
+      if(!btn) return;
+      btn.disabled = true;
+      btn.classList.remove('selected');
+      var kLetter = ['A','B','C','D'][k];
+      if(kLetter.toUpperCase() === (q.answer||'A').toUpperCase()) btn.classList.add('correct');
+      else if(k===chosen) btn.classList.add('wrong');
+    });
+    // Show explanation
+    var expEl = document.getElementById('qexplain-'+i);
+    if(expEl && q.explain_vi){ expEl.style.display='block'; expEl.textContent = q.explain_vi; }
+    var card = document.getElementById('qcard-'+i);
+    if(card) card.dataset.answered = '1';
+  });
+  var total = qs.length;
+  var pct = Math.round(correct/total*100);
+  document.getElementById('quiz-submit-bar').style.display = 'none';
+  var banner = document.getElementById('quiz-result-banner');
+  banner.style.display = 'block';
+  if(correct === total){
+    banner.innerHTML = '<div style="background:linear-gradient(135deg,#1a7a4a,#38ef7d);color:#fff;border-radius:var(--radius-lg);padding:20px 24px;text-align:center;margin-top:16px">' +
+      '<div style="font-size:2rem;margin-bottom:8px">🎉</div>' +
+      '<div style="font-family:var(--font-display);font-size:1.2rem;font-weight:700;margin-bottom:6px">Perfect! 100% correct</div>' +
+      '<div style="font-size:.88rem;opacity:.85;margin-bottom:16px">Great job! You can now proceed to the dictation exercise.</div>' +
+      '<button class="btn btn-primary" onclick="goToFitb()">Proceed to Fill-in-Blank →</button>' +
+      '</div>';
+  } else {
+    var retryMsg = App_quiz.isRetry
+      ? '<button class="btn btn-secondary btn-sm" onclick="goToQuiz(true)">Retry Quiz</button><button class="btn btn-secondary btn-sm" onclick="showScreen(\'screen-result\')">Back to Results</button>'
+      : '<button class="btn btn-primary" onclick="goToQuiz(false)">Retry Quiz (must score 100%)</button>';
+    banner.innerHTML = '<div style="background:#fdecea;border:2px solid #f5b7b1;border-radius:var(--radius-lg);padding:20px 24px;text-align:center;margin-top:16px">' +
+      '<div style="font-size:1.8rem;margin-bottom:8px">😔</div>' +
+      '<div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:#c0392b;margin-bottom:6px">'+correct+'/'+total+' correct ('+pct+'%)</div>' +
+      '<div style="font-size:.86rem;color:#555;margin-bottom:16px">'+(App_quiz.isRetry ? 'See your results above.' : 'You need 100% to unlock the dictation. Review the explanations above, then retry.')+'</div>' +
+      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'+retryMsg+'</div>' +
+      '</div>';
+    // Scroll to first wrong
+    if(wrongIdxs.length > 0){
+      var firstWrong = document.getElementById('qcard-'+wrongIdxs[0]);
+      if(firstWrong) setTimeout(function(){ firstWrong.scrollIntoView({behavior:'smooth',block:'center'}); },300);
+    }
+  }
+}
+
+function goToQuiz2(){
+  goToQuiz(true);
+}
+
+// ===== FILL-IN-BLANK =====
+var App_fitb = { blanks:[], correctCount:0, totalBlanks:0, doneCount:0 };
+
+function skipFitb(){ goToDictation(); }
+
+function goToFitb(){
+  // Build FITB from sentences — hide ~30% of words (key content words)
+  App_fitb.blanks = [];
+  App_fitb.correctCount = 0;
+  App_fitb.totalBlanks = 0;
+  App_fitb.doneCount = 0;
+  var title = document.getElementById('fitb-title');
+  if(title) title.textContent = App.bookTestPart || '';
+  var totalEl = document.getElementById('fitb-total');
+  if(totalEl) totalEl.textContent = App.sentences.length;
+  document.getElementById('fitb-score').textContent = '—';
+  document.getElementById('fitb-done').textContent = '0';
+  document.getElementById('fitb-status').textContent = 'Fill in the blanks for each sentence, then check.';
+  document.getElementById('btn-fitb-done').style.display = 'none';
+  var body = document.getElementById('fitb-body');
+  body.innerHTML = '';
+  App.sentences.forEach(function(sent, si){
+    var words = sent.match(/[\w''-]+|[^\w\s]/g)||[];
+    // Pick content words to blank (skip short words, punctuation)
+    var candidates = [];
+    words.forEach(function(w,wi){
+      if(w.length>=4 && /^[a-zA-Z]/.test(w)) candidates.push(wi);
+    });
+    // Pick ~30%, min 1, max 4
+    var numBlanks = Math.max(1, Math.min(4, Math.round(candidates.length*0.3)));
+    // Shuffle and pick
+    var shuffled = candidates.slice().sort(function(){ return Math.random()-.5; });
+    var blankIdxs = new Set(shuffled.slice(0,numBlanks));
+    var blankData = [];
+    // Build HTML
+    var html = '<div class="fitb-line">';
+    // Rebuild from original sentence character by character for accuracy
+    var wordIdx = 0;
+    var parts = sent.split(/(\s+)/);
+    parts.forEach(function(part){
+      if(/^\s+$/.test(part)){ html += '<span style="display:inline-block;width:4px"></span>'; return; }
+      // Find matching word index
+      var ww = part.match(/^[\w''-]+/);
+      if(ww && blankIdxs.has(wordIdx)){
+        var bId = 'fitb-'+si+'-'+blankData.length;
+        var answer = ww[0];
+        blankData.push({id:bId, answer:answer.toLowerCase()});
+        App_fitb.totalBlanks++;
+        html += '<input class="fitb-blank" id="'+bId+'" placeholder="'+answer.length+' letters" size="'+Math.max(6,answer.length+2)+'" '+
+          'onkeydown="fitbKeydown(event,\''+bId+'\','+si+')" autocomplete="off" autocorrect="off" spellcheck="false"/>';
+        wordIdx++;
+      } else {
+        if(/^[\w''-]/.test(part)) wordIdx++;
+        html += '<span class="fitb-word">'+escHtml(part)+'</span>';
+      }
+    });
+    html += '</div>';
+    // Audio button + check button
+    html = '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">' +
+      '<button class="fitb-audio-btn" onclick="fitbPlaySentence('+si+')" title="Listen">🔊</button>' +
+      '<div style="flex:1">'+html+'</div>' +
+      '<button class="fitb-check-btn" id="fitb-check-'+si+'" onclick="fitbCheckSentence('+si+')">Check</button>' +
+      '</div>' +
+      '<div class="fitb-feedback" id="fitb-fb-'+si+'" style="font-size:.8rem;margin-top:4px;display:none"></div>';
+    App_fitb.blanks.push(blankData);
+    var card = document.createElement('div');
+    card.className = 'fitb-sentence';
+    card.id = 'fitb-card-'+si;
+    card.innerHTML = '<div class="fitb-sentence-label">Sentence '+(si+1)+'</div>'+html;
+    body.appendChild(card);
+  });
+  showScreen('screen-fitb');
+}
+
+function fitbKeydown(e, id, si){
+  if(e.key==='Enter'){ e.preventDefault(); fitbCheckSentence(si); }
+}
+
+function fitbPlaySentence(si){
+  var audio = document.getElementById('main-audio-el');
+  if(!audio) return;
+  // Try to play from start briefly — best we can do without per-sentence timestamps
+  toast('🔊 Listening to full audio — find sentence '+(si+1),'info',2000);
+  audio.play().catch(function(){});
+}
+
+function fitbCheckSentence(si){
+  var blanks = App_fitb.blanks[si];
+  if(!blanks||!blanks.length) return;
+  var correct = 0;
+  blanks.forEach(function(b){
+    var inp = document.getElementById(b.id);
+    if(!inp) return;
+    inp.disabled = true;
+    var val = inp.value.trim().toLowerCase().replace(/[^a-z'-]/g,'');
+    if(val===b.answer){ inp.classList.add('correct'); correct++; App_fitb.correctCount++; }
+    else { inp.classList.add('wrong'); inp.value = b.answer; inp.classList.add('revealed'); }
+  });
+  var card = document.getElementById('fitb-card-'+si);
+  if(card){ card.classList.remove('answered-correct','answered-wrong'); card.classList.add(correct===blanks.length?'answered-correct':'answered-wrong'); }
+  var checkBtn = document.getElementById('fitb-check-'+si);
+  if(checkBtn) checkBtn.style.display='none';
+  var fb = document.getElementById('fitb-fb-'+si);
+  if(fb){
+    fb.style.display='block';
+    fb.textContent = correct+'/'+blanks.length+' correct';
+    fb.style.color = correct===blanks.length?'var(--green)':'var(--red)';
+  }
+  App_fitb.doneCount++;
+  document.getElementById('fitb-done').textContent = App_fitb.doneCount;
+  document.getElementById('fitb-score').textContent = App_fitb.correctCount+'/'+App_fitb.totalBlanks;
+  if(App_fitb.doneCount >= App.sentences.length){
+    document.getElementById('fitb-status').textContent = 'All done! Proceed to full dictation.';
+    document.getElementById('btn-fitb-done').style.display = 'inline-flex';
+    toast('Fill-in-blank complete! Now do full dictation.','success',3000);
+  }
+}
+
+function finishFitb(){ goToDictation(); }
 
 // ===== START SESSION =====
 function startSession(){
@@ -1065,6 +1548,14 @@ function goToDictation(){
   // Show keyboard shortcut guide on first entry
   setTimeout(function(){showShortcutModal();},300);
   setTimeout(function(){var inp=document.querySelector('.sb-input:not(:disabled)');if(inp) inp.focus();},120);
+  // ── Trap back button / trackpad swipe ──
+  App._dictationStatePushed = false;   // reset so re-start works
+  trapBackButton();
+  // ── Restore progress if browser was accidentally navigated away ──
+  restoreProgress();
+  // ── Auto-save every 8 seconds ──
+  if (App._autoSaveTimer) clearInterval(App._autoSaveTimer);
+  App._autoSaveTimer = setInterval(function(){ autoSaveProgress(); }, 8000);
   // Auto-save session start → teacher sees "In Progress" immediately
   api('lis.startSession',{
     sessionId:      App.sessionId,
@@ -1202,6 +1693,7 @@ function checkSentence(idx){
     var accEl=document.getElementById('acc-'+idx);
     if(accEl) accEl.textContent=correct+'/'+origWords.length+' words ('+pct+'%) — fix errors and try again';
   }
+  autoSaveProgress(); // ← save after every check
 }
 // ── LCS word diff helper (shared by check / reset / edit) ──
 function lcsCorrectCount(origWords, studWords){
@@ -1265,6 +1757,7 @@ function resetSentence(idx){
   var rev=document.getElementById('reveal-'+idx); if(rev) rev.style.display='none';
   document.getElementById('result-'+idx).innerHTML=''; document.getElementById('acc-'+idx).textContent='';
   block.classList.remove('completed'); block.classList.add('active-block'); inputEl.focus();
+  autoSaveProgress(); // ← save after reset
 }
 function editSentence(idx){
   var btn=document.getElementById('check-btn-'+idx);
@@ -1299,6 +1792,7 @@ function editSentence(idx){
   autoGrow(inputEl);
   inputEl.focus(); var len=inputEl.value.length; inputEl.setSelectionRange(len,len);
   inputEl.scrollIntoView({behavior:'smooth',block:'center'});
+  autoSaveProgress(); // save after edit
 }
 function toggleReveal(idx){
   var panel=document.getElementById('reveal-'+idx);
@@ -1361,7 +1855,7 @@ window.addEventListener('load',function(){
 // │ Speed +0.25×        │ Alt+]                 │
 // │ Reset sentence      │ Ctrl+Alt+R            │
 // └─────────────────────┴──────────────────────┘
-document.addEventListener('keydown',function(e){
+document.addEventListener('keydown', function(e) {
   // ── Zoom: always intercept (Ctrl+/−) ──
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='+'||e.key==='='||e.key==='NumpadAdd')){e.preventDefault();changeZoom(+1);return;}
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='-'||e.key==='NumpadSubtract')){e.preventDefault();changeZoom(-1);return;}
@@ -1369,16 +1863,22 @@ document.addEventListener('keydown',function(e){
   // ── Always block Alt+Arrow browser Back/Forward ──
   if(e.altKey&&!e.ctrlKey&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();return;}
 
-  var onDict=document.getElementById('screen-dictation').classList.contains('active');
-  if(!onDict) return;
+  // ── Block Mac Cmd+[ (browser back) — always, not just during dictation ──
+  if((e.metaKey||e.ctrlKey)&&e.key==='['){
+    e.preventDefault();
+    const isDictNow=document.getElementById('screen-dictation').classList.contains('active');
+    if(isDictNow&&!App.submitted){autoSaveProgress();toast('↩️ Back đã bị chặn để bảo vệ tiến độ chép.','info',2500);}
+    return;
+  }
 
-  var activeEl=document.activeElement;
-  var isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')&&!activeEl.disabled;
+  // ── All shortcuts below: dictation screen only ──
+  const isDictationScreen=document.getElementById('screen-dictation').classList.contains('active');
+  if(!isDictationScreen) return;
+
+  const activeEl=document.activeElement;
+  const isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')&&!activeEl.disabled;
 
   // ── Shift+Space → Play/Pause audio ──
-  // Safe: Shift+Space is not used by macOS/Windows system shortcuts
-  // When isTyping: Shift+Space types a space in some languages → skip only if IME active
-  // We allow it even when typing since audio control is primary use case here
   if(e.shiftKey&&e.key===' '&&!e.ctrlKey&&!e.altKey){
     e.preventDefault();
     var aSP=getAudio(); if(!aSP||!aSP.src) return;
@@ -1387,7 +1887,7 @@ document.addEventListener('keydown',function(e){
     return;
   }
 
-  // ── Shift+Enter → advance to next sentence (after checking) ──
+  // ── Shift+Enter → advance to next sentence ──
   if(e.shiftKey&&e.key==='Enter'&&!e.ctrlKey&&!e.altKey){
     e.preventDefault();
     var aNA=getAudio(); if(!aNA||!aNA.src) return;
@@ -1395,6 +1895,7 @@ document.addEventListener('keydown',function(e){
     if(App.pendingNextIdx>=0&&App.pendingNextIdx<App.sentences.length){
       var newIdxSE=App.pendingNextIdx; App.pendingNextIdx=-1;
       appendSentenceBlock(newIdxSE);
+      autoSaveProgress(); // save after advancing
       setTimeout(function(){
         var nextSE=document.getElementById('input-'+newIdxSE);
         if(nextSE){nextSE.scrollIntoView({behavior:'smooth',block:'center'});nextSE.focus();}
@@ -1403,7 +1904,7 @@ document.addEventListener('keydown',function(e){
     return;
   }
 
-  // ── Ctrl+, → −3 seconds (safe across all browsers/OS) ──
+  // ── Ctrl+, → −3 seconds ──
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key===','){
     e.preventDefault(); var aL=getAudio(); if(aL) aL.currentTime=Math.max(0,aL.currentTime-3); return;
   }
@@ -1412,17 +1913,12 @@ document.addEventListener('keydown',function(e){
     e.preventDefault(); var aR=getAudio(); if(aR) aR.currentTime+=3; return;
   }
 
-  // Speed control removed — use browser/OS media controls instead
-
-  // ── ↑ ArrowUp → Edit the sentence just checked (if it had errors) ──
+  // ── ↑ ArrowUp → Edit last checked sentence ──
   if(e.key==='ArrowUp'&&!isTyping&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){
     e.preventDefault();
-    // Use lastCheckedIdx — edit button is visible only when there were errors
-    if(App.lastCheckedIdx >= 0){
+    if(App.lastCheckedIdx>=0){
       var eb=document.getElementById('edit-btn-'+App.lastCheckedIdx);
-      if(eb && eb.style.display!=='none'){
-        editSentence(App.lastCheckedIdx);
-      }
+      if(eb&&eb.style.display!=='none') editSentence(App.lastCheckedIdx);
     }
     return;
   }
@@ -1470,77 +1966,201 @@ function buildStatsSummary(totalSents,perfectSents,totalWords,correctWords,total
   '</div>';
 }
 
+// ===== BACK BUTTON TRAP + AUTO-SAVE =====
+const STORAGE_KEY = 'lis_pending_dictation';
+
+function trapBackButton() {
+  if (App._dictationStatePushed) return;
+  App._dictationStatePushed = true;
+  // Push a fake state so the first "back" hits our handler instead of leaving
+  history.pushState({ dictation: true, sessionId: App.sessionId }, '', location.href);
+  window.addEventListener('popstate', function onDictPop(e) {
+    if (App.submitted) {
+      // Session done — allow navigation, clean up
+      window.removeEventListener('popstate', onDictPop);
+      return;
+    }
+    if (e.state && e.state.dictation === true) {
+      // Re-push immediately to keep trapping
+      history.pushState({ dictation: true, sessionId: App.sessionId }, '', location.href);
+      autoSaveProgress();
+      toast('↩️ Nút Back đã bị chặn để bảo vệ tiến độ đang chép.', 'info', 3500);
+    }
+  });
+}
+
+function autoSaveProgress() {
+  if (!App.sessionId || App.submitted) return;
+  try {
+    var data = {
+      sessionId:    App.sessionId,
+      bookTestPart: App.bookTestPart,
+      currentIdx:   App.currentIdx,
+      sentences:    App.sentences,
+      reviewData:   App.reviewData,
+      attemptData:  App.attemptData,
+      startTime:    App.startTime ? App.startTime.toISOString() : null,
+      totalWords:   App.totalWords,
+      correctWords: App.correctWords,
+      savedAt:      Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function restoreProgress() {
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return false;
+    var data = JSON.parse(saved);
+    // Only restore if same session (same sessionId)
+    if (data.sessionId !== App.sessionId) return false;
+    // Don't restore stale data (older than 2 hours)
+    if (Date.now() - (data.savedAt||0) > 7200000) { localStorage.removeItem(STORAGE_KEY); return false; }
+    App.currentIdx   = data.currentIdx   || 0;
+    App.reviewData   = data.reviewData   || {};
+    App.attemptData  = data.attemptData  || new Array(App.sentences.length);
+    App.totalWords   = data.totalWords   || 0;
+    App.correctWords = data.correctWords || 0;
+    if (data.startTime) App.startTime = new Date(data.startTime);
+    toast('✅ Đã khôi phục tiến độ — tiếp tục từ câu ' + (App.currentIdx + 1) + '.', 'success', 4000);
+    updateProgress(); updateScore();
+    return true;
+  } catch(e) { return false; }
+}
+
 // ===== SUBMIT =====
 async function submitResults(){
   if(App.submitted) return;
   App.submitted=true; document.getElementById('btn-submit').disabled=true; audioPause();
+  // Clear saved progress on successful submit
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  if(App._autoSaveTimer){clearInterval(App._autoSaveTimer);App._autoSaveTimer=null;}
   if(App._progressTimer){clearInterval(App._progressTimer);App._progressTimer=null;}
   var submitTime=new Date();
   var accuracy=App.totalWords>0?Math.min(100,Math.round(App.correctWords/App.totalWords*100)):0;
   var completed=Math.min(App.currentIdx,App.sentences.length);
   var startStr=formatDateTime(App.startTime);
   var submitStr=formatDateTime(submitTime);
-  document.getElementById('final-score-pct').textContent=accuracy+'%';
-  document.getElementById('result-stats').innerHTML=
-    '<div><span class="lbl">Full Name</span><span class="val">'+escHtml(App.user.fullName||App.user.FullName||'')+'</span></div>'+
-    '<div><span class="lbl">Book–Test–Part</span><span class="val">'+escHtml(App.bookTestPart)+'</span></div>'+
-    '<div><span class="lbl">Starting Time</span><span class="val">'+startStr+'</span></div>'+
-    '<div><span class="lbl">Submitting Time</span><span class="val">'+submitStr+'</span></div>'+
-    '<div><span class="lbl">Sentences Done</span><span class="val">'+completed+' / '+App.sentences.length+'</span></div>'+
-    '<div><span class="lbl">Total Words</span><span class="val">'+App.totalWords+'</span></div>'+
-    '<div><span class="lbl">Correct Words</span><span class="val">'+App.correctWords+'</span></div>'+
-    '<div><span class="lbl">Accuracy</span><span class="val">'+accuracy+'%</span></div>'+
-    '<div><span class="lbl">Session ID</span><span class="val" style="font-size:.7rem;color:#bbb">'+App.sessionId+'</span></div>';
-  showScreen('screen-result');
   var durationMs=submitTime-App.startTime;
   var durationMin=Math.floor(durationMs/60000),durationSec=Math.floor((durationMs%60000)/1000);
-  var durationStr=durationMin+'m '+durationSec+'s';
+  var durationStr=durationMin+':'+String(durationSec).padStart(2,'0');
+  var wrongWords=App.totalWords-App.correctWords;
+
+  // ── Fill new dashboard ──
+  // Ring animation
+  var ringEl=document.getElementById('result-ring-fg');
+  var circumference=2*Math.PI*45; // r=45
+  if(ringEl){
+    ringEl.style.strokeDasharray=circumference;
+    ringEl.style.strokeDashoffset=circumference;
+    setTimeout(function(){
+      ringEl.style.strokeDashoffset=circumference*(1-accuracy/100);
+    },100);
+  }
+  var scoreEl=document.getElementById('result-ring-score');
+  if(scoreEl) scoreEl.textContent=accuracy+'%';
+
+  // Hero meta
+  var heroTitle=document.getElementById('result-hero-title');
+  if(heroTitle) heroTitle.textContent=App.bookTestPart||'—';
+  var metaTime=document.getElementById('result-meta-time');
+  if(metaTime) metaTime.textContent='⏱ '+durationStr;
+  var metaSent=document.getElementById('result-meta-sentences');
+  if(metaSent) metaSent.textContent='📝 '+completed+'/'+App.sentences.length+' câu';
+  var metaWords=document.getElementById('result-meta-words');
+  if(metaWords) metaWords.textContent='✅ '+submitStr;
+
+  // Stat cards
+  var perfectSents=0;
+  for(var i=0;i<App.sentences.length;i++){
+    var rd0=App.reviewData[i]||{};
+    if(rd0.total>0&&rd0.correct===rd0.total) perfectSents++;
+  }
+  var rscC=document.getElementById('rsc-correct');
+  if(rscC) rscC.textContent=perfectSents+'/'+App.sentences.length;
+  var rscW=document.getElementById('rsc-words');
+  if(rscW) rscW.textContent=App.correctWords+'/'+App.totalWords;
+  var rscWW=document.getElementById('rsc-wrong-w');
+  if(rscWW) rscWW.textContent=wrongWords;
+  var rscT=document.getElementById('rsc-time');
+  if(rscT) rscT.textContent=durationStr;
+
+  // Show optional quiz2 button
+  var q2btn=document.getElementById('btn-quiz2');
+  if(q2btn) q2btn.style.display = App_quiz.questions.length>0 ? 'inline-flex' : 'none';
+
+  // Per-sentence table
+  var rstBody=document.getElementById('rst-body');
+  var rstSummary=document.getElementById('rst-summary');
+  if(rstBody){
+    var rows='';
+    for(var j=0;j<App.sentences.length;j++){
+      var rd=App.reviewData[j];
+      var ad=App.attemptData[j]||{};
+      var isPerfect=rd&&rd.total>0&&rd.correct===rd.total;
+      var pct2=rd&&rd.total>0?Math.round(rd.correct/rd.total*100):0;
+      var diffHtml='—',typedText='—';
+      if(rd){
+        var diff=lcsDiffHtml(rd.origWords,rd.studWords);
+        diffHtml=diff.html||'—';
+        typedText=rd.typed||'—';
+      }
+      rows+='<div class="rst-row '+(isPerfect?'perfect':rd?'wrong':'') +'">' +
+        '<span style="font-weight:700;color:#9aaac8">#'+(j+1)+'</span>' +
+        '<span><span class="rst-badge '+(isPerfect?'ok':'err')+'">'+(isPerfect?'✓ Đúng':'✗ Sai')+'</span>'+(rd?'<br><span style="font-size:.7rem;color:#9aaac8">'+rd.correct+'/'+rd.total+' từ</span>':'')+'</span>' +
+        '<span style="font-size:.8rem;line-height:1.7">'+diffHtml+'</span>' +
+        '<span style="font-size:.8rem;color:#555">'+escHtml(typedText)+'</span>' +
+        '<span><button class="btn-explain" style="font-size:.75rem;padding:3px 9px" onclick="goToReview()">Mở</button></span>' +
+        '</div>';
+    }
+    rstBody.innerHTML=rows;
+    if(rstSummary) rstSummary.textContent=perfectSents+' câu hoàn chỉnh · '+accuracy+'% chính xác';
+  }
+
+  showScreen('screen-result');
+
+  // Save to GAS
   var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,totalSentences:App.sentences.length,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId};
   try{
     var res=await api('lis.saveResult',payload);
     document.getElementById('submit-status').textContent=res&&res.success?'✅ Saved!':'⚠ Save failed.';
   }catch(e){document.getElementById('submit-status').textContent='⚠ Save failed.';}
+
+  // AI feedback
   var panel=document.getElementById('gpt-feedback-panel'); panel.style.display='block';
-  // Build session summary for concise feedback
   var totalSents=App.sentences.length;
-  var perfectSents=0, totalTypos=0, viewedCount=0;
+  var totalTypos=0, viewedCount=0;
   var gptSents=[];
-  for(var i=0;i<App.sentences.length;i++){
-    var rd=App.reviewData[i]||{correct:0,total:1};
-    var ad=App.attemptData[i]||{};
-    var errors=Math.max(0,(rd.total||0)-(rd.correct||0));
+  for(var k=0;k<App.sentences.length;k++){
+    var rd2=App.reviewData[k]||{correct:0,total:1};
+    var ad2=App.attemptData[k]||{};
+    var errors=Math.max(0,(rd2.total||0)-(rd2.correct||0));
     totalTypos+=errors;
-    if(errors===0) perfectSents++;
-    if(ad.viewedAnswer) viewedCount++;
-    gptSents.push({sentNo:i+1,target:App.sentences[i],attempt1:ad.a1Text||'',attempt2:ad.a2Text||null,errors:errors,total:rd.total||0,viewedAnswer:!!(ad.viewedAnswer)});
+    if(ad2.viewedAnswer) viewedCount++;
+    gptSents.push({sentNo:k+1,target:App.sentences[k],attempt1:ad2.a1Text||'',attempt2:ad2.a2Text||null,errors:errors,total:rd2.total||0,viewedAnswer:!!(ad2.viewedAnswer)});
   }
   try{
     var gemKey=getLisGeminiKey();
     var bodyEl=document.getElementById('gpt-feedback-body');
     if(!gemKey){
-      // No Gemini key — show plain stats only
       bodyEl.className='gpt-body';
       bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy);
     } else {
-      bodyEl.className='gpt-loading'; bodyEl.textContent='Generating summary…';
+      bodyEl.className='gpt-loading'; bodyEl.innerHTML='<div class="spinner"></div><span>Đang phân tích…</span>';
       var errSents=gptSents.filter(function(s){return s.errors>0;}).slice(0,8);
       var errLines=errSents.map(function(s){
         return 'S'+s.sentNo+': target="'+s.target+'" | typed="'+(s.attempt2||s.attempt1)+'" | errors='+s.errors+'/'+s.total;
       }).join('\n');
-      var prompt='You are a dictation teacher. Give a SHORT summary in 3-5 bullet points. NO long paragraphs.\n\n'+
+      var aiPrompt='You are a dictation teacher. Give a SHORT summary in 3-5 bullet points. NO long paragraphs.\n\n'+
         'Stats: '+totalSents+' sentences, '+App.correctWords+'/'+App.totalWords+' words correct ('+accuracy+'%), '+
         perfectSents+' perfect sentences, '+totalTypos+' word errors, '+viewedCount+' answers revealed.\n\n'+
         (errLines?'Sample errors:\n'+errLines+'\n\n':'')+
-        'Rules:\n- One-line overall verdict\n- 2-3 specific error patterns (e.g. missing articles, wrong prepositions)\n- ONE practical tip\n- Max 80 words total. No praise.';
-      var raw=await callGeminiLis(prompt);
-      var text=raw&&raw.candidates&&raw.candidates[0]&&raw.candidates[0].content&&raw.candidates[0].content.parts&&raw.candidates[0].content.parts[0]?raw.candidates[0].content.parts[0].text:'';
-      if(text){
-        bodyEl.className='gpt-body';
-        bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy)+markdownToHtml(text);
-      } else {
-        bodyEl.className='gpt-body';
-        bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy);
-      }
+        'Rules:\n- One-line overall verdict\n- 2-3 specific error patterns\n- ONE practical tip\n- Max 80 words total. No praise.';
+      var raw=await callGeminiLis(aiPrompt);
+      var aiText=raw&&raw.candidates&&raw.candidates[0]&&raw.candidates[0].content&&raw.candidates[0].content.parts&&raw.candidates[0].content.parts[0]?raw.candidates[0].content.parts[0].text:'';
+      bodyEl.className='gpt-body';
+      bodyEl.innerHTML=buildStatsSummary(totalSents,perfectSents,App.totalWords,App.correctWords,totalTypos,viewedCount,accuracy)+(aiText?markdownToHtml(aiText):'');
     }
   }catch(e){
     var bodyEl=document.getElementById('gpt-feedback-body');
@@ -1626,21 +2246,24 @@ function changeZoom(delta){
 // ===== UTILS =====
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function normalize(text){
-  return String(text||'')
-    .toLowerCase()
-    // Normalize apostrophe variants
-    .replace(/[\u2019\u2018\u201B\u02BC\u02BB\u0060\uFF07]/g,"'")
-    // Remove ellipsis and multiple dots (can't type on keyboard)
-    .replace(/\u2026/g,' ').replace(/\.{2,}/g,' ')
-    // Remove currency & special symbols not on standard keyboards
-    // (£ € $ ¥ ¢ © ® ™ ° # @ & * ~ ^ + = | < > %)
-    .replace(/[\u00A3\u20AC\$\u00A5\u00A2\u00A9\u00AE\u2122\u00B0#@&*~^+=|<>%]/g,'')
-    // Remove common punctuation
-    .replace(/[.,!?;:"()\[\]{}\-\u2013\u2014\/\\\_]/g,'')
-    // Remove standalone apostrophes
-    .replace(/(^|\s)'|'(\s|$)/g,' ')
-    // Collapse whitespace
-    .replace(/\s+/g,' ').trim();
+  var s=String(text||'').toLowerCase();
+  // Expand currency symbols → words BEFORE stripping
+  // $2 → "2 dollars", £5 → "5 pounds", so student typing text form scores correct
+  s=s.replace(/\$\s*(\d[\d,.]*)/g,'$1 dollars')
+     .replace(/£\s*(\d[\d,.]*)/g,'$1 pounds')
+     .replace(/€\s*(\d[\d,.]*)/g,'$1 euros')
+     .replace(/¥\s*(\d[\d,.]*)/g,'$1 yen')
+     .replace(/¢\s*(\d[\d,.]*)/g,'$1 cents')
+     .replace(/(\d[\d,.]*)\s*\$/g,'$1 dollars')
+     .replace(/(\d[\d,.]*)\s*£/g,'$1 pounds')
+     .replace(/(\d[\d,.]*)\s*€/g,'$1 euros')
+     .replace(/[$£€¥¢]/g,'');
+  s=s.replace(/[\u2019\u2018\u201B\u02BC\u02BB\u0060\uFF07]/g,"'")
+     .replace(/\u2026/g,' ').replace(/\.{2,}/g,' ')
+     .replace(/[\u00A9\u00AE\u2122\u00B0#@&*~^+=|<>%]/g,'')
+     .replace(/[-\u2013\u2014]/g,' ').replace(/[.,!?;:"()\[\]{}\/\\_]/g,'')
+     .replace(/\s+/g,' ').trim();
+  return s;
 }
 function tokenize(text){return normalize(text).split(' ').filter(Boolean);}
 function nowStr(){return new Date().toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
