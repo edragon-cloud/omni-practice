@@ -1188,27 +1188,52 @@ function unlockDictation(){
 }
 
 // ===== COMPREHENSION QUIZ =====
-var App_quiz = { questions:[], answers:{}, isRetry:false };
+var App_quiz = { questions:[], answers:{}, isRetry:false, attempts:0, quizFailed:false };
 
 function backToVocabFromQuiz(){ showScreen('screen-vocab'); }
 
 async function goToQuiz(isRetry){
-  App_quiz.questions = [];
-  App_quiz.answers   = {};
-  App_quiz.isRetry   = !!isRetry;
+  var hasCached = App_quiz.questions && App_quiz.questions.length > 0;
+  App_quiz.answers  = {};
+  App_quiz.isRetry  = !!isRetry;
+  var attempt = App_quiz.attempts + 1; // will be incremented on submit
   var badge = document.getElementById('quiz-attempt-badge');
   var desc  = document.getElementById('quiz-header-desc');
-  if(badge) badge.textContent = isRetry ? 'Optional retry' : 'Required — must score 100%';
-  if(desc)  desc.textContent  = isRetry
-    ? 'Test your comprehension again. This attempt is optional.'
+  var maxAttempts = 3;
+  if(badge) badge.textContent = isRetry
+    ? 'Attempt ' + (App_quiz.attempts+1) + ' of ' + maxAttempts + (isRetry?' (retry)':'')
+    : 'Required — must score 100%';
+  if(desc) desc.textContent = isRetry
+    ? 'Attempt '+(App_quiz.attempts+1)+'/'+maxAttempts+'. Answer options have been rephrased. Must score 100%.'
     : 'Answer all 30 questions correctly to unlock the dictation exercise.';
-  document.getElementById('quiz-loading').style.display    = 'block';
-  document.getElementById('quiz-loading').innerHTML        = '<div style="text-align:center;padding:60px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 12px;width:32px;height:32px;border-width:3px"></div><div id="quiz-gen-status">Generating comprehension questions…</div></div>';
-  document.getElementById('quiz-questions').style.display  = 'none';
   document.getElementById('quiz-submit-bar').style.display = 'none';
   document.getElementById('quiz-result-banner').style.display = 'none';
   document.getElementById('quiz-score-badge').style.display   = 'none';
   showScreen('screen-quiz');
+
+  // If cached + retry → paraphrase wrong options then re-render
+  if(hasCached && isRetry){
+    document.getElementById('quiz-loading').style.display = 'block';
+    document.getElementById('quiz-loading').innerHTML = '<div style="text-align:center;padding:40px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 12px;width:32px;height:32px;border-width:3px"></div><div>Rephrasing answer options…</div></div>';
+    document.getElementById('quiz-questions').style.display = 'none';
+    await paraphraseQuizOptions();
+    document.getElementById('quiz-loading').style.display = 'none';
+    renderQuizQuestions();
+    return;
+  }
+
+  // If cached (first render after generation) → just re-render
+  if(hasCached){
+    document.getElementById('quiz-loading').style.display = 'none';
+    renderQuizQuestions();
+    return;
+  }
+
+  // First time — generate via Gemini
+  App_quiz.questions = [];
+  document.getElementById('quiz-loading').style.display    = 'block';
+  document.getElementById('quiz-loading').innerHTML        = '<div style="text-align:center;padding:60px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 12px;width:32px;height:32px;border-width:3px"></div><div id="quiz-gen-status">Generating comprehension questions…</div></div>';
+  document.getElementById('quiz-questions').style.display  = 'none';
 
   var key = getLisGeminiKey();
   if(!key){
@@ -1361,7 +1386,68 @@ function updateQuizProgress(){
   if(badge) badge.textContent = answered+'/'+total;
 }
 
+// Paraphrase wrong-answer options so student can't memorise positions
+async function paraphraseQuizOptions(){
+  var key = getLisGeminiKey();
+  if(!key) return; // no key → skip, at least shuffle
+  // Collect all wrong options (non-answer options) from all questions
+  var toRephrase = [];
+  App_quiz.questions.forEach(function(q,qi){
+    q.opts.forEach(function(opt,oi){
+      var letter = ['A','B','C','D'][oi];
+      if(letter.toUpperCase() !== (q.answer||'A').toUpperCase()){
+        toRephrase.push({qi:qi, oi:oi, text: opt.replace(/^[A-D]\.\s*/,'')});
+      }
+    });
+  });
+  if(!toRephrase.length) return;
+  var prompt = 'Rephrase each of these wrong answer options for a multiple-choice quiz. ' +
+    'Keep the same meaning but use different wording so students cannot memorise by position. ' +
+    'Return ONLY a JSON array of strings in the same order, no extra text.\n\n' +
+    'Options to rephrase:\n' +
+    JSON.stringify(toRephrase.map(function(x){ return x.text; }));
+  try{
+    var raw = await callGeminiLis(prompt);
+    var cleaned = raw.replace(/```json|```/g,'').trim();
+    var si = cleaned.indexOf('['), ei = cleaned.lastIndexOf(']');
+    if(si<0||ei<=si) throw new Error('no array');
+    var rephrased = JSON.parse(cleaned.substring(si,ei+1));
+    if(!Array.isArray(rephrased) || rephrased.length !== toRephrase.length) throw new Error('length mismatch');
+    toRephrase.forEach(function(item,idx){
+      var letters = ['A','B','C','D'];
+      var newText = String(rephrased[idx]||item.text).replace(/^[A-D]\.\s*/,'');
+      App_quiz.questions[item.qi].opts[item.oi] = letters[item.oi] + '. ' + newText;
+    });
+    // Also shuffle option order for each question (keeping answer pointer correct)
+    App_quiz.questions.forEach(function(q){
+      var answerText = q.opts[['A','B','C','D'].indexOf(q.answer.toUpperCase())];
+      // Fisher-Yates shuffle
+      for(var i=q.opts.length-1;i>0;i--){
+        var j=Math.floor(Math.random()*(i+1));
+        var tmp=q.opts[i]; q.opts[i]=q.opts[j]; q.opts[j]=tmp;
+      }
+      // Update answer pointer to new position
+      var newIdx = q.opts.indexOf(answerText);
+      if(newIdx>=0) q.answer = ['A','B','C','D'][newIdx];
+    });
+  }catch(e){
+    // Fallback: just shuffle positions without rephrasing
+    App_quiz.questions.forEach(function(q){
+      var answerText = q.opts[['A','B','C','D'].indexOf((q.answer||'A').toUpperCase())];
+      for(var i=q.opts.length-1;i>0;i--){
+        var j=Math.floor(Math.random()*(i+1));
+        var tmp=q.opts[i]; q.opts[i]=q.opts[j]; q.opts[j]=tmp;
+      }
+      var newIdx = q.opts.indexOf(answerText);
+      if(newIdx>=0) q.answer = ['A','B','C','D'][newIdx];
+    });
+    console.warn('Paraphrase failed, shuffled only:', e.message);
+  }
+}
+
 function submitQuiz(){
+  App_quiz.attempts++;
+  var maxAttempts = 3;
   var qs = App_quiz.questions;
   var correct = 0;
   var wrongIdxs = [];
@@ -1371,7 +1457,6 @@ function submitQuiz(){
     var chosenLetter = ['A','B','C','D'][chosen];
     var isCorrect = (q.answer||'A').toUpperCase() === chosenLetter.toUpperCase();
     if(isCorrect){ correct++; } else { wrongIdxs.push(i); }
-    // Color the options
     [0,1,2,3].forEach(function(k){
       var btn = document.getElementById('qopt-'+i+'-'+k);
       if(!btn) return;
@@ -1381,7 +1466,6 @@ function submitQuiz(){
       if(kLetter.toUpperCase() === (q.answer||'A').toUpperCase()) btn.classList.add('correct');
       else if(k===chosen) btn.classList.add('wrong');
     });
-    // Show explanation
     var expEl = document.getElementById('qexplain-'+i);
     if(expEl && q.explain_vi){ expEl.style.display='block'; expEl.textContent = q.explain_vi; }
     var card = document.getElementById('qcard-'+i);
@@ -1392,28 +1476,40 @@ function submitQuiz(){
   document.getElementById('quiz-submit-bar').style.display = 'none';
   var banner = document.getElementById('quiz-result-banner');
   banner.style.display = 'block';
+
   if(correct === total){
+    // Passed!
+    App_quiz.quizFailed = false;
     banner.innerHTML = '<div style="background:linear-gradient(135deg,#1a7a4a,#38ef7d);color:#fff;border-radius:var(--radius-lg);padding:20px 24px;text-align:center;margin-top:16px">' +
       '<div style="font-size:2rem;margin-bottom:8px">🎉</div>' +
       '<div style="font-family:var(--font-display);font-size:1.2rem;font-weight:700;margin-bottom:6px">Perfect! 100% correct</div>' +
       '<div style="font-size:.88rem;opacity:.85;margin-bottom:16px">Great job! You can now proceed to the dictation exercise.</div>' +
       '<button class="btn btn-primary" onclick="goToFitb()">Proceed to Fill-in-Blank →</button>' +
       '</div>';
+  } else if(App_quiz.attempts >= maxAttempts){
+    // 3 attempts used up — allow in but flag it
+    App_quiz.quizFailed = true;
+    banner.innerHTML = '<div style="background:#fff8e6;border:2px solid #f0c040;border-radius:var(--radius-lg);padding:20px 24px;text-align:center;margin-top:16px">' +
+      '<div style="font-size:1.8rem;margin-bottom:8px">⚠️</div>' +
+      '<div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:#b7791f;margin-bottom:6px">'+correct+'/'+total+' correct ('+pct+'%) — 3 attempts used</div>' +
+      '<div style="font-size:.86rem;color:#555;margin-bottom:16px">You\'ve used all 3 attempts. You may still do the dictation, but your teacher will be notified that the quiz was not passed. <strong>(*)</strong></div>' +
+      '<button class="btn btn-primary" onclick="goToFitb()">Continue to Dictation →</button>' +
+      '</div>';
+    if(wrongIdxs.length>0){ var fw=document.getElementById('qcard-'+wrongIdxs[0]); if(fw) setTimeout(function(){fw.scrollIntoView({behavior:'smooth',block:'center'});},300); }
   } else {
-    var retryMsg = App_quiz.isRetry
-      ? '<button class="btn btn-secondary btn-sm" onclick="goToQuiz(true)">Retry Quiz</button><button class="btn btn-secondary btn-sm" onclick="showScreen(\'screen-result\')">Back to Results</button>'
-      : '<button class="btn btn-primary" onclick="goToQuiz(false)">Retry Quiz (must score 100%)</button>';
+    // Still has retries left
+    var attemptsLeft = maxAttempts - App_quiz.attempts;
     banner.innerHTML = '<div style="background:#fdecea;border:2px solid #f5b7b1;border-radius:var(--radius-lg);padding:20px 24px;text-align:center;margin-top:16px">' +
       '<div style="font-size:1.8rem;margin-bottom:8px">😔</div>' +
       '<div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:#c0392b;margin-bottom:6px">'+correct+'/'+total+' correct ('+pct+'%)</div>' +
-      '<div style="font-size:.86rem;color:#555;margin-bottom:16px">'+(App_quiz.isRetry ? 'See your results above.' : 'You need 100% to unlock the dictation. Review the explanations above, then retry.')+'</div>' +
-      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'+retryMsg+'</div>' +
+      '<div style="font-size:.86rem;color:#555;margin-bottom:16px">Review the explanations above, then retry. Answer options will be rephrased.<br>' +
+        '<strong>'+attemptsLeft+' attempt'+(attemptsLeft!==1?'s':'')+' remaining.</strong></div>' +
+      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+        '<button class="btn btn-primary" onclick="goToQuiz(true)">🔄 Retry Quiz</button>' +
+        '<button class="btn btn-secondary btn-sm" onclick="goToFitb()" style="opacity:.7">Skip &amp; continue anyway</button>' +
+      '</div>' +
       '</div>';
-    // Scroll to first wrong
-    if(wrongIdxs.length > 0){
-      var firstWrong = document.getElementById('qcard-'+wrongIdxs[0]);
-      if(firstWrong) setTimeout(function(){ firstWrong.scrollIntoView({behavior:'smooth',block:'center'}); },300);
-    }
+    if(wrongIdxs.length>0){ var fw2=document.getElementById('qcard-'+wrongIdxs[0]); if(fw2) setTimeout(function(){fw2.scrollIntoView({behavior:'smooth',block:'center'});},300); }
   }
 }
 
@@ -1697,6 +1793,9 @@ function startSession(){
   if(!App.sentences.length){toast('No sentences found.','error');return;}
   App.maxReplays=parseInt(document.getElementById('max-replays').value)||2;
   App.sessionId=generateSessionId();
+  App_quiz.questions = []; // reset quiz cache for new session
+  App_quiz.attempts  = 0;
+  App_quiz.quizFailed = false;
   App.startTime=new Date();
   App.totalWords=0;App.correctWords=0;App.currentIdx=0;
   App.submitted=false;App.reviewData=[];App.attemptData=new Array(App.sentences.length);
@@ -2270,7 +2369,13 @@ async function submitResults(){
 
   // Hero meta
   var heroTitle=document.getElementById('result-hero-title');
-  if(heroTitle) heroTitle.textContent=App.bookTestPart||'—';
+  if(heroTitle){
+    heroTitle.textContent = App.bookTestPart||'—';
+    if(App_quiz.quizFailed){
+      heroTitle.innerHTML = escHtml(App.bookTestPart||'—') +
+        ' <span title="Student did not pass the comprehension quiz (3 attempts)" style="background:#f0c040;color:#333;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:6px;vertical-align:middle;letter-spacing:.03em">* Quiz not passed</span>';
+    }
+  }
   var metaTime=document.getElementById('result-meta-time');
   if(metaTime) metaTime.textContent='⏱ '+durationStr;
   var metaSent=document.getElementById('result-meta-sentences');
@@ -2328,7 +2433,7 @@ async function submitResults(){
   showScreen('screen-result');
 
   // Save to GAS
-  var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,totalSentences:App.sentences.length,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId};
+  var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,totalSentences:App.sentences.length,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId,quizFailed:App_quiz.quizFailed?'1':''};
   try{
     var res=await api('lis.saveResult',payload);
     document.getElementById('submit-status').textContent=res&&res.success?'✅ Saved!':'⚠ Save failed.';
