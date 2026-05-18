@@ -872,6 +872,10 @@ function toast(msg,type,dur){
   setTimeout(function(){el.remove();},dur);
 }
 function showScreen(id){
+  // Stop all audio whenever navigating away from any screen
+  ['vocab-audio-el','main-audio-el','fitb-audio-mirror'].forEach(function(aid){
+    var el=document.getElementById(aid); if(el) el.pause();
+  });
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   document.getElementById(id).classList.add('active');
 }
