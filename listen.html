@@ -594,14 +594,22 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
     <div class="fitb-stats">
       <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-done">0</div><div class="fitb-stat-lbl">Done</div></div>
       <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-total">0</div><div class="fitb-stat-lbl">Sentences</div></div>
-      <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-score">—</div><div class="fitb-stat-lbl">Words</div></div>
+      <div class="fitb-stat"><div class="fitb-stat-num" id="fitb-score">—</div><div class="fitb-stat-lbl">Words correct</div></div>
     </div>
+  </div>
+  <!-- Shortcut guide bar -->
+  <div style="background:#1a237e;color:#fff;padding:7px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;flex-shrink:0;font-size:.78rem">
+    <span style="color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Audio shortcuts:</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">F2</kbd> &nbsp;Play / Pause</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">F3</kbd> &nbsp;Replay sentence</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">F4</kbd> &nbsp;Slow 0.75×</span>
+    <span style="color:rgba(255,255,255,.45);font-size:.72rem">Click 🔊 on each sentence to seek &amp; play from that point</span>
   </div>
   <div class="fitb-body" id="fitb-body"></div>
   <div class="fitb-footer">
-    <span style="font-size:.82rem;color:var(--grey-600)" id="fitb-status">Fill in the blanks for each sentence, then check.</span>
+    <span style="font-size:.82rem;color:var(--grey-600)" id="fitb-status">Listen to each sentence, fill the blanks, then click Check.</span>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-secondary btn-sm" onclick="skipFitb()">Skip Fill-in-Blank →</button>
+      <button class="btn btn-secondary btn-sm" onclick="skipFitb()">Skip →</button>
       <button class="btn btn-primary" id="btn-fitb-done" onclick="finishFitb()" style="display:none">
         Continue to Dictation →
       </button>
@@ -1187,45 +1195,107 @@ async function goToQuiz(isRetry){
   if(badge) badge.textContent = isRetry ? 'Optional retry' : 'Required — must score 100%';
   if(desc)  desc.textContent  = isRetry
     ? 'Test your comprehension again. This attempt is optional.'
-    : 'Answer all questions correctly to unlock the dictation exercise.';
+    : 'Answer all 30 questions correctly to unlock the dictation exercise.';
   document.getElementById('quiz-loading').style.display    = 'block';
+  document.getElementById('quiz-loading').innerHTML        = '<div style="text-align:center;padding:60px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 12px;width:32px;height:32px;border-width:3px"></div><div id="quiz-gen-status">Generating comprehension questions…</div></div>';
   document.getElementById('quiz-questions').style.display  = 'none';
   document.getElementById('quiz-submit-bar').style.display = 'none';
   document.getElementById('quiz-result-banner').style.display = 'none';
   document.getElementById('quiz-score-badge').style.display   = 'none';
   showScreen('screen-quiz');
-  // Generate questions with Gemini
+
   var key = getLisGeminiKey();
   if(!key){
-    // No key — skip quiz
     toast('No Gemini key set — skipping comprehension quiz.','warning',3000);
     if(isRetry){ showScreen('screen-result'); return; }
     goToFitb();
     return;
   }
+
   var script = App.sentences.join(' ');
-  var prompt = 'You are an English reading comprehension test maker.\n' +
-    'Read this passage and generate EXACTLY 10 multiple-choice questions to test comprehension.\n\n' +
-    'PASSAGE:\n'+script+'\n\n' +
-    'RULES:\n' +
-    '- Each question has exactly 4 options: A, B, C, D\n' +
-    '- Only ONE correct answer\n' +
-    '- Questions test reading comprehension (main idea, details, inference)\n' +
-    '- Include a brief Vietnamese explanation for the correct answer\n' +
-    '- Return ONLY valid JSON, no markdown fences\n\n' +
-    'FORMAT:\n' +
-    '[{"q":"Question text?","opts":["A. option","B. option","C. option","D. option"],"answer":"A","explain_vi":"Giải thích ngắn gọn"}]';
-  try{
-    var raw = await callGeminiLis(prompt);
-    var text = raw&&raw.candidates&&raw.candidates[0]&&raw.candidates[0].content&&raw.candidates[0].content.parts&&raw.candidates[0].content.parts[0] ? raw.candidates[0].content.parts[0].text : '';
-    var clean = text.replace(/```json|```/g,'').trim();
-    var si = clean.indexOf('['), ei = clean.lastIndexOf(']')+1;
-    if(si<0||ei<=0) throw new Error('No JSON array');
-    App_quiz.questions = JSON.parse(clean.substring(si,ei)).slice(0,12);
-    renderQuizQuestions();
-  }catch(e){
-    document.getElementById('quiz-loading').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">⚠ Could not generate questions: '+escHtml(e.message)+'<br><br><button class="btn btn-secondary" onclick="goToFitb()">Skip Quiz →</button></div>';
+
+  // Extract vocabulary list from script (top content words)
+  var vocabWords = [];
+  var wordFreq = {};
+  script.replace(/\b([a-zA-Z]{4,})\b/g, function(m,w){
+    var lw = w.toLowerCase();
+    wordFreq[lw] = (wordFreq[lw]||0)+1;
+  });
+  var stopwords = new Set(['that','this','with','have','from','they','will','been','were','said','what','when','where','which','there','their','about','would','could','should','into','than','then','more','also','some','such','just','your','each','after','before','other']);
+  vocabWords = Object.keys(wordFreq).filter(function(w){ return !stopwords.has(w) && wordFreq[w]>=1; })
+    .sort(function(a,b){ return wordFreq[b]-wordFreq[a]; }).slice(0,25);
+
+  function safeParseJSON(text){
+    // Strip markdown fences, find first [...] array
+    var cleaned = text
+      .replace(/```json[\s\S]*?```/gi, function(m){ return m.replace(/```json|```/gi,''); })
+      .replace(/```[\s\S]*?```/gi, function(m){ return m.replace(/```/g,''); })
+      .trim();
+    var si = cleaned.indexOf('[');
+    var ei = cleaned.lastIndexOf(']');
+    if(si<0 || ei<=si) throw new Error('No JSON array in response');
+    return JSON.parse(cleaned.substring(si, ei+1));
   }
+
+  var allQuestions = [];
+
+  // ── CALL 1: 10 comprehension questions ──
+  var statusEl = document.getElementById('quiz-gen-status');
+  if(statusEl) statusEl.textContent = 'Generating comprehension questions (1/2)…';
+
+  var prompt1 =
+    'You are an English reading comprehension test maker. Generate EXACTLY 10 multiple-choice questions.\n' +
+    'Each question must have exactly 4 options and only ONE correct answer.\n' +
+    'Questions should test: main idea, key details, and simple inferences from the passage.\n' +
+    'Include a short Vietnamese explanation (explain_vi) for the correct answer.\n\n' +
+    'PASSAGE:\n' + script + '\n\n' +
+    'Return ONLY a raw JSON array (no markdown, no explanation outside JSON).\n' +
+    'Format: [{"q":"...","opts":["A. ...","B. ...","C. ...","D. ..."],"answer":"A","explain_vi":"..."}]';
+
+  try{
+    var raw1 = await callGeminiLis(prompt1);
+    var t1 = raw1&&raw1.candidates&&raw1.candidates[0]&&raw1.candidates[0].content&&raw1.candidates[0].content.parts&&raw1.candidates[0].content.parts[0] ? raw1.candidates[0].content.parts[0].text : '';
+    var parsed1 = safeParseJSON(t1);
+    allQuestions = allQuestions.concat(parsed1.slice(0,10).map(function(q){ q.type='comp'; return q; }));
+  }catch(e){
+    console.warn('Comprehension questions failed:', e.message);
+  }
+
+  // ── CALL 2: 20 vocabulary questions ──
+  if(statusEl) statusEl.textContent = 'Generating vocabulary questions (2/2)…';
+
+  var vocabSample = vocabWords.slice(0,20).join(', ');
+  var prompt2 =
+    'You are an English vocabulary quiz maker. Generate EXACTLY 20 multiple-choice vocabulary questions.\n' +
+    'Mix two types equally (10 each):\n' +
+    'Type A - "word_meaning": "What does [word] mean in this context?" — options are definitions/synonyms.\n' +
+    'Type B - "gap_fill": A sentence with one blank — student picks the correct word.\n\n' +
+    'Use vocabulary from this passage and word list.\n' +
+    'PASSAGE:\n' + script + '\n' +
+    'KEY WORDS: ' + vocabSample + '\n\n' +
+    'Each question: 4 options, 1 correct answer, short Vietnamese explain_vi.\n' +
+    'Return ONLY a raw JSON array (no markdown, no text outside JSON).\n' +
+    'Format: [{"q":"...","opts":["A. ...","B. ...","C. ...","D. ..."],"answer":"A","explain_vi":"...","type":"word_meaning"}]';
+
+  try{
+    var raw2 = await callGeminiLis(prompt2);
+    var t2 = raw2&&raw2.candidates&&raw2.candidates[0]&&raw2.candidates[0].content&&raw2.candidates[0].content.parts&&raw2.candidates[0].content.parts[0] ? raw2.candidates[0].content.parts[0].text : '';
+    var parsed2 = safeParseJSON(t2);
+    allQuestions = allQuestions.concat(parsed2.slice(0,20).map(function(q){ if(!q.type) q.type='vocab'; return q; }));
+  }catch(e){
+    console.warn('Vocabulary questions failed:', e.message);
+  }
+
+  if(!allQuestions.length){
+    document.getElementById('quiz-loading').innerHTML =
+      '<div style="text-align:center;padding:40px;color:var(--red)">⚠ Could not generate questions. Check your Gemini API key and try again.<br><br>' +
+      '<button class="btn btn-secondary" onclick="goToQuiz('+isRetry+')">🔄 Retry</button>' +
+      '&nbsp;<button class="btn btn-secondary" onclick="goToFitb()">Skip Quiz →</button></div>';
+    return;
+  }
+
+  App_quiz.questions = allQuestions;
+  renderQuizQuestions();
 }
 
 function renderQuizQuestions(){
@@ -1234,14 +1304,23 @@ function renderQuizQuestions(){
   document.getElementById('quiz-loading').style.display = 'none';
   var el = document.getElementById('quiz-questions');
   el.style.display = 'block';
+  var compQs = qs.filter(function(q){ return q.type==='comp'; }).length;
+  var vocabQs = qs.length - compQs;
+  var desc = document.getElementById('quiz-header-desc');
+  if(desc) desc.textContent = compQs+' comprehension + '+vocabQs+' vocabulary questions. Must score 100% to proceed.';
   el.innerHTML = qs.map(function(q,i){
+    var typeBadge = q.type==='comp'
+      ? '<span style="background:#e8eeff;color:#283593;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px">Comprehension</span>'
+      : q.type==='gap_fill'
+        ? '<span style="background:#e6f4ed;color:#1a7a4a;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px">Gap Fill</span>'
+        : '<span style="background:#fff8e6;color:#b7791f;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;margin-right:6px">Vocabulary</span>';
     var opts = q.opts.map(function(o,oi){
       var letter = ['A','B','C','D'][oi];
       return '<button class="quiz-opt" id="qopt-'+i+'-'+oi+'" onclick="selectQuizOpt('+i+','+oi+')">' +
         '<span class="quiz-opt-letter">'+letter+'.</span>'+escHtml(o.replace(/^[A-D]\.\s*/,''))+'</button>';
     }).join('');
     return '<div class="quiz-q-card" id="qcard-'+i+'">' +
-      '<div class="quiz-q-num">Question '+(i+1)+' of '+qs.length+'</div>' +
+      '<div class="quiz-q-num">'+typeBadge+'Question '+(i+1)+' of '+qs.length+'</div>' +
       '<div class="quiz-q-text">'+escHtml(q.q)+'</div>' +
       '<div class="quiz-opts">'+opts+'</div>' +
       '<div class="quiz-explain" id="qexplain-'+i+'"></div>' +
@@ -1415,12 +1494,31 @@ function fitbKeydown(e, id, si){
 }
 
 function fitbPlaySentence(si){
-  var audio = document.getElementById('main-audio-el');
-  if(!audio) return;
-  // Try to play from start briefly — best we can do without per-sentence timestamps
-  toast('🔊 Listening to full audio — find sentence '+(si+1),'info',2000);
+  // Seek to approximate position based on sentence index, then play
+  var audio = document.getElementById('main-audio-el') || document.getElementById('vocab-audio-el');
+  if(!audio) { toast('No audio loaded','error'); return; }
+  var dur = audio.duration;
+  if(dur && !isNaN(dur) && App.sentences.length > 0){
+    // Estimate: assume roughly equal sentence lengths
+    var frac = si / App.sentences.length;
+    audio.currentTime = Math.max(0, dur * frac);
+  }
   audio.play().catch(function(){});
+  toast('▶ Sentence '+(si+1)+' — use F2 to pause','info',2000);
 }
+
+// ── FITB keyboard: F2=pause, F3=replay, F4=slow ──
+// (these mirror the dictation screen shortcuts — same audio element)
+function fitbHandleKey(e){
+  var screen = document.getElementById('screen-fitb');
+  if(!screen || !screen.classList.contains('active')) return;
+  var audio = document.getElementById('main-audio-el') || document.getElementById('vocab-audio-el');
+  if(!audio) return;
+  if(e.key==='F2'){ e.preventDefault(); audio.paused ? audio.play().catch(function(){}) : audio.pause(); }
+  if(e.key==='F3'){ e.preventDefault(); audio.currentTime = Math.max(0, audio.currentTime-2); audio.play().catch(function(){}); }
+  if(e.key==='F4'){ e.preventDefault(); audio.playbackRate = audio.playbackRate===0.75 ? 1.0 : 0.75; toast('Speed: '+audio.playbackRate+'×','info',1200); }
+}
+document.addEventListener('keydown', fitbHandleKey);
 
 function fitbCheckSentence(si){
   var blanks = App_fitb.blanks[si];
