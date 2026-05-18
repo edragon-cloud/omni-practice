@@ -598,12 +598,18 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
     </div>
   </div>
   <!-- Shortcut guide bar -->
-  <div style="background:#1a237e;color:#fff;padding:7px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;flex-shrink:0;font-size:.78rem">
-    <span style="color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Audio shortcuts:</span>
-    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">F2</kbd> &nbsp;Play / Pause</span>
-    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">F3</kbd> &nbsp;Replay sentence</span>
-    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">F4</kbd> &nbsp;Slow 0.75×</span>
-    <span style="color:rgba(255,255,255,.45);font-size:.72rem">Click 🔊 on each sentence to seek &amp; play from that point</span>
+  <div style="background:#1a237e;color:#fff;padding:7px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;font-size:.78rem">
+    <span style="color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Phím tắt:</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">Shift+Space</kbd> Play/Pause</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">Enter</kbd> Kiểm tra câu</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">Ctrl+,</kbd> Tua lùi 3s</span>
+    <span><kbd style="background:rgba(255,255,255,.18);border-radius:4px;padding:1px 7px;font-family:monospace;font-weight:700">Ctrl+.</kbd> Tua tới 3s</span>
+    <button onclick="showFitbShortcuts()" style="margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer;font-family:inherit">⌨ Xem tất cả</button>
+  </div>
+  <!-- Audio bar (same audio element as dictation) -->
+  <div class="dict-audio-row">
+    <label>🎵</label>
+    <audio id="fitb-audio-mirror" controls style="flex:1;min-width:0;height:34px" preload="none"></audio>
   </div>
   <div class="fitb-body" id="fitb-body"></div>
   <div class="fitb-footer">
@@ -789,7 +795,7 @@ async function callGeminiLis(prompt) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         contents: [{parts: [{text: prompt}]}],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 512 }
+        generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
       })
     }
   );
@@ -1254,8 +1260,8 @@ async function goToQuiz(isRetry){
 
   try{
     var raw1 = await callGeminiLis(prompt1);
-    var t1 = raw1&&raw1.candidates&&raw1.candidates[0]&&raw1.candidates[0].content&&raw1.candidates[0].content.parts&&raw1.candidates[0].content.parts[0] ? raw1.candidates[0].content.parts[0].text : '';
-    var parsed1 = safeParseJSON(t1);
+    // callGeminiLis returns a plain string — parse directly
+    var parsed1 = safeParseJSON(raw1);
     allQuestions = allQuestions.concat(parsed1.slice(0,10).map(function(q){ q.type='comp'; return q; }));
   }catch(e){
     console.warn('Comprehension questions failed:', e.message);
@@ -1266,21 +1272,21 @@ async function goToQuiz(isRetry){
 
   var vocabSample = vocabWords.slice(0,20).join(', ');
   var prompt2 =
-    'You are an English vocabulary quiz maker. Generate EXACTLY 20 multiple-choice vocabulary questions.\n' +
-    'Mix two types equally (10 each):\n' +
-    'Type A - "word_meaning": "What does [word] mean in this context?" — options are definitions/synonyms.\n' +
-    'Type B - "gap_fill": A sentence with one blank — student picks the correct word.\n\n' +
-    'Use vocabulary from this passage and word list.\n' +
-    'PASSAGE:\n' + script + '\n' +
-    'KEY WORDS: ' + vocabSample + '\n\n' +
-    'Each question: 4 options, 1 correct answer, short Vietnamese explain_vi.\n' +
-    'Return ONLY a raw JSON array (no markdown, no text outside JSON).\n' +
-    'Format: [{"q":"...","opts":["A. ...","B. ...","C. ...","D. ..."],"answer":"A","explain_vi":"...","type":"word_meaning"}]';
+    'You are an English vocabulary quiz maker. Generate EXACTLY 20 multiple-choice vocabulary questions.' +
+    ' Mix two types equally (10 each):' +
+    ' Type A (word_meaning): What does [word] mean in this context? Options are definitions or synonyms.' +
+    ' Type B (gap_fill): A sentence with one blank — student picks the correct word to fill it.' +
+    ' Use vocabulary from the passage and key words list.' +
+    ' PASSAGE: ' + script +
+    ' KEY WORDS: ' + vocabSample +
+    ' Rules: 4 options per question, 1 correct answer, short Vietnamese explanation (explain_vi).' +
+    ' Return ONLY a raw JSON array, no markdown fences, no extra text.' +
+    ' Format: [{"q":"...","opts":["A. ...","B. ...","C. ...","D. ..."],"answer":"A","explain_vi":"...","type":"word_meaning"}]';
 
   try{
     var raw2 = await callGeminiLis(prompt2);
-    var t2 = raw2&&raw2.candidates&&raw2.candidates[0]&&raw2.candidates[0].content&&raw2.candidates[0].content.parts&&raw2.candidates[0].content.parts[0] ? raw2.candidates[0].content.parts[0].text : '';
-    var parsed2 = safeParseJSON(t2);
+    // callGeminiLis returns a plain string — parse directly
+    var parsed2 = safeParseJSON(raw2);
     allQuestions = allQuestions.concat(parsed2.slice(0,20).map(function(q){ if(!q.type) q.type='vocab'; return q; }));
   }catch(e){
     console.warn('Vocabulary questions failed:', e.message);
@@ -1473,9 +1479,7 @@ function goToFitb(){
     });
     html += '</div>';
     // Audio button + check button
-    html = '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">' +
-      '<button class="fitb-audio-btn" onclick="fitbPlaySentence('+si+')" title="Listen">🔊</button>' +
-      '<div style="flex:1">'+html+'</div>' +
+    html = '<div style="flex:1">' + html + '</div>' +
       '<button class="fitb-check-btn" id="fitb-check-'+si+'" onclick="fitbCheckSentence('+si+')">Check</button>' +
       '</div>' +
       '<div class="fitb-feedback" id="fitb-fb-'+si+'" style="font-size:.8rem;margin-top:4px;display:none"></div>';
@@ -1486,39 +1490,144 @@ function goToFitb(){
     card.innerHTML = '<div class="fitb-sentence-label">Sentence '+(si+1)+'</div>'+html;
     body.appendChild(card);
   });
+  // Sync audio source to FITB mirror player
+  var mainAudio = document.getElementById('main-audio-el');
+  var fitbMirror = document.getElementById('fitb-audio-mirror');
+  if(mainAudio && fitbMirror && mainAudio.src){
+    fitbMirror.src = mainAudio.src;
+    fitbMirror.currentTime = mainAudio.currentTime || 0;
+    // Keep both in sync via events
+    fitbMirror.onplay    = function(){ if(!mainAudio.paused) mainAudio.pause(); mainAudio.currentTime = fitbMirror.currentTime; };
+    fitbMirror.onseeked  = function(){ mainAudio.currentTime = fitbMirror.currentTime; };
+    mainAudio.onseeked   = function(){ fitbMirror.currentTime = mainAudio.currentTime; };
+  }
   showScreen('screen-fitb');
+  maybeShowFitbShortcuts();
 }
 
 function fitbKeydown(e, id, si){
   if(e.key==='Enter'){ e.preventDefault(); fitbCheckSentence(si); }
 }
 
+// ── FITB shortcut modal ──
+var _fitbShortcuts = [
+  { icon:'▶ / ⏸', label:'Play / Pause', keys:['Shift','Space'] },
+  { icon:'✅', label:'Kiểm tra câu hiện tại', keys:['Enter'] },
+  { icon:'⏮', label:'Tua lùi 3 giây', keys:['Ctrl',','] },
+  { icon:'⏭', label:'Tua tới 3 giây', keys:['Ctrl','.'] },
+  { icon:'🔊', label:'Nghe lại câu (click nút 🔊)', keys:['Click'] },
+  { icon:'🐢', label:'Chậm / bình thường (0.75×)', keys:['Ctrl','Shift','S'] },
+];
+
+function showFitbShortcuts(){
+  var rows = document.getElementById('fitb-sc-rows');
+  if(rows && !rows.innerHTML){
+    rows.innerHTML = _fitbShortcuts.map(function(s){
+      var kbds = s.keys.map(function(k){
+        return '<kbd style="background:#f0f4ff;border:1.5px solid #c0caf5;border-bottom:3px solid #8899dd;border-radius:6px;padding:3px 10px;font-family:monospace;font-size:.82rem;font-weight:700;color:#283593">'+k+'</kbd>';
+      }).join('<span style="color:#ccc;margin:0 3px;font-size:.8rem">+</span>');
+      return '<div style="display:flex;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0f0">'+
+        '<span style="font-size:1rem;min-width:26px">'+s.icon+'</span>'+
+        '<span style="flex:1;font-size:.9rem;color:#333">'+s.label+'</span>'+
+        '<span style="display:flex;align-items:center;gap:4px">'+kbds+'</span>'+
+        '</div>';
+    }).join('');
+  }
+  var modal = document.getElementById('fitb-shortcut-modal');
+  if(modal){ modal.style.display='flex'; }
+}
+
+function closeFitbShortcuts(){
+  var modal = document.getElementById('fitb-shortcut-modal');
+  if(modal) modal.style.display='none';
+}
+
+// Show modal automatically when entering FITB screen (unless suppressed)
+function maybeShowFitbShortcuts(){
+  if(localStorage.getItem('fitb_sc_hide')==='1') return;
+  setTimeout(showFitbShortcuts, 400);
+}
+
+// ── FITB keyboard handler ──
+function fitbHandleKey(e){
+  var screen = document.getElementById('screen-fitb');
+  if(!screen || !screen.classList.contains('active')) return;
+  // Don't fire if modal is open
+  if(document.getElementById('fitb-shortcut-modal').style.display==='flex') return;
+  var audio = getAudioEl();
+  if(!audio) return;
+  // Shift+Space → Play/Pause
+  if(e.shiftKey && e.code==='Space'){
+    e.preventDefault();
+    audio.paused ? audio.play().catch(function(){}) : audio.pause();
+    return;
+  }
+  // Ctrl+, → seek -3s
+  if(e.ctrlKey && e.key===','){
+    e.preventDefault();
+    audio.currentTime = Math.max(0, audio.currentTime-3);
+    return;
+  }
+  // Ctrl+. → seek +3s
+  if(e.ctrlKey && e.key==='.'){
+    e.preventDefault();
+    audio.currentTime = Math.min(audio.duration||999, audio.currentTime+3);
+    return;
+  }
+  // Ctrl+Shift+S → toggle slow
+  if(e.ctrlKey && e.shiftKey && e.key==='S'){
+    e.preventDefault();
+    audio.playbackRate = audio.playbackRate===0.75 ? 1.0 : 0.75;
+    toast('Speed: '+audio.playbackRate+'×','info',1200);
+    return;
+  }
+  // Enter → check the focused sentence or find first unchecked
+  if(e.key==='Enter' && !e.shiftKey && !e.ctrlKey){
+    var active = document.activeElement;
+    if(active && active.classList.contains('fitb-blank')){
+      // Find which sentence this blank belongs to
+      var card = active.closest('[id^="fitb-card-"]');
+      if(card){
+        var si = parseInt(card.id.replace('fitb-card-',''));
+        if(!isNaN(si)){
+          e.preventDefault();
+          fitbCheckSentence(si);
+        }
+      }
+    }
+    return;
+  }
+}
+document.addEventListener('keydown', fitbHandleKey);
+
+// Suppress "no-show" checkbox
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='fitb-sc-no-show'){
+    localStorage.setItem('fitb_sc_hide', e.target.checked?'1':'0');
+  }
+});
+
+function getAudioEl(){
+  // When on FITB screen use the mirror player so seek bar reflects correctly
+  var fitbScreen = document.getElementById('screen-fitb');
+  if(fitbScreen && fitbScreen.classList.contains('active')){
+    var mirror = document.getElementById('fitb-audio-mirror');
+    if(mirror) return mirror;
+  }
+  return document.getElementById('main-audio-el') || document.getElementById('vocab-audio-el');
+}
+
 function fitbPlaySentence(si){
-  // Seek to approximate position based on sentence index, then play
-  var audio = document.getElementById('main-audio-el') || document.getElementById('vocab-audio-el');
-  if(!audio) { toast('No audio loaded','error'); return; }
+  var audio = getAudioEl();
+  if(!audio){ toast('No audio loaded','error'); return; }
   var dur = audio.duration;
   if(dur && !isNaN(dur) && App.sentences.length > 0){
-    // Estimate: assume roughly equal sentence lengths
     var frac = si / App.sentences.length;
     audio.currentTime = Math.max(0, dur * frac);
   }
   audio.play().catch(function(){});
-  toast('▶ Sentence '+(si+1)+' — use F2 to pause','info',2000);
+  toast('▶ Câu '+(si+1)+' — Shift+Space để tạm dừng','info',2000);
 }
-
-// ── FITB keyboard: F2=pause, F3=replay, F4=slow ──
-// (these mirror the dictation screen shortcuts — same audio element)
-function fitbHandleKey(e){
-  var screen = document.getElementById('screen-fitb');
-  if(!screen || !screen.classList.contains('active')) return;
-  var audio = document.getElementById('main-audio-el') || document.getElementById('vocab-audio-el');
-  if(!audio) return;
-  if(e.key==='F2'){ e.preventDefault(); audio.paused ? audio.play().catch(function(){}) : audio.pause(); }
-  if(e.key==='F3'){ e.preventDefault(); audio.currentTime = Math.max(0, audio.currentTime-2); audio.play().catch(function(){}); }
-  if(e.key==='F4'){ e.preventDefault(); audio.playbackRate = audio.playbackRate===0.75 ? 1.0 : 0.75; toast('Speed: '+audio.playbackRate+'×','info',1200); }
-}
-document.addEventListener('keydown', fitbHandleKey);
 
 function fitbCheckSentence(si){
   var blanks = App_fitb.blanks[si];
@@ -2440,6 +2549,38 @@ document.getElementById('shortcut-modal').addEventListener('click',function(e){
   if(e.target===this) closeShortcutModal();
 });
 </script>
+
+<!-- ===== FITB SHORTCUT MODAL ===== -->
+<div id="fitb-shortcut-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:18px;width:min(540px,95vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <!-- Header -->
+    <div style="background:#0E0E0C;color:#fff;padding:22px 28px;display:flex;align-items:center;gap:14px">
+      <span style="font-size:1.8rem">⌨️</span>
+      <div>
+        <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:700">Keyboard Shortcuts</div>
+        <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:2px">Keyboard shortcuts for faster dictation practice</div>
+      </div>
+    </div>
+    <!-- Body -->
+    <div style="padding:24px 28px">
+      <!-- Tip -->
+      <div style="background:#f8f7f2;border-left:4px solid #c8a850;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:20px;font-size:.87rem;line-height:1.6">
+        💡 Use <strong>Shift+Space</strong> to Play/Pause — keeps both hands on keyboard, no mouse needed.
+      </div>
+      <!-- Shortcut rows -->
+      <div id="fitb-sc-rows"></div>
+      <!-- Footer -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:#888;cursor:pointer">
+          <input type="checkbox" id="fitb-sc-no-show" style="width:16px;height:16px"> Không hiển thị lại
+        </label>
+        <button class="btn btn-primary" onclick="closeFitbShortcuts()" style="background:linear-gradient(135deg,#11998e,#38ef7d);border:none;padding:12px 28px;font-size:.95rem">
+          Đã hiểu, bắt đầu →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
