@@ -1088,11 +1088,13 @@ function startSession(){
   App.totalWords=0;App.correctWords=0;App.currentIdx=0;
   App.submitted=false;App.reviewData=[];App.attemptData=new Array(App.sentences.length);
   App.pendingNextIdx=-1;
-  App._gapsReady=false;App._gapFirstSaved=false;App._gapPassed=false;App._gapKeys=null;App._gapSegs=null;App._gapOrder=[];App._gapUsedKeys=null;
+  App._gapFirstSaved=false;App._gapPassed=false;App._gapOrder=[];
   App._compReady=false;App._compQuestions=null;App._compPassed=false;
+  App._compPool=null;App._compPoolIdx=0;App._compPoolPromise=null;
   setAudioSrc();
   App.pausePoints=[];App.pauseMapReady=false;App._nextPauseIdx=0;
   buildPauseMap();
+  buildGapsForScript(script);   // full-coverage gaps ready instantly (no AI, runs during Study)
   var va=document.getElementById('vocab-audio-el');
   if(va){va.addEventListener('play',function(){setAudioStatus('playing');});va.addEventListener('pause',function(){setAudioStatus('paused');});}
   document.getElementById('full-script-display').textContent=script;
@@ -1147,33 +1149,34 @@ function segmentScript(script){
 var GAP_PREP = ['in','on','at','of','to','for','with','from','by','about','into','over','under','between','through','during','before','after','against','among','amongst','around','without','within','upon','towards','toward','across','behind','beyond','besides','despite','throughout','onto','off','out'];
 var GAP_STOP = ['the','a','an','and','or','but','is','are','was','were','be','been','being','i','you','he','she','it','we','they','this','that','these','those','as','so','if','then','than','too','very','can','will','would','could','should','shall','may','might','must','do','does','did','have','has','had','not','no','yes','its','their','your','our','his','her','my','me','him','them','us','who','what','when','where','why','how','there','here','also','just','more','most','some','any','all','each','every'];
 
-function pickGapsLocally(segs, target, exclude){
-  exclude = exclude || new Set();
+// Blank EVERY eligible word across the WHOLE script (full coverage, local, instant).
+function pickAllGaps(segs){
   var prep = {}, stop = {};
   GAP_PREP.forEach(function(w){ prep[w]=1; });
   GAP_STOP.forEach(function(w){ stop[w]=1; });
-  var cands = [];
+  var keys = new Set();
   segs.forEach(function(s, i){
     if (!s.w) return;
-    if (exclude.has(s.key)) return;
     var lw = s.text.toLowerCase();
-    if (/\d/.test(s.text)) return;
-    var score = 0;
-    if (prep[lw]) score = 3;
-    else if (!stop[lw] && lw.length >= 4) score = 2;
-    else return;
-    if (/^[A-Z]/.test(s.text)) {
+    if (/\d/.test(s.text)) return;                       // numbers
+    if (!prep[lw] && (stop[lw] || lw.length < 3)) return; // trivial / articles / pronouns
+    if (/^[A-Z]/.test(s.text)) {                          // proper-noun guard (mid-sentence capital)
       var prevPunct = '';
       for (var j=i-1;j>=0;j--){ if (String(segs[j].text).trim()) { prevPunct = segs[j].text; break; } }
       var sentStart = (i===0) || /[.!?]["')\]]?\s*$/.test(prevPunct);
-      if (!sentStart) return; // mid-sentence capital → likely proper noun
+      if (!sentStart) return;
     }
-    cands.push({ i:i, key:s.key, score:score });
+    keys.add(s.key);
   });
-  // sort by score, then spread across the script so blanks aren't clustered
-  cands.sort(function(a,b){ return b.score-a.score || a.i-b.i; });
-  var chosen = cands.slice(0, target);
-  return new Set(chosen.map(function(c){ return c.key; }));
+  return keys;
+}
+
+// Build gap data from a script (synchronous, no AI) — called during Study so it's instant later.
+function buildGapsForScript(script){
+  App._gapScript = String(script||'');
+  App._gapSegs   = segmentScript(App._gapScript);
+  App._gapKeys   = pickAllGaps(App._gapSegs);
+  App._gapsReady = true;
 }
 
 function extractJsonArray(raw){
@@ -1182,37 +1185,55 @@ function extractJsonArray(raw){
   return raw.slice(s, e+1);
 }
 
-async function generateGapKeys(segs, script){
-  var wordCount = (script.match(/\b[A-Za-z][A-Za-z'\u2019-]*\b/g)||[]).length;
-  var target = Math.min(50, Math.max(10, Math.round(wordCount * 0.09)));
-  var exclude = App._gapUsedKeys || new Set();
-  var usedWords = [];
-  exclude.forEach(function(k){ usedWords.push(k.split('#')[0]); });
+// ── Comprehension question POOL (one AI call, drawn in batches of 10) ──
+async function generateComprehensionPool(script){
+  if (!script) return [];
   var key = getLisGeminiKey();
-  if (key) {
-    try {
-      var prompt = 'You are designing an English LISTENING dictation gap-fill for Vietnamese learners (B1\u2013C2).\n'
-        + 'From the script below, choose up to ' + target + ' words to blank out that are the MOST pedagogically valuable to test by ear.\n'
-        + 'PRIORITISE: prepositions, words inside common collocations, Academic Word List / academic vocabulary, and words often misheard.\n'
-        + 'AVOID: proper nouns (names of people, places, brands), numbers, and trivial articles (a/an/the).\n'
-        + (usedWords.length ? 'Do NOT reuse these words from a previous round: ' + usedWords.slice(0,60).join(', ') + '.\n' : '')
-        + 'For each chosen word give its exact spelling and which occurrence it is (1 = first time that word appears, 2 = second, ...).\n'
-        + 'Return ONLY a JSON array, no prose, no markdown: [{"word":"however","occ":1}]\n\nSCRIPT:\n' + script;
-      var raw = await callGeminiLis(prompt, 2048);
-      var arr = JSON.parse(extractJsonArray(raw));
-      var valid = {};
-      segs.forEach(function(s){ if (s.w) valid[s.key] = true; });
-      var keys = new Set();
-      arr.forEach(function(item){
-        if (!item || !item.word) return;
-        var occ = parseInt(item.occ) || 1;
-        var k = String(item.word).toLowerCase() + '#' + occ;
-        if (valid[k] && !exclude.has(k)) keys.add(k);
-      });
-      if (keys.size) return keys;
-    } catch(e) { console.warn('Gemini gap generation failed, using local fallback:', e); }
-  }
-  return pickGapsLocally(segs, target, exclude);
+  if (!key) return [];
+  var n = 20; // 2 distinct rounds without another AI call
+  var prompt = 'You are creating a LISTENING comprehension check for Vietnamese English learners (B1\u2013C2).\n'
+    + 'Based ONLY on the script below, write EXACTLY ' + n + ' short multiple-choice questions testing understanding of MAIN IDEAS, gist, key details, the speaker\u2019s purpose/attitude, and simple inference \u2014 NOT exact wording or trivial word-spotting.\n'
+    + 'Each question has a concise stem and 4 short options with EXACTLY ONE correct answer. Vary them so they can form different quizzes. Make distractors plausible.\n'
+    + 'Return ONLY JSON, no prose, no markdown: [{"q":"...","options":["a","b","c","d"],"answer":0}] where "answer" is the 0-based index of the correct option.\n\nSCRIPT:\n' + script;
+  var raw = await callGeminiLis(prompt, 8192);
+  var arr = JSON.parse(extractJsonArray(raw));
+  var clean = [];
+  arr.forEach(function(it){
+    if (!it || typeof it.q !== 'string' || !Array.isArray(it.options)) return;
+    var opts = it.options.map(function(o){ return String(o); }).slice(0,4);
+    if (opts.length < 2) return;
+    var ans = parseInt(it.answer);
+    if (isNaN(ans) || ans < 0 || ans >= opts.length) ans = 0;
+    clean.push({ q: it.q, options: opts, answer: ans });
+  });
+  return clean;
+}
+
+// Kick the pool generation in the background (while the student fills gaps). Returns a cached promise.
+function prebuildComprehension(){
+  if (App._compPoolPromise) return App._compPoolPromise;
+  App._compPoolPromise = (async function(){
+    for (var attempt=0; attempt<2; attempt++){
+      try {
+        var qs = await generateComprehensionPool(App._gapScript || '');
+        if (qs && qs.length){ App._compPool = qs; App._compPoolIdx = 0; return qs; }
+        if (!getLisGeminiKey()){ App._compPool = []; return []; } // no key → no point retrying
+      } catch(e){ console.warn('comp pool attempt ' + attempt + ' failed:', e); }
+    }
+    App._compPool = []; return [];
+  })();
+  return App._compPoolPromise;
+}
+
+// Draw the next 10 questions; wraps around if the pool runs low (no new AI call).
+function getComprehensionBatch(){
+  var pool = App._compPool || [];
+  if (!pool.length) return [];
+  var idx = App._compPoolIdx || 0;
+  if (idx + 10 > pool.length) idx = 0;
+  var batch = pool.slice(idx, idx + 10);
+  App._compPoolIdx = idx + batch.length;
+  return batch;
 }
 
 async function goToGapFill(){
@@ -1220,22 +1241,10 @@ async function goToGapFill(){
   audioPause();
   showScreen('screen-gapfill');
   var ga = document.getElementById('gap-audio-el');
-  if (ga && App.audioBlobUrl) { ga.src = App.audioBlobUrl; ga.load(); }
-  if (App._gapsReady) { renderGapFill(); return; }
-  document.getElementById('gapfill-loading').style.display = 'block';
-  document.getElementById('gapfill-script').style.display = 'none';
-  try {
-    var script = (document.getElementById('full-script-display').textContent || '').trim() || App.sentences.join(' ');
-    App._gapScript = script;
-    App._gapSegs   = segmentScript(script);
-    App._gapKeys   = await generateGapKeys(App._gapSegs, script);
-    App._gapsReady = true;
-    App._gapFirstSaved = false;
-    renderGapFill();
-  } catch(e) {
-    document.getElementById('gapfill-loading').innerHTML = '⚠ Could not prepare gap-fill: ' + escHtml(e.message)
-      + '<br><button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="App._gapsReady=false;goToGapFill()">Retry</button>';
-  }
+  if (ga && App.audioBlobUrl && ga.src !== App.audioBlobUrl) { ga.src = App.audioBlobUrl; ga.load(); }
+  if (!App._gapsReady) buildGapsForScript(App.sentences.join(' '));  // safety net
+  renderGapFill();
+  prebuildComprehension();   // generate the quiz pool in the background while they fill gaps
 }
 
 function renderGapFill(){
@@ -1331,48 +1340,20 @@ function checkGapFill(){
 }
 
 // ===== COMPREHENSION QUIZ (gate after gap-fill) =====
-async function generateComprehension(script){
-  if (!script) return null;
-  var key = getLisGeminiKey();
-  if (!key) return null; // no offline fallback for comprehension questions
-  var prompt = 'You are creating a LISTENING comprehension check for Vietnamese English learners (B1\u2013C2).\n'
-    + 'Based ONLY on the script below, write EXACTLY 10 short multiple-choice questions that test understanding of the MAIN IDEAS, gist, key details, the speaker\u2019s purpose/attitude, and simple inference \u2014 NOT exact wording or trivial word-spotting.\n'
-    + 'Each question has a concise stem and 4 short options with EXACTLY ONE correct answer. Make distractors plausible. A student must have understood the passage to answer.\n'
-    + 'Return ONLY JSON, no prose, no markdown: [{"q":"...","options":["a","b","c","d"],"answer":0}] where "answer" is the 0-based index of the correct option.\n\nSCRIPT:\n' + script;
-  var raw = await callGeminiLis(prompt, 3072);
-  var arr = JSON.parse(extractJsonArray(raw));
-  var clean = [];
-  arr.forEach(function(it){
-    if (!it || typeof it.q !== 'string' || !Array.isArray(it.options)) return;
-    var opts = it.options.map(function(o){ return String(o); }).slice(0,4);
-    if (opts.length < 2) return;
-    var ans = parseInt(it.answer);
-    if (isNaN(ans) || ans < 0 || ans >= opts.length) ans = 0;
-    clean.push({ q: it.q, options: opts, answer: ans });
-  });
-  return clean.slice(0,10);
-}
-
 async function goToComprehension(){
   audioPause();
   showScreen('screen-comp');
-  if (App._compReady) { renderComprehension(); return; }
   document.getElementById('comp-loading').style.display = 'block';
   document.getElementById('comp-questions').style.display = 'none';
   document.getElementById('comp-result').style.display = 'none';
   document.getElementById('comp-score').textContent = '\u2014';
-  var qs = null;
-  try {
-    qs = await generateComprehension(App._gapScript || '');
-  } catch(e1) {
-    try { qs = await generateComprehension(App._gapScript || ''); }
-    catch(e2) { toast('Quiz l\u1ed7i: ' + e2.message + ' \u2014 b\u1ecf qua.', 'info', 4000); goToDictation(); return; }
-  }
-  if (!qs || !qs.length) {
+  var pool = [];
+  try { pool = await prebuildComprehension(); } catch(e){}
+  if (!pool || !pool.length) {
     toast('Kh\u00f4ng t\u1ea1o \u0111\u01b0\u1ee3c quiz (c\u1ea7n Gemini key) \u2014 b\u1ecf qua b\u01b0\u1edbc ki\u1ec3m tra.', 'info', 4000);
     goToDictation(); return;
   }
-  App._compQuestions = qs;
+  App._compQuestions = getComprehensionBatch();
   App._compReady = true;
   renderComprehension();
 }
@@ -1445,15 +1426,11 @@ function submitComprehension(){
 }
 
 function redoGapFill(){
-  // accumulate previously-used gap keys so the new round is entirely different
-  var used = App._gapUsedKeys || new Set();
-  (App._gapKeys ? Array.from(App._gapKeys) : []).forEach(function(k){ used.add(k); });
-  App._gapUsedKeys = used;
-  App._gapsReady = false; App._gapPassed = false;
-  App._gapKeys = null; App._gapSegs = null; App._gapOrder = [];
-  // fresh quiz after the new gap-fill is passed
+  // Gaps stay full-coverage (same blanks) → forces re-listening; no AI call.
+  App._gapPassed = false;
+  // Next comprehension round draws the NEXT batch from the pre-built pool (no new AI call).
   App._compReady = false; App._compQuestions = null; App._compPassed = false;
-  toast('\u0110ang t\u1ea1o gap m\u1edbi\u2026', 'info');
+  toast('L\u00e0m l\u1ea1i: nghe v\u00e0 \u0111i\u1ec1n l\u1ea1i, sau \u0111\u00f3 quiz m\u1edbi.', 'info');
   goToGapFill();
 }
 
@@ -1757,15 +1734,21 @@ function toggleReveal(idx){
 }
 
 // ===== AUDIO CONTROLS =====
-function getAudio(){return document.getElementById('main-audio-el');}
+function getAudio(){
+  var gf=document.getElementById('screen-gapfill');
+  if(gf && gf.classList.contains('active')) return document.getElementById('gap-audio-el');
+  return document.getElementById('main-audio-el');
+}
 function audioPause(){
-  ['vocab-audio-el','main-audio-el'].forEach(function(id){var el=document.getElementById(id);if(el) el.pause();});
+  ['vocab-audio-el','main-audio-el','gap-audio-el'].forEach(function(id){var el=document.getElementById(id);if(el) el.pause();});
   setAudioStatus('paused');
 }
 window.addEventListener('load',function(){
-  var a=document.getElementById('main-audio-el'); if(!a) return;
-  a.addEventListener('play',function(){setAudioStatus('playing');});
-  a.addEventListener('pause',function(){setAudioStatus('paused');});
+  ['main-audio-el','gap-audio-el'].forEach(function(id){
+    var a=document.getElementById(id); if(!a) return;
+    a.addEventListener('play',function(){setAudioStatus('playing');});
+    a.addEventListener('pause',function(){setAudioStatus('paused');});
+  });
 });
 
 // ===== AUTO-PAUSE (offline silence map → pause at sentence/clause boundaries) =====
@@ -1830,7 +1813,8 @@ function pauseWatcher(){
       a.pause();
       setAudioStatus('paused');
       var pill=document.getElementById('audio-status-pill'); if(pill) pill.textContent='⏸ Auto-paused';
-      var inp=document.querySelector('.sb-input:not(:disabled)'); if(inp) inp.focus();
+      var gfActive=document.getElementById('screen-gapfill').classList.contains('active');
+      if(!gfActive){ var inp=document.querySelector('.sb-input:not(:disabled)'); if(inp) inp.focus(); }
       App._pauseRAF=null; return;
     }
   }
@@ -1845,11 +1829,13 @@ function toggleAutoPause(on){
   toast(on?'Auto-pause: ON — audio dừng ở cuối mỗi câu':'Auto-pause: OFF — phát liên tục','info',1800);
 }
 
-// Wire watcher to the dictation audio element
+// Wire watcher to BOTH the dictation and gap-fill audio elements
 window.addEventListener('load',function(){
-  var a=document.getElementById('main-audio-el'); if(!a) return;
-  a.addEventListener('play',function(){ recomputeNextPause(); if(!App._pauseRAF) App._pauseRAF=requestAnimationFrame(pauseWatcher); });
-  a.addEventListener('seeked',function(){ recomputeNextPause(); });
+  ['main-audio-el','gap-audio-el'].forEach(function(id){
+    var a=document.getElementById(id); if(!a) return;
+    a.addEventListener('play',function(){ recomputeNextPause(); if(!App._pauseRAF) App._pauseRAF=requestAnimationFrame(pauseWatcher); });
+    a.addEventListener('seeked',function(){ recomputeNextPause(); });
+  });
   try{
     if(localStorage.getItem('lis_autopause')==='0'){ App.autoPause=false; var cb=document.getElementById('autopause-cb'); if(cb) cb.checked=false; }
   }catch(e){}
@@ -1884,9 +1870,10 @@ document.addEventListener('keydown', function(e) {
     return;
   }
 
-  // ── All shortcuts below: dictation screen only ──
+  // ── Shortcuts below: dictation OR gap-fill (audio controls work on both) ──
   const isDictationScreen=document.getElementById('screen-dictation').classList.contains('active');
-  if(!isDictationScreen) return;
+  const isGapfillScreen=document.getElementById('screen-gapfill').classList.contains('active');
+  if(!isDictationScreen && !isGapfillScreen) return;
 
   const activeEl=document.activeElement;
   const isTyping=activeEl&&(activeEl.tagName==='INPUT'||activeEl.tagName==='TEXTAREA')&&!activeEl.disabled;
@@ -1903,6 +1890,7 @@ document.addEventListener('keydown', function(e) {
   // ── Shift+Enter → advance to next sentence ──
   if(e.shiftKey&&e.key==='Enter'&&!e.ctrlKey&&!e.altKey){
     e.preventDefault();
+    if(!isDictationScreen) return;
     var aNA=getAudio(); if(!aNA||!aNA.src) return;
     if(aNA.paused){aNA.play().catch(function(){}); setAudioStatus('playing');}
     if(App.pendingNextIdx>=0&&App.pendingNextIdx<App.sentences.length){
@@ -1929,6 +1917,7 @@ document.addEventListener('keydown', function(e) {
   // ── ↑ ArrowUp → Edit last checked sentence ──
   if(e.key==='ArrowUp'&&!isTyping&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){
     e.preventDefault();
+    if(!isDictationScreen) return;
     if(App.lastCheckedIdx>=0){
       var eb=document.getElementById('edit-btn-'+App.lastCheckedIdx);
       if(eb&&eb.style.display!=='none') editSentence(App.lastCheckedIdx);
@@ -1938,7 +1927,7 @@ document.addEventListener('keydown', function(e) {
 
   // ── Ctrl+Alt+R → Reset current sentence ──
   if((e.ctrlKey||e.metaKey)&&e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='r'){
-    e.preventDefault(); if(App.currentIdx>0) resetSentence(App.currentIdx-1); return;
+    e.preventDefault(); if(!isDictationScreen) return; if(App.currentIdx>0) resetSentence(App.currentIdx-1); return;
   }
 });
 
