@@ -1094,7 +1094,7 @@ function startSession(){
   setAudioSrc();
   App.pausePoints=[];App.pauseMapReady=false;App._nextPauseIdx=0;
   buildPauseMap();
-  buildGapsForScript(script);   // full-coverage gaps ready instantly (no AI, runs during Study)
+  buildGapsForScript();   // density-based gaps ready instantly (no AI, runs during Study)
   var va=document.getElementById('vocab-audio-el');
   if(va){va.addEventListener('play',function(){setAudioStatus('playing');});va.addEventListener('pause',function(){setAudioStatus('paused');});}
   document.getElementById('full-script-display').textContent=script;
@@ -1149,33 +1149,55 @@ function segmentScript(script){
 var GAP_PREP = ['in','on','at','of','to','for','with','from','by','about','into','over','under','between','through','during','before','after','against','among','amongst','around','without','within','upon','towards','toward','across','behind','beyond','besides','despite','throughout','onto','off','out'];
 var GAP_STOP = ['the','a','an','and','or','but','is','are','was','were','be','been','being','i','you','he','she','it','we','they','this','that','these','those','as','so','if','then','than','too','very','can','will','would','could','should','shall','may','might','must','do','does','did','have','has','had','not','no','yes','its','their','your','our','his','her','my','me','him','them','us','who','what','when','where','why','how','there','here','also','just','more','most','some','any','all','each','every'];
 
-// Blank EVERY eligible word across the WHOLE script (full coverage, local, instant).
-function pickAllGaps(segs){
+// Pick gaps per SENTENCE by density: >20 words → 3, 10–20 → 2, <10 → 1. Spread evenly.
+// Walks App.sentences in order, keeping a global occurrence counter so keys match
+// segmentScript(App.sentences.join(' ')).
+function pickGapsByDensity(){
   var prep = {}, stop = {};
   GAP_PREP.forEach(function(w){ prep[w]=1; });
   GAP_STOP.forEach(function(w){ stop[w]=1; });
   var keys = new Set();
-  segs.forEach(function(s, i){
-    if (!s.w) return;
-    var lw = s.text.toLowerCase();
-    if (/\d/.test(s.text)) return;                       // numbers
-    if (!prep[lw] && (stop[lw] || lw.length < 3)) return; // trivial / articles / pronouns
-    if (/^[A-Z]/.test(s.text)) {                          // proper-noun guard (mid-sentence capital)
-      var prevPunct = '';
-      for (var j=i-1;j>=0;j--){ if (String(segs[j].text).trim()) { prevPunct = segs[j].text; break; } }
-      var sentStart = (i===0) || /[.!?]["')\]]?\s*$/.test(prevPunct);
-      if (!sentStart) return;
+  var seen = {};   // global occurrence per lowercased word
+  (App.sentences || []).forEach(function(sent){
+    var parts = String(sent).split(/(\b[A-Za-z][A-Za-z'\u2019-]*\b)/g);
+    var words = [];
+    for (var pi=0; pi<parts.length; pi++){
+      var p = parts[pi];
+      if (/^[A-Za-z][A-Za-z'\u2019-]*$/.test(p)){
+        var lw = p.toLowerCase(); seen[lw] = (seen[lw]||0)+1;
+        words.push({ text:p, key:lw+'#'+seen[lw], pi:pi });
+      }
     }
-    keys.add(s.key);
+    var wordCount = words.length;
+    function isEligible(w){
+      var lw = w.text.toLowerCase();
+      if (/\d/.test(w.text)) return false;
+      if (!prep[lw] && (stop[lw] || lw.length < 3)) return false;
+      if (/^[A-Z]/.test(w.text)){
+        var prevPunct = '';
+        for (var j=w.pi-1;j>=0;j--){ if (String(parts[j]).trim()){ prevPunct = parts[j]; break; } }
+        var sentStart = (prevPunct === '');
+        if (!sentStart && !/[.!?]["')\]]?\s*$/.test(prevPunct)) return false; // mid-sentence capital → proper noun
+      }
+      return true;
+    }
+    var elig = words.filter(isEligible);
+    var n = wordCount > 20 ? 3 : (wordCount >= 10 ? 2 : 1);
+    n = Math.min(n, elig.length);
+    if (n <= 0) return;
+    var chosen = [];
+    if (n === 1) { chosen = [elig[Math.floor(elig.length/2)]]; }
+    else { var step = (elig.length-1)/(n-1); for (var k=0;k<n;k++) chosen.push(elig[Math.round(k*step)]); }
+    chosen.forEach(function(x){ keys.add(x.key); });
   });
   return keys;
 }
 
-// Build gap data from a script (synchronous, no AI) — called during Study so it's instant later.
-function buildGapsForScript(script){
-  App._gapScript = String(script||'');
+// Build gap data (synchronous, no AI) — called during Study so it's instant later.
+function buildGapsForScript(){
+  App._gapScript = (App.sentences || []).join(' ');
   App._gapSegs   = segmentScript(App._gapScript);
-  App._gapKeys   = pickAllGaps(App._gapSegs);
+  App._gapKeys   = pickGapsByDensity();
   App._gapsReady = true;
 }
 
@@ -1242,7 +1264,7 @@ async function goToGapFill(){
   showScreen('screen-gapfill');
   var ga = document.getElementById('gap-audio-el');
   if (ga && App.audioBlobUrl && ga.src !== App.audioBlobUrl) { ga.src = App.audioBlobUrl; ga.load(); }
-  if (!App._gapsReady) buildGapsForScript(App.sentences.join(' '));  // safety net
+  if (!App._gapsReady) buildGapsForScript();  // safety net
   renderGapFill();
   prebuildComprehension();   // generate the quiz pool in the background while they fill gaps
 }
