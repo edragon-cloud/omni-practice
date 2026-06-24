@@ -315,7 +315,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
           <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
           <input type="password" id="lis-gemini-key"
             style="flex:1;padding:6px 10px;border:1.5px solid #d0d0c8;border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;background:#fff"
-            placeholder="AIza... (free key from aistudio.google.com)"
+            placeholder="AIza... hoặc AQ... (free key từ aistudio.google.com)"
             oninput="onLisKeyInput(this.value)"
             onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
           <span id="lis-key-status" style="font-size:.68rem;font-weight:700;white-space:nowrap;color:#888">no key</span>
@@ -628,7 +628,6 @@ function updateLisKeyStatus() {
   if (!el) return;
   const key = getLisGeminiKey();
   if (!key)                    { el.textContent = 'no key';    el.style.color = '#c00'; return; }
-  if (!key.startsWith('AIza')) { el.textContent = '⚠ invalid'; el.style.color = '#c00'; return; }
   el.textContent = '✅ saved'; el.style.color = '#1a7a4a';
 }
 // Restore key on load
@@ -884,7 +883,7 @@ async function aiSplitScript(){
   var script=document.getElementById('raw-script-input').value.trim(); if(!script) return;
   var btn=document.getElementById('btn-ai-split');
   var key = getLisGeminiKey();
-  if (!key || !key.startsWith('AIza')) {
+  if (!key) {
     toast('Please enter your Gemini API key first.', 'error');
     document.getElementById('lis-gemini-key').focus();
     document.getElementById('lis-gemini-key').style.borderColor = '#c00';

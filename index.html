@@ -2436,7 +2436,7 @@ function vaSetGeminiKey(val) {
   const v = val.trim();
   if (v) localStorage.setItem('vocab_gemini_key', v);
   document.getElementById('va-key-status').textContent =
-    v ? (v.startsWith('AIza') ? '✅ Key set — Gemini direct call active' : '⚠ Key should start with AIza (get free key at aistudio.google.com)') : '';
+    v ? '✅ Key set — Gemini direct call active' : '';
 }
 function vaCheckKey() {
   const k = getVAGeminiKey();
