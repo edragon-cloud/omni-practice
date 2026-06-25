@@ -73,10 +73,10 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .badge-green{background:var(--green-light);color:var(--green)}
 .badge-grey{background:var(--grey-100);color:var(--grey-600)}
 /* TOAST */
-#toast-wrap{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast{background:var(--black);color:#fff;padding:11px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;max-width:280px;pointer-events:all}
+#toast-wrap{position:fixed;top:84px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;align-items:center;width:auto;max-width:90vw}
+.toast{background:var(--black);color:#fff;padding:16px 28px;border-radius:14px;font-size:17px;font-weight:600;line-height:1.4;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:12px;animation:slideIn .25s ease;max-width:600px;text-align:center;pointer-events:all}
 .toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--gold)}
-@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--grey-200);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -1097,7 +1097,7 @@ function startSession(){
   buildGapsForScript();   // density-based gaps ready instantly (no AI, runs during Study)
   var va=document.getElementById('vocab-audio-el');
   if(va){va.addEventListener('play',function(){setAudioStatus('playing');});va.addEventListener('pause',function(){setAudioStatus('paused');});}
-  document.getElementById('full-script-display').textContent=script;
+  document.getElementById('full-script-display').textContent=App.sentences.join('\n');
   document.getElementById('vocab-pill').textContent=App.sentences.length+' sentences';
   var override=document.getElementById('study-time-override').value;
   var studySecs=getStudySeconds(part,override);
@@ -1179,7 +1179,7 @@ function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;
 // grouped into ≤5 segments of ~10–15 sentences. Fully local, instant (runs during Study).
 function buildGapsForScript(){
   var sentences = App.sentences || [];
-  App._gapScript = sentences.join(' ');
+  App._gapScript = sentences.join('\n');   // newline → mỗi câu một dòng (pre-wrap)
   App._gapSegs   = segmentScript(App._gapScript);
 
   var prep={},stop={}; GAP_PREP.forEach(function(w){prep[w]=1;}); GAP_STOP.forEach(function(w){stop[w]=1;});
