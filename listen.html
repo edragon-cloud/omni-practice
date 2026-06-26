@@ -347,14 +347,42 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
         <div class="form-group">
           <label class="form-label">📚 Book &nbsp;·&nbsp; 🔢 Test &nbsp;·&nbsp; 🎯 Part</label>
           <div class="form-row-3">
-            <input type="text" class="form-input" id="book-input" placeholder="📚 Book (e.g. Cam16)" oninput="refreshBTPPreview()" autocomplete="off">
-            <input type="text" class="form-input" id="test-input" placeholder="🔢 Test" style="text-align:center" oninput="refreshBTPPreview()" autocomplete="off">
-            <input type="text" class="form-input" id="part-input" placeholder="🎯 Part" style="text-align:center" oninput="refreshBTPPreview()" autocomplete="off">
+            <!-- Book dropdown + custom add -->
+            <div style="display:flex;gap:4px;align-items:center">
+              <select class="form-select" id="book-input" onchange="onBTPChange()" style="flex:1;min-width:0">
+                <option value="">— Chọn sách —</option>
+                <option>Cam11</option><option>Cam12</option><option>Cam13</option>
+                <option>Cam14</option><option>Cam15</option><option>Cam16</option>
+                <option>Cam17</option><option>Cam18</option><option>Cam19</option>
+                <option value="__custom__">+ Thêm sách…</option>
+              </select>
+            </div>
+            <!-- Test 1–20 -->
+            <select class="form-select" id="test-input" onchange="onBTPChange()" style="text-align:center">
+              <option value="">Test</option>
+              <option>1</option><option>2</option><option>3</option><option>4</option>
+              <option>5</option><option>6</option><option>7</option><option>8</option>
+              <option>9</option><option>10</option><option>11</option><option>12</option>
+              <option>13</option><option>14</option><option>15</option><option>16</option>
+              <option>17</option><option>18</option><option>19</option><option>20</option>
+            </select>
+            <!-- Part 1–4 -->
+            <select class="form-select" id="part-input" onchange="onBTPChange()" style="text-align:center">
+              <option value="">Part</option>
+              <option>1</option><option>2</option><option>3</option><option>4</option>
+            </select>
           </div>
-          <div class="btp-preview">Preview: <strong id="btp-preview">—</strong></div>
-          <div style="font-size:10px;color:var(--grey-400);margin-top:3px;text-align:center">
-            Example: Cam16 + 1 + 1 → <span style="font-family:var(--font-mono);color:var(--red)">Cam16-1-1</span>
+          <!-- Custom book input (hidden by default) -->
+          <div id="custom-book-wrap" style="display:none;margin-top:6px;display:none">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" class="form-input" id="custom-book-input"
+                placeholder="Nhập tên sách (vd: Road to IELTS)"
+                oninput="onBTPChange()" autocomplete="off"
+                style="font-size:13px;flex:1">
+              <button class="btn btn-sm btn-teal" onclick="saveCustomBook()" style="white-space:nowrap;padding:6px 12px">Lưu</button>
+            </div>
           </div>
+          <div class="btp-preview" style="margin-top:6px">Bài: <strong id="btp-preview">—</strong></div>
         </div>
         <div class="form-row-2">
           <div class="form-group" style="margin-bottom:0">
@@ -742,15 +770,76 @@ function switchTab(tab){
   if(tab==='history') loadHistory();
 }
 
-// ===== BTP PREVIEW =====
-function refreshBTPPreview(){
-  var book=(document.getElementById('book-input')||{value:''}).value.trim();
-  var test=(document.getElementById('test-input')||{value:''}).value.trim();
-  var part=(document.getElementById('part-input')||{value:''}).value.trim();
-  var preview=document.getElementById('btp-preview'); if(!preview) return;
-  var parts=[book,test,part].filter(Boolean);
-  preview.textContent=parts.length?parts.join('-'):'—';
+// ===== BTP (Book–Test–Part) =====
+// Saved custom books in localStorage
+var _customBooks = (function(){
+  try { return JSON.parse(localStorage.getItem('lis_custom_books')||'[]'); } catch(e){ return []; }
+})();
+
+function _saveCustomBooks(){ try{ localStorage.setItem('lis_custom_books', JSON.stringify(_customBooks)); }catch(e){} }
+
+// Rebuild book <select> options including saved custom books
+function _rebuildBookOptions(){
+  var sel = document.getElementById('book-input'); if(!sel) return;
+  var current = sel.value;
+  // keep built-in options (first 11: blank + Cam11–Cam19 + __custom__)
+  while(sel.options.length > 11) sel.remove(10); // remove before __custom__
+  _customBooks.forEach(function(b, i){
+    var o = document.createElement('option');
+    o.value = b; o.textContent = b;
+    sel.insertBefore(o, sel.options[sel.options.length - 1]); // before __custom__
+  });
+  if(current) sel.value = current;
 }
+
+function onBTPChange(){
+  var sel = document.getElementById('book-input');
+  var wrap = document.getElementById('custom-book-wrap');
+  if(sel && sel.value === '__custom__'){
+    if(wrap) wrap.style.display = 'block';
+    var inp = document.getElementById('custom-book-input');
+    if(inp) setTimeout(function(){ inp.focus(); }, 50);
+  } else {
+    if(wrap) wrap.style.display = 'none';
+  }
+  // Update preview
+  var preview = document.getElementById('btp-preview'); if(!preview) return;
+  preview.textContent = getBTPValue() || '—';
+}
+
+// Returns canonical "Cam16-T2-P3" (or custom book name)
+function getBTPValue(){
+  var sel = document.getElementById('book-input');
+  var book = '';
+  if(sel){
+    if(sel.value === '__custom__'){
+      book = (document.getElementById('custom-book-input')||{value:''}).value.trim();
+    } else {
+      book = sel.value;
+    }
+  }
+  var test = (document.getElementById('test-input')||{value:''}).value;
+  var part = (document.getElementById('part-input')||{value:''}).value;
+  var parts = [];
+  if(book) parts.push(book);
+  if(test) parts.push('T'+test);
+  if(part) parts.push('P'+part);
+  return parts.join('-');
+}
+
+// GV adds a custom book — called from a small "+ Lưu" button
+function saveCustomBook(){
+  var inp = document.getElementById('custom-book-input'); if(!inp) return;
+  var val = inp.value.trim(); if(!val){ toast('Nhập tên sách trước.','info'); return; }
+  if(!_customBooks.includes(val)){ _customBooks.push(val); _saveCustomBooks(); _rebuildBookOptions(); }
+  var sel = document.getElementById('book-input'); if(sel) sel.value = val;
+  var wrap = document.getElementById('custom-book-wrap'); if(wrap) wrap.style.display = 'none';
+  onBTPChange();
+  toast('Đã lưu sách "'+val+'" vào danh sách.','success');
+}
+
+// Legacy alias (called by nothing new, kept for safety)
+function refreshBTPPreview(){ onBTPChange(); }
 
 // ===== AUDIO =====
 function handleDragOver(e){e.preventDefault();document.getElementById('audio-drop').classList.add('drag-over');}
@@ -1052,11 +1141,15 @@ function unlockDictation(){
 
 // ===== START SESSION =====
 function startSession(){
-  var book=document.getElementById('book-input').value.trim();
-  var test=document.getElementById('test-input').value.trim();
-  var part=document.getElementById('part-input').value.trim();
+  var btp = getBTPValue();
+  var book = (document.getElementById('book-input')||{value:''}).value;
+  var test = (document.getElementById('test-input')||{value:''}).value;
   var script=document.getElementById('raw-script-input').value.trim();
-  if(!book||!test){toast('Please enter Book and Test.','error');return;}
+  if(!book || book==='__custom__' && !(document.getElementById('custom-book-input')||{value:''}).value.trim()){
+    toast('Chọn tên sách trước.','error'); return;
+  }
+  if(!test){toast('Chọn số Test.','error');return;}
+  if(!btp){toast('Chọn đủ Book và Test.','error');return;}
   if(!script){document.getElementById('err-script').style.display='block';return;}
   document.getElementById('err-script').style.display='none';
 
@@ -1079,7 +1172,7 @@ function startSession(){
     return;
   }
   if(!App.audioBlobUrl){toast('Please load an audio file first.','error');return;}
-  App.bookTestPart=[book,test,part].filter(Boolean).join('-');
+  App.bookTestPart = btp;
   App.sentences=(_splitConfirmed&&_splitSentences.length>0)?_splitSentences:smartSplit(script);
   if(!App.sentences.length){toast('No sentences found.','error');return;}
   App.maxReplays=parseInt(document.getElementById('max-replays').value)||2;
@@ -1942,6 +2035,7 @@ function toggleAutoPause(on){
 
 // Wire watcher to BOTH the dictation and gap-fill audio elements
 window.addEventListener('load',function(){
+  _rebuildBookOptions();
   ['main-audio-el','gap-audio-el'].forEach(function(id){
     var a=document.getElementById(id); if(!a) return;
     a.addEventListener('play',function(){ recomputeNextPause(); if(!App._pauseRAF) App._pauseRAF=requestAnimationFrame(pauseWatcher); });

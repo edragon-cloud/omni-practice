@@ -721,75 +721,51 @@ tr:hover td{background:var(--grey-100)}
     <!-- LISTEN TAB -->
     <div id="tsec-listen" class="teacher-section">
       <div class="section-header">
-        <div><h1>LisDictation — Results</h1><p>Listening sessions & error analysis</p></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <!-- View toggle -->
-          <div style="display:flex;gap:0;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--grey-200)">
-            <button id="lis-view-matrix" onclick="lisSetView('matrix')"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--red);color:#fff;transition:.15s">
-              📊 Matrix
-            </button>
-            <button id="lis-view-table" onclick="lisSetView('table')"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--grey-100);color:var(--grey-600);transition:.15s;border-left:1.5px solid var(--grey-200)">
-              📋 Raw Table
-            </button>
-          </div>
-          <select id="lis-matrix-class" onchange="renderLisMatrix()" style="padding:6px 11px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none">
-            <option value="">All Classes</option>
-          </select>
-          <input id="lis-matrix-search" oninput="renderLisMatrix()" type="text" placeholder="🔍 Search student…"
-            style="padding:6px 11px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:160px">
-          <button class="btn btn-secondary btn-sm" onclick="loadListenResults()">🔄 Refresh</button>
-          <button class="btn btn-outline btn-sm" onclick="regenerateErrorFlat()">⚙️ Regen Flat</button>
-        </div>
+        <div><h1>LisDictation — Results</h1><p>Mỗi dòng = 1 lần nộp · lọc theo lớp, bài, tên/MSSV</p></div>
+        <button class="btn btn-secondary btn-sm" onclick="loadListenResults()">🔄 Làm mới</button>
       </div>
 
-      <!-- Matrix view -->
-      <div id="lis-matrix-wrap">
-        <div id="lis-matrix-infobar" style="font-size:12px;color:var(--grey-600);margin-bottom:10px;min-height:18px"></div>
-        <div id="lis-matrix-container" style="overflow:auto;max-height:calc(100vh - 280px);border:1px solid var(--grey-200);border-radius:var(--radius-lg);background:#FAFAF8">
-          <div style="text-align:center;padding:60px;color:var(--grey-400)">Loading…</div>
-        </div>
-        <!-- Tooltip -->
-        <div id="lis-matrix-tooltip" style="
-          position:fixed;pointer-events:none;z-index:9999;
-          background:#1A1A16;color:#fff;border-radius:11px;padding:12px 15px;
-          font-family:var(--font-body);font-size:12px;line-height:1.65;
-          box-shadow:0 10px 36px rgba(0,0,0,.32);max-width:240px;word-break:break-word;
-          opacity:0;transition:opacity .15s;
-        "></div>
-        <!-- Legend -->
-        <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--grey-600);align-items:center;flex-wrap:wrap">
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#D1FAE5;border:1.5px solid #6EE7B7;display:inline-block"></span>≥ 80%</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#FFF3CD;border:1.5px solid #FFD97D;display:inline-block"></span>60–79%</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#FFE4E6;border:1.5px solid #FCA5A5;display:inline-block"></span>&lt; 60%</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#F4F4F2;border:1.5px solid #E0E0DA;display:inline-block"></span>Chưa làm</span>
-          <span style="color:var(--grey-400)">· Số = accuracy tốt nhất · Hover để xem chi tiết</span>
-        </div>
+      <!-- Filter bar -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 0 14px">
+        <select id="lis-f-class" onchange="renderListenTable(_listenRows)"
+          style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none">
+          <option value="">Tất cả lớp</option>
+        </select>
+        <select id="lis-f-book" onchange="renderListenTable(_listenRows)"
+          style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;max-width:260px">
+          <option value="">Tất cả bài</option>
+        </select>
+        <input id="lis-f-search" oninput="renderListenTable(_listenRows)" placeholder="🔍 Tên / MSSV…"
+          style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:160px">
+        <select id="lis-f-acc" onchange="renderListenTable(_listenRows)"
+          style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none">
+          <option value="">Mọi kết quả</option>
+          <option value="80">≥ 80%</option>
+          <option value="60">60–79%</option>
+          <option value="low">&lt; 60%</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="lisClearFilters()">Xóa lọc</button>
+        <span id="lis-count" style="font-size:12px;color:var(--grey-500);margin-left:4px"></span>
       </div>
 
-      <!-- Raw table view (hidden by default) -->
-      <div id="lis-table-wrap" style="display:none">
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>#</th>
-              <th>Start Time</th>
-              <th>Student ID</th>
-              <th>Student</th>
-              <th onclick="sortListenByClass()" style="cursor:pointer;user-select:none" title="Click to sort by class">Class <span id="listen-class-sort-icon">⇅</span></th>
-              <th>Submitting Time</th>
-              <th>Duration</th>
-              <th>Book–Test–Part</th>
-              <th style="text-align:center">Sentences Done</th>
-              <th style="text-align:center">Total Words</th>
-              <th style="text-align:center">Correct Words</th>
-              <th style="text-align:center">Accuracy</th>
-              <th style="text-align:center">Detail</th>
-            </tr></thead>
-            <tbody id="listen-results-tbody"><tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
-          </table>
-        </div>
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th onclick="lisSort('sid')" style="cursor:pointer;user-select:none;white-space:nowrap">MSSV <span id="lsi-sid">⇅</span></th>
+            <th onclick="lisSort('name')" style="cursor:pointer;user-select:none">Họ tên <span id="lsi-name">⇅</span></th>
+            <th onclick="lisSort('cls')" style="cursor:pointer;user-select:none">Lớp <span id="lsi-cls">⇅</span></th>
+            <th onclick="lisSort('book')" style="cursor:pointer;user-select:none">Tên bài <span id="lsi-book">⇅</span></th>
+            <th onclick="lisSort('start')" style="cursor:pointer;user-select:none;white-space:nowrap">Bắt đầu <span id="lsi-start">⇅</span></th>
+            <th onclick="lisSort('end')" style="cursor:pointer;user-select:none;white-space:nowrap">Nộp bài <span id="lsi-end">⇅</span></th>
+            <th onclick="lisSort('dur')" style="cursor:pointer;user-select:none;text-align:center">Thời gian <span id="lsi-dur">⇅</span></th>
+            <th onclick="lisSort('acc')" style="cursor:pointer;user-select:none;text-align:center">Kết quả <span id="lsi-acc">⇅</span></th>
+            <th style="text-align:center">Chi tiết</th>
+          </tr></thead>
+          <tbody id="listen-results-tbody">
+            <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Đang tải…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -1516,7 +1492,7 @@ function showTeacherTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   if (secEl) secEl.classList.add('active');
   if (tab === 'write')    loadWriteResults();
-  if (tab === 'listen')   { loadListenResults(); setTimeout(()=>lisSetView(_lisView||'matrix'), 100); }
+  if (tab === 'listen')   { loadListenResults(); }
   if (tab === 'speak')    { loadSpeakResults(); setTimeout(()=>spkSetView(_spkView||'matrix'), 100); }
   if (tab === 'settings') loadSettings();
   if (tab === 'homework') hwLoadPanel();
@@ -2917,399 +2893,153 @@ async function issueWriteCode() {
 }
 
 // ── LISTEN RESULTS ──
-var _listenRows = [];       // cached rows for sort
-var _listenSortAsc = null;  // null=original, true=asc, false=desc
+// ══════════════════════════════════════════════
+// LIS DICTATION — TABLE (mỗi dòng = 1 session)
+// ══════════════════════════════════════════════
+var _listenRows = [];
+var _lisSortCol = null, _lisSortAsc = true;
 
-function sortListenByClass() {
-  if (_listenSortAsc === null || _listenSortAsc === false) _listenSortAsc = true;
-  else if (_listenSortAsc === true) _listenSortAsc = false;
-  else _listenSortAsc = null;
+function _lisParseDate(s) {
+  if (!s) return null;
+  var m = String(s).match(/(\d{1,2})-(\d{2})-(\d{4})\s*@\s*(\d{2}):(\d{2})/);
+  if (m) return new Date(m[3]+'-'+m[2]+'-'+m[1]+'T'+m[4]+':'+m[5]+':00');
+  var d = new Date(s); return isNaN(d) ? null : d;
+}
+function _lisFmtDt(s) {
+  var d = _lisParseDate(s); if (!d) return '—';
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')
+       +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function _lisFmtDur(s, e) {
+  var d1 = _lisParseDate(s), d2 = _lisParseDate(e); if (!d1||!d2) return '—';
+  var ms = d2 - d1; if (ms < 0) return '—';
+  var m = Math.floor(ms/60000), h = Math.floor(m/60), rm = m%60;
+  return h > 0 ? h+'h '+rm+'m' : rm+'m';
+}
+function _lisAccBadge(a) {
+  if (a === null || a === undefined || a === '') return '<span style=\"color:var(--grey-400)\">—</span>';
+  var n = Math.min(100, parseInt(String(a).replace('%',''))||0);
+  var bg = n>=80?'#D1FAE5':n>=60?'#FFF3CD':'#FFE4E6';
+  var col = n>=80?'#065F46':n>=60?'#92400E':'#9B1C1C';
+  return '<span style=\"display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;background:'+bg+';color:'+col+'\">'+n+'%</span>';
+}
+function lisClearFilters() {
+  ['lis-f-class','lis-f-book','lis-f-acc'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var s = document.getElementById('lis-f-search'); if (s) s.value='';
   renderListenTable(_listenRows);
 }
-
+function lisSort(col) {
+  if (_lisSortCol === col) _lisSortAsc = !_lisSortAsc;
+  else { _lisSortCol = col; _lisSortAsc = true; }
+  ['sid','name','cls','book','start','end','dur','acc'].forEach(function(c){
+    var el = document.getElementById('lsi-'+c); if (el) el.textContent = '⇅';
+  });
+  var el = document.getElementById('lsi-'+col); if (el) el.textContent = _lisSortAsc ? '▲' : '▼';
+  renderListenTable(_listenRows);
+}
 function renderListenTable(rows) {
-  const tbody = document.getElementById('listen-results-tbody');
-  if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">No results yet.</td></tr>';
-    return;
+  var tbody = document.getElementById('listen-results-tbody');
+  if (!tbody) return;
+  var clsSel = document.getElementById('lis-f-class');
+  var bookSel = document.getElementById('lis-f-book');
+  if (clsSel && clsSel.options.length <= 1 && rows && rows.length) {
+    var cls = Array.from(new Set(rows.map(function(r){ return r._class||''; }).filter(Boolean))).sort();
+    cls.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; clsSel.appendChild(o); });
   }
-
-  // Build name→{class,studentId} lookup from students list
-  const studentMap = {};
-  (App.teacherData && App.teacherData.students || []).forEach(s => {
-    const name = String(s.FullName || s.fullName || '').trim().toLowerCase();
-    if (name) studentMap[name] = {
-      cls: String(s.Class || s.class || '—'),
-      sid: String(s.StudentID || s.studentId || '—')
-    };
-  });
-
-  // Apply sort
-  let display = rows.slice();
-  const icon = document.getElementById('listen-class-sort-icon');
-  if (_listenSortAsc === true) {
-    display.sort((a,b) => (a._class||'').localeCompare(b._class||''));
-    if (icon) icon.textContent = '▲';
-  } else if (_listenSortAsc === false) {
-    display.sort((a,b) => (b._class||'').localeCompare(a._class||''));
-    if (icon) icon.textContent = '▼';
-  } else {
-    if (icon) icon.textContent = '⇅';
+  if (bookSel && bookSel.options.length <= 1 && rows && rows.length) {
+    var books = Array.from(new Set(rows.map(function(r){ return r.BookTestPart||''; }).filter(Boolean))).sort();
+    books.forEach(function(b){ var o=document.createElement('option'); o.value=b; o.textContent=b; bookSel.appendChild(o); });
   }
-
-  function parseLisDate(str) {
-    if (!str) return null;
-    const m = String(str).match(/(\d{1,2})-(\d{2})-(\d{4})\s*@\s*(\d{2}):(\d{2})/);
-    if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`);
-    const d = new Date(str); return isNaN(d) ? null : d;
-  }
-  function fmtT(str) {
-    const d = parseLisDate(str); if (!d) return str || '—';
-    return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-  }
-  function fmtDur(ms) {
-    if (!ms || ms<0) return '—';
-    const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);
-    return m>0?m+'m '+s+'s':s+'s';
-  }
-
-  tbody.innerHTML = display.map((r, i) => {
-    const rawAcc = String(r.Accuracy||'').replace('%','').trim();
-    const acc = Math.min(100, parseInt(rawAcc)||0);
-    const cls = acc>=80?'badge-green':acc>=60?'badge-gold':'badge-red';
-    const t1 = parseLisDate(r.StartingTime), t2 = parseLisDate(r.SubmittingTime);
-    const dur = (t1&&t2) ? fmtDur(t2-t1) : (r.Duration||'—');
-    const sid = r.SessionID || r.sessionId || '';
-    const detailBtn = sid
-      ? `<a href="listen-detail.html?sessionId=${encodeURIComponent(sid)}&teacher=1" target="_blank"
-           style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--blue,#3b82f6);color:#fff;text-decoration:none;white-space:nowrap">🔍 Detail</a>`
-      : '—';
-    return `<tr>
-      <td>${display.length - i}</td>
-      <td style="white-space:nowrap">${fmtT(r.StartingTime)}</td>
-      <td style="font-size:11px;color:var(--grey-500)">${r._sid||'—'}</td>
-      <td><strong>${r.FullName||''}</strong></td>
-      <td><span style="font-size:11px;background:var(--grey-100,#f3f4f6);padding:2px 7px;border-radius:4px">${r._class||'—'}</span></td>
-      <td style="white-space:nowrap">${fmtT(r.SubmittingTime)}</td>
-      <td style="text-align:center">${dur}</td>
-      <td>${r.BookTestPart||'—'}</td>
-      <td style="text-align:center">${r.SentencesDone||'—'}</td>
-      <td style="text-align:center">${r.TotalWords||r.totalWords||'—'}</td>
-      <td style="text-align:center">${r.CorrectWords||r.correctWords||'—'}</td>
-      <td style="text-align:center"><span class="badge ${cls}">${acc ? acc+'%' : '—'}</span></td>
-      <td style="text-align:center">${detailBtn}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function loadListenResults() {
-  const tbody = document.getElementById('listen-results-tbody');
-  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
-  const res = await api('teacher.lis.getResults');
-  if (!res.success) { tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
-
-  // Build name→{class,studentId} lookup
-  const studentMap = {};
-  (App.teacherData && App.teacherData.students || []).forEach(s => {
-    const name = String(s.FullName || s.fullName || '').trim().toLowerCase();
-    if (name) studentMap[name] = {
-      cls: String(s.Class || s.class || '—'),
-      sid: String(s.StudentID || s.studentId || '—')
-    };
-  });
-
-  // Enrich rows with class + studentId
-  _listenRows = (res.rows||[]).slice().reverse().map(r => {
-    const name = String(r.FullName||'').trim().toLowerCase();
-    const info = studentMap[name] || {cls:'—', sid:'—'};
-    return Object.assign({}, r, { _class: info.cls, _sid: info.sid });
-  });
-  _listenSortAsc = null;
-  if (_lisView === 'matrix') renderLisMatrix();
-  else renderListenTable(_listenRows);
-}
-async function regenerateErrorFlat() {
-  const res = await api('teacher.lis.regenerateFlat');
-  if (res.success) toast(`Error_Flat regenerated: ${res.rowsWritten} rows.`, 'success');
-  else toast(res.error||'Failed.', 'error');
-}
-
-// ══════════════════════════════════════════════
-// LIS DICTATION — MATRIX VIEW
-// ══════════════════════════════════════════════
-var _lisView = 'matrix';
-var _lisMatrixTipStore = new Map();
-
-function lisSetView(v) {
-  _lisView = v;
-  const btnM = document.getElementById('lis-view-matrix');
-  const btnT = document.getElementById('lis-view-table');
-  const wrapM = document.getElementById('lis-matrix-wrap');
-  const wrapT = document.getElementById('lis-table-wrap');
-  const sel   = document.getElementById('lis-matrix-class');
-  const srch  = document.getElementById('lis-matrix-search');
-  if (btnM)  { btnM.style.background = v==='matrix'?'var(--red)':'var(--grey-100)'; btnM.style.color = v==='matrix'?'#fff':'var(--grey-600)'; }
-  if (btnT)  { btnT.style.background = v==='table' ?'var(--red)':'var(--grey-100)'; btnT.style.color = v==='table' ?'#fff':'var(--grey-600)'; }
-  if (wrapM) wrapM.style.display = v==='matrix'?'block':'none';
-  if (wrapT) wrapT.style.display = v==='table' ?'block':'none';
-  if (sel)   sel.style.display   = v==='matrix'?'':'none';
-  if (srch)  srch.style.display  = v==='matrix'?'':'none';
-  if (v==='matrix') renderLisMatrix();
-  else renderListenTable(_listenRows);
-}
-
-function renderLisMatrix() {
-  const container = document.getElementById('lis-matrix-container');
-  const infoBar   = document.getElementById('lis-matrix-infobar');
-  if (!container) return;
-  _lisMatrixTipStore.clear();
-
-  const classFilter = (document.getElementById('lis-matrix-class')||{}).value || '';
-  const search      = ((document.getElementById('lis-matrix-search')||{}).value || '').toLowerCase();
-
-  if (!_listenRows || !_listenRows.length) {
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No data. Click Refresh to load.</div>';
-    if (infoBar) infoBar.textContent = '';
-    return;
-  }
-
-  // Populate class dropdown once
-  const sel = document.getElementById('lis-matrix-class');
-  if (sel && sel.options.length <= 1) {
-    const classes = [...new Set(_listenRows.map(r => r._class||'').filter(Boolean))].sort();
-    classes.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
-  }
-
-  // Filter rows
-  let rows = _listenRows.filter(r => {
-    if (classFilter && r._class !== classFilter) return false;
-    if (search) {
-      const n = (r.FullName||'').toLowerCase(), s = (r._sid||'').toLowerCase();
-      if (!n.includes(search) && !s.includes(search)) return false;
+  var fCls  = (document.getElementById('lis-f-class')||{}).value  || '';
+  var fBook = (document.getElementById('lis-f-book')||{}).value   || '';
+  var fQ    = ((document.getElementById('lis-f-search')||{}).value||'').toLowerCase();
+  var fAcc  = (document.getElementById('lis-f-acc')||{}).value    || '';
+  var display = (rows||[]).filter(function(r){
+    if (fCls  && r._class !== fCls) return false;
+    if (fBook && (r.BookTestPart||'') !== fBook) return false;
+    if (fQ) {
+      var n=(r.FullName||'').toLowerCase(), s=(r._sid||'').toLowerCase(), b=(r.BookTestPart||'').toLowerCase();
+      if (!n.includes(fQ) && !s.includes(fQ) && !b.includes(fQ)) return false;
     }
+    var acc = Math.min(100, parseInt(String(r.Accuracy||'0').replace('%',''))||0);
+    if (fAcc === '80'  && acc < 80) return false;
+    if (fAcc === '60'  && (acc < 60 || acc >= 80)) return false;
+    if (fAcc === 'low' && acc >= 60) return false;
     return true;
   });
-
-  if (!rows.length) {
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No students match filter.</div>';
-    if (infoBar) infoBar.textContent = '';
-    return;
-  }
-
-  // Group by student → sort sessions chronologically → assign Bài 1, 2, 3...
-  const studentMap = new Map();
-  rows.forEach(r => {
-    const key = (r._sid && r._sid !== '—') ? r._sid : (r.FullName||'?');
-    if (!studentMap.has(key)) {
-      studentMap.set(key, { name: r.FullName||key, cls: r._class||'—', sid: r._sid||'—', sessions: [] });
-    }
-    studentMap.get(key).sessions.push(r);
-  });
-
-  // Sort each student's sessions oldest→newest
-  studentMap.forEach(st => {
-    st.sessions.sort((a, b) => new Date(a.StartingTime||0) - new Date(b.StartingTime||0));
-  });
-
-  // Find max number of sessions across all students → that's the column count
-  let maxSessions = 0;
-  studentMap.forEach(st => { if (st.sessions.length > maxSessions) maxSessions = st.sessions.length; });
-
-  if (maxSessions === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--grey-400)">No sessions found.</div>';
-    return;
-  }
-
-  // Sort students by class then name
-  const students = [...studentMap.values()].sort((a, b) =>
-    a.cls < b.cls ? -1 : a.cls > b.cls ? 1 : a.name < b.name ? -1 : a.name > b.name ? 1 : 0
-  );
-
-  if (infoBar) infoBar.textContent =
-    students.length + ' student(s) · max ' + maxSessions + ' session(s) · Hover cell to see book & accuracy';
-
-  const nameW = 200, cellW = 88;
-
-  // Cell style
-  function cellSty(acc) {
-    if (acc === null) return { bg:'#F4F4F2', color:'#BBBBB4', border:'#E0E0DA' };
-    if (acc >= 80)   return { bg:'#D1FAE5', color:'#065F46', border:'#6EE7B7' };
-    if (acc >= 60)   return { bg:'#FFF3CD', color:'#92400E', border:'#FFD97D' };
-    return                  { bg:'#FFE4E6', color:'#9B1C1C', border:'#FCA5A5' };
-  }
-
-  function fmtDate(str) {
-    if (!str) return '—';
-    const d = new Date(str); if (isNaN(d)) return String(str).substring(0,16);
-    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})
-         + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
-  }
-
-  // ── Header ──
-  let headHtml = `<th style="position:sticky;left:0;top:0;z-index:5;background:#FAFAF8;
-    min-width:${nameW}px;padding:10px 14px;text-align:left;font-size:10px;font-weight:700;
-    color:var(--grey-600);letter-spacing:.06em;text-transform:uppercase;
-    border-bottom:2px solid var(--grey-200);border-right:2px solid var(--grey-200)">STUDENT</th>`;
-
-  for (let i = 1; i <= maxSessions; i++) {
-    headHtml += `<th style="position:sticky;top:0;z-index:3;background:#FAFAF8;
-      min-width:${cellW}px;max-width:${cellW}px;padding:8px 6px;text-align:center;
-      font-size:11px;font-weight:700;color:var(--grey-600);
-      border-bottom:2px solid var(--grey-200);border-right:1px solid var(--grey-100);">
-      <div style="margin-bottom:4px">Bài ${i}</div>
-      <button onclick="event.stopPropagation();openLisLogModal(${i})" style="
-        font-size:9px;padding:2px 8px;border-radius:5px;
-        border:1px solid var(--grey-200);background:#fff;color:var(--grey-500);
-        cursor:pointer;font-family:var(--font-body);font-weight:600;white-space:nowrap;transition:.12s"
-        onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
-        onmouseout="this.style.borderColor='var(--grey-200)';this.style.color='var(--grey-500)'">
-        👁 Log</button>
-    </th>`;
-  }
-
-  // ── Body ──
-  let cellIdx = 0;
-  let bodyHtml = students.map(st => {
-    const nameTd = `<td style="position:sticky;left:0;z-index:2;background:#fff;
-      min-width:${nameW}px;max-width:${nameW}px;padding:9px 14px;
-      border-right:2px solid var(--grey-200);border-bottom:1px solid #F0F0EE;">
-      <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${st.name}</div>
-      <div style="font-size:10px;color:var(--grey-400);margin-top:1px">${st.cls} · ${st.sid}</div>
-    </td>`;
-
-    const cells = Array.from({ length: maxSessions }, (_, i) => {
-      const idx = cellIdx++;
-      const r = st.sessions[i] || null; // null = not done yet
-
-      if (!r) {
-        _lisMatrixTipStore.set(idx, null); // empty cell
-        const s = cellSty(null);
-        return `<td style="padding:6px;text-align:center;border-right:1px solid #F0F0EE;border-bottom:1px solid #F0F0EE;">
-          <div class="lm-cell" data-idx="${idx}" style="
-            display:inline-flex;align-items:center;justify-content:center;
-            width:68px;height:34px;border-radius:9px;cursor:default;user-select:none;
-            background:${s.bg};color:${s.color};border:1.5px solid ${s.border};
-            font-size:12px;font-family:var(--font-mono);font-weight:600;
-            transition:transform .12s,box-shadow .12s;">—</div></td>`;
+  if (_lisSortCol) {
+    display.sort(function(a, b){
+      var va, vb;
+      if (_lisSortCol === 'acc') {
+        va = Math.min(100, parseInt(String(a.Accuracy||'0').replace('%',''))||0);
+        vb = Math.min(100, parseInt(String(b.Accuracy||'0').replace('%',''))||0);
+      } else if (_lisSortCol === 'dur') {
+        var d1a=_lisParseDate(a.StartingTime), d2a=_lisParseDate(a.SubmittingTime);
+        var d1b=_lisParseDate(b.StartingTime), d2b=_lisParseDate(b.SubmittingTime);
+        va = (d1a&&d2a) ? d2a-d1a : 0; vb = (d1b&&d2b) ? d2b-d1b : 0;
+      } else if (_lisSortCol === 'start') {
+        va = _lisParseDate(a.StartingTime)||0; vb = _lisParseDate(b.StartingTime)||0;
+      } else if (_lisSortCol === 'end') {
+        va = _lisParseDate(a.SubmittingTime)||0; vb = _lisParseDate(b.SubmittingTime)||0;
+      } else {
+        var map = {sid:'_sid',name:'FullName',cls:'_class',book:'BookTestPart'};
+        va = String(a[map[_lisSortCol]]||'').toLowerCase();
+        vb = String(b[map[_lisSortCol]]||'').toLowerCase();
       }
-
-      const acc = Math.min(100, parseInt(String(r.Accuracy||'0').replace('%',''))||0);
-      const s   = cellSty(acc);
-      const icon = acc >= 80 ? '✓ ' : '';
-
-      _lisMatrixTipStore.set(idx, {
-        name:      st.name,
-        sessionNo: i + 1,
-        book:      r.BookTestPart || '—',
-        acc,
-        sentences: r.SentencesDone || '—',
-        date:      r.StartingTime  || null,
-        sessionId: r.SessionID     || ''
-      });
-
-      return `<td style="padding:6px;text-align:center;border-right:1px solid #F0F0EE;border-bottom:1px solid #F0F0EE;">
-        <div class="lm-cell" data-idx="${idx}" style="
-          display:inline-flex;align-items:center;justify-content:center;
-          width:68px;height:34px;border-radius:9px;cursor:default;user-select:none;
-          background:${s.bg};color:${s.color};border:1.5px solid ${s.border};
-          font-size:13px;font-family:var(--font-mono);font-weight:700;
-          transition:transform .12s,box-shadow .12s;">${icon}${acc}%</div></td>`;
-    }).join('');
-
-    return `<tr>${nameTd}${cells}</tr>`;
-  }).join('');
-
-  container.innerHTML = `<table style="border-collapse:collapse;width:100%;min-width:${nameW + maxSessions*cellW}px">
-    <thead><tr>${headHtml}</tr></thead>
-    <tbody>${bodyHtml}</tbody>
-  </table>`;
-
-  // Hover events
-  container.querySelectorAll('.lm-cell').forEach(el => {
-    const idx = parseInt(el.getAttribute('data-idx'), 10);
-    el.addEventListener('mouseenter', e => {
-      el.style.transform = 'scale(1.1)';
-      el.style.boxShadow = '0 4px 16px rgba(0,0,0,.16)';
-      el.style.zIndex    = '10';
-      _lisShowTip(e, idx);
+      if (va < vb) return _lisSortAsc ? -1 : 1;
+      if (va > vb) return _lisSortAsc ?  1 : -1;
+      return 0;
     });
-    el.addEventListener('mousemove', _lisTipPos);
-    el.addEventListener('mouseleave', () => {
-      el.style.transform = '';
-      el.style.boxShadow = '';
-      el.style.zIndex    = '';
-      _lisHideTip();
-    });
-  });
-}
-
-function _lisShowTip(e, idx) {
-  const tt   = document.getElementById('lis-matrix-tooltip');
-  const data = _lisMatrixTipStore.get(idx);
-  if (!tt) return;
-  tt.innerHTML = '';
-
-  if (!data) {
-    // Empty cell
-    const d = document.createElement('div');
-    d.style.cssText = 'font-size:12px;color:rgba(255,255,255,.5)';
-    d.textContent = 'Chưa làm bài này';
-    tt.appendChild(d);
-    tt.style.opacity = '1';
-    _lisTipPos(e);
+  }
+  var ct = document.getElementById('lis-count');
+  if (ct) ct.textContent = display.length + ' kết quả';
+  if (!display.length) {
+    tbody.innerHTML = '<tr><td colspan=\"9\" style=\"text-align:center;padding:40px;color:var(--grey-400)\">Không có dữ liệu phù hợp.</td></tr>';
     return;
   }
-
-  function addRow(label, val) {
-    const d = document.createElement('div');
-    d.style.cssText = 'font-size:11px;margin-bottom:3px;color:rgba(255,255,255,.55)';
-    const s = document.createElement('strong');
-    s.style.color = '#fff'; s.textContent = val;
-    d.textContent = label + ': '; d.appendChild(s);
-    tt.appendChild(d);
-  }
-
-  const title = document.createElement('div');
-  title.style.cssText = 'font-weight:700;font-size:13px;margin-bottom:7px;color:#fff;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:5px';
-  title.textContent = 'Bài ' + data.sessionNo;
-  tt.appendChild(title);
-
-  addRow('Học sinh', data.name);
-  addRow('Sách / Part', data.book);
-  addRow('Accuracy', data.acc + '%');
-  addRow('Sentences done', String(data.sentences));
-  addRow('Ngày làm', data.date ? (() => {
-    const d = new Date(data.date);
-    return isNaN(d) ? String(data.date) :
-      d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})
-      + ' ' + d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
-  })() : '—');
-
-  if (data.sessionId) {
-    const link = document.createElement('a');
-    link.href = `listen-detail.html?sessionId=${encodeURIComponent(data.sessionId)}&teacher=1`;
-    link.target = '_blank';
-    link.style.cssText = 'display:block;margin-top:8px;font-size:11px;color:#93C5FD;text-decoration:underline';
-    link.textContent = '🔍 Xem chi tiết →';
-    tt.appendChild(link);
-  }
-
-  tt.style.opacity = '1';
-  _lisTipPos(e);
+  tbody.innerHTML = display.map(function(r){
+    var sid = r.SessionID || r.sessionId || '';
+    var detailUrl = sid ? 'listen-detail.html?sessionId='+encodeURIComponent(sid)+'&teacher=1' : '';
+    var detailBtn = detailUrl
+      ? '<a href=\"'+detailUrl+'\" target=\"_blank\" style=\"font-size:11px;padding:3px 9px;border-radius:5px;background:var(--red);color:#fff;text-decoration:none;white-space:nowrap\">Chi tiết</a>'
+      : '—';
+    return '<tr>'
+      +'<td style=\"font-size:11px;color:var(--grey-500);white-space:nowrap\">'+(r._sid||'—')+'</td>'
+      +'<td><strong style=\"font-size:13px;font-weight:600\">'+(r.FullName||'—')+'</strong></td>'
+      +'<td><span style=\"font-size:11px;background:var(--grey-100);color:var(--grey-600);padding:2px 7px;border-radius:4px;white-space:nowrap\">'+(r._class||'—')+'</span></td>'
+      +'<td style=\"font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\" title=\"'+(r.BookTestPart||'')+'\">'+(r.BookTestPart||'—')+'</td>'
+      +'<td style=\"white-space:nowrap;font-size:12px;color:var(--grey-600)\">'+_lisFmtDt(r.StartingTime)+'</td>'
+      +'<td style=\"white-space:nowrap;font-size:12px;color:var(--grey-600)\">'+_lisFmtDt(r.SubmittingTime)+'</td>'
+      +'<td style=\"text-align:center;font-size:12px;color:var(--grey-600)\">'+_lisFmtDur(r.StartingTime, r.SubmittingTime)+'</td>'
+      +'<td style=\"text-align:center\">'+_lisAccBadge(r.Accuracy)+'</td>'
+      +'<td style=\"text-align:center\">'+detailBtn+'</td>'
+      +'</tr>';
+  }).join('');
 }
-
-function _lisTipPos(e) {
-  const tt = document.getElementById('lis-matrix-tooltip');
-  if (!tt || tt.style.opacity === '0') return;
-  let x = e.clientX+16, y = e.clientY+16;
-  const tw = tt.offsetWidth||220, th = tt.offsetHeight||120;
-  if (x+tw > window.innerWidth-12)  x = e.clientX-tw-16;
-  if (y+th > window.innerHeight-12) y = e.clientY-th-16;
-  tt.style.left = x+'px'; tt.style.top = y+'px';
-}
-function _lisHideTip() {
-  const tt = document.getElementById('lis-matrix-tooltip');
-  if (tt) tt.style.opacity = '0';
+async function loadListenResults() {
+  var tbody = document.getElementById('listen-results-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan=\"9\" style=\"text-align:center;padding:40px;color:var(--grey-400)\">Đang tải…</td></tr>';
+  ['lis-f-class','lis-f-book'].forEach(function(id){
+    var el = document.getElementById(id); if (!el) return;
+    while (el.options.length > 1) el.remove(1);
+  });
+  var res = await api('teacher.lis.getResults');
+  if (!res.success) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan=\"9\" style=\"text-align:center;color:var(--red)\">'+(res.error||'Lỗi tải dữ liệu')+'</td></tr>';
+    return;
+  }
+  var studentMap = {};
+  ((App.teacherData && App.teacherData.students) || []).forEach(function(s){
+    var name = String(s.FullName||s.fullName||'').trim().toLowerCase();
+    if (name) studentMap[name] = { cls: String(s.Class||s.class||'—'), sid: String(s.StudentID||s.studentId||'—') };
+  });
+  _listenRows = (res.rows||[]).slice().reverse().map(function(r){
+    var name = String(r.FullName||'').trim().toLowerCase();
+    var info = studentMap[name] || { cls: String(r.Class||'—'), sid: String(r.StudentID||'—') };
+    return Object.assign({}, r, { _class: info.cls, _sid: info.sid });
+  });
+  _lisSortCol = null;
+  renderListenTable(_listenRows);
 }
 
 // ── LIS LOG MODAL ─────────────────────────────────────
@@ -3322,8 +3052,8 @@ window.openLisLogModal = function(sessionNo) {
   const statsEl = document.getElementById('llm-stats');
   if (!modal || !tbody) return;
 
-  const classFilter = (document.getElementById('lis-matrix-class')||{}).value || '';
-  const search      = ((document.getElementById('lis-matrix-search')||{}).value || '').toLowerCase();
+  const classFilter = (document.getElementById('lis-f-class')||{}).value || '';
+  const search      = ((document.getElementById('lis-f-search')||{}).value || '').toLowerCase();
 
   // Rebuild studentMap exactly as renderLisMatrix does
   let rows = (_listenRows||[]).filter(r => {
