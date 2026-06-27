@@ -692,28 +692,36 @@ tr:hover td{background:var(--grey-100)}
     <!-- WRITE TAB -->
     <div id="tsec-write" class="teacher-section">
       <div class="section-header">
-        <div><h1>ArticuWrite — Results</h1><p>Student writing submissions & access code management</p></div>
+        <div><h1>ArticuWrite — Results</h1><p>Mỗi dòng = 1 lần nộp · lọc theo lớp, bài (Question), tên/MSSV</p></div>
         <div style="display:flex;gap:10px">
-          <button class="btn btn-secondary btn-sm" onclick="loadWriteResults()">🔄 Refresh</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadWriteResults()">🔄 Làm mới</button>
           <button class="btn btn-primary btn-sm" onclick="openModal('write-code-modal')">+ Issue Code</button>
         </div>
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:4px 0 14px">
+        <select id="w-f-class" onchange="_writeRenderTable(_writeRows)" style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none"><option value="">Tất cả lớp</option></select>
+        <select id="w-f-q" onchange="_writeRenderTable(_writeRows)" style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;max-width:260px"><option value="">Tất cả bài</option></select>
+        <input id="w-f-search" oninput="_writeRenderTable(_writeRows)" placeholder="🔍 Tên / MSSV…" style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:150px">
+        <select id="w-f-band" onchange="_writeRenderTable(_writeRows)" style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none">
+          <option value="">Mọi band</option><option value="7">≥ 7.0</option><option value="55">5.5–6.5</option><option value="low">&lt; 5.5</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="_writeClearFilters()">Xóa lọc</button>
+        <span id="w-count" style="font-size:12px;color:var(--grey-500)"></span>
+      </div>
       <div class="table-wrap" style="overflow-x:auto">
-        <table style="min-width:1100px">
+        <table style="min-width:1050px">
           <thead><tr>
-            <th>#</th>
-            <th>Start</th>
-            <th>Submit</th>
-            <th onclick="_writeSortBy('duration')" style="cursor:pointer" title="Sort by duration">Duration ↕</th>
-            <th onclick="_writeSortBy('name')" style="cursor:pointer">Student ↕</th>
-            <th onclick="_writeSortBy('class')" style="cursor:pointer">Class ↕</th>
+            <th onclick="_writeSortBy('sid')" style="cursor:pointer;white-space:nowrap">MSSV <span id="wsi-sid">⇅</span></th>
+            <th onclick="_writeSortBy('name')" style="cursor:pointer">Họ tên <span id="wsi-name">⇅</span></th>
+            <th onclick="_writeSortBy('class')" style="cursor:pointer">Lớp <span id="wsi-class">⇅</span></th>
+            <th onclick="_writeSortBy('q')" style="cursor:pointer">Tên bài <span id="wsi-q">⇅</span></th>
+            <th onclick="_writeSortBy('submit')" style="cursor:pointer;white-space:nowrap">Nộp bài <span id="wsi-submit">⇅</span></th>
             <th>Mode</th>
-            <th>TR</th><th>CC</th><th>LR</th><th>GRA</th>
-            <th onclick="_writeSortBy('band')" style="cursor:pointer">Band ↕</th>
-            <th style="max-width:160px">Question</th>
-            <th></th>
+            <th style="text-align:center">TR</th><th style="text-align:center">CC</th><th style="text-align:center">LR</th><th style="text-align:center">GRA</th>
+            <th onclick="_writeSortBy('band')" style="cursor:pointer;text-align:center">Band <span id="wsi-band">⇅</span></th>
+            <th style="text-align:center">Report</th>
           </tr></thead>
-          <tbody id="write-results-tbody"><tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          <tbody id="write-results-tbody"><tr><td colspan="12" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2791,94 +2799,122 @@ var _writeRows = [];
 var _writeSortField = null;
 var _writeSortAsc = true;
 
+function _wQ(r){ return r.Question||r.question||'—'; }
+function _wDate(r){ return r.SubmittedAt||r.Timestamp||r.timestamp||''; }
+function _wBand(r){ return parseFloat(r.OverallBand||r.overall||0)||0; }
+
 function _writeSortBy(field) {
   if (_writeSortField === field) _writeSortAsc = !_writeSortAsc;
-  else { _writeSortField = field; _writeSortAsc = true; }
+  else { _writeSortField = field; _writeSortAsc = (field==='submit'?false:true); }
+  ['sid','name','class','q','submit','band'].forEach(function(c){var e=document.getElementById('wsi-'+c);if(e)e.textContent='⇅';});
+  var el=document.getElementById('wsi-'+field); if(el)el.textContent=_writeSortAsc?'▲':'▼';
   _writeRenderTable(_writeRows);
+}
+
+function _writeClearFilters(){
+  ['w-f-class','w-f-q','w-f-band'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var s=document.getElementById('w-f-search'); if(s)s.value='';
+  _writeRenderTable(_writeRows);
+}
+
+function _writeFmtShort(s){
+  try{ var d=new Date(s); if(isNaN(d))return '—';
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  }catch(e){return '—';}
 }
 
 function _writeRenderTable(rows) {
   const tbody = document.getElementById('write-results-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">No results yet.</td></tr>'; return; }
+  if (!tbody) return;
+  rows = rows || [];
 
-  // Duration helper
-  const getDuration = r => {
-    try {
-      const start = new Date(r.StartedAt || r.Timestamp || 0);
-      const end   = new Date(r.SubmittedAt || r.Timestamp || 0);
-      const mins  = Math.round((end - start) / 60000);
-      if (isNaN(mins) || mins < 0) return 0;
-      return mins;
-    } catch(e) { return 0; }
-  };
-  const fmtDur = mins => {
-    if (!mins) return '—';
-    const h = Math.floor(mins/60), m = mins%60;
-    return h > 0 ? `${h}:${String(m).padStart(2,'0')}` : `${m} min`;
-  };
-  const fmtShort = s => {
-    try { const d = new Date(s); if (isNaN(d)) return '—';
-      return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}) + ' ' +
-             d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
-    } catch(e) { return '—'; }
-  };
+  // Populate filter dropdowns once
+  var clsSel=document.getElementById('w-f-class');
+  if(clsSel && clsSel.options.length<=1 && rows.length){
+    var cls=Array.from(new Set(rows.map(function(r){return r._class||'';}).filter(Boolean))).sort();
+    cls.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;clsSel.appendChild(o);});
+  }
+  var qSel=document.getElementById('w-f-q');
+  if(qSel && qSel.options.length<=1 && rows.length){
+    var qs=Array.from(new Set(rows.map(function(r){return _wQ(r);}).filter(function(q){return q&&q!=='—';}))).sort();
+    qs.forEach(function(q){var o=document.createElement('option');o.value=q;o.textContent=q.length>60?q.substring(0,60)+'…':q;qSel.appendChild(o);});
+  }
 
-  // Sort
-  let sorted = [...rows];
+  var fCls=(document.getElementById('w-f-class')||{}).value||'';
+  var fQ=(document.getElementById('w-f-q')||{}).value||'';
+  var fS=((document.getElementById('w-f-search')||{}).value||'').toLowerCase();
+  var fB=(document.getElementById('w-f-band')||{}).value||'';
+
+  var filtered=rows.filter(function(r){
+    if(fCls && (r._class||'')!==fCls) return false;
+    if(fQ && _wQ(r)!==fQ) return false;
+    if(fS){var n=(r.StudentName||'').toLowerCase(),s=(r._sid||'').toLowerCase();if(!n.includes(fS)&&!s.includes(fS))return false;}
+    if(fB){var b=_wBand(r); if(fB==='7'&&b<7)return false; if(fB==='55'&&(b<5.5||b>=7))return false; if(fB==='low'&&b>=5.5)return false;}
+    return true;
+  });
+
   if (_writeSortField) {
-    sorted.sort((a, b) => {
-      let va, vb;
-      if (_writeSortField === 'duration') { va = getDuration(a); vb = getDuration(b); }
-      else if (_writeSortField === 'band') { va = parseFloat(a.OverallBand||0); vb = parseFloat(b.OverallBand||0); }
-      else if (_writeSortField === 'name') { va = String(a.StudentName||'').toLowerCase(); vb = String(b.StudentName||'').toLowerCase(); }
-      else if (_writeSortField === 'class') { va = String(a.Class||'').toLowerCase(); vb = String(b.Class||'').toLowerCase(); }
+    filtered.sort(function(a, b) {
+      var va, vb;
+      if (_writeSortField === 'band') { va=_wBand(a); vb=_wBand(b); }
+      else if (_writeSortField === 'submit') { va=new Date(_wDate(a)||0); vb=new Date(_wDate(b)||0); }
+      else if (_writeSortField === 'name') { va=String(a.StudentName||'').toLowerCase(); vb=String(b.StudentName||'').toLowerCase(); }
+      else if (_writeSortField === 'class') { va=String(a._class||'').toLowerCase(); vb=String(b._class||'').toLowerCase(); }
+      else if (_writeSortField === 'sid') { va=String(a._sid||'').toLowerCase(); vb=String(b._sid||'').toLowerCase(); }
+      else { va=_wQ(a).toLowerCase(); vb=_wQ(b).toLowerCase(); }
       if (va < vb) return _writeSortAsc ? -1 : 1;
       if (va > vb) return _writeSortAsc ? 1 : -1;
       return 0;
     });
   }
 
-  tbody.innerHTML = sorted.map((r, i) => {
-    const dur = getDuration(r);
-    const band = parseFloat(r.OverallBand||0);
-    const bandCls = band >= 7 ? 'badge-green' : band >= 5.5 ? 'badge-gold' : 'badge-red';
-    // Build URL for write-detail view with row data encoded
-    const rowEnc = encodeURIComponent(JSON.stringify({
-      name: r.StudentName||'', code: r.AccessCode||'', class: r.Class||'',
-      mode: r.Mode||'', question: r.Question||'', writing: r.Essay||'',
-      startedAt: r.StartedAt||'', submittedAt: r.SubmittedAt||'',
-      timestamp: r.SubmittedAt||r.Timestamp||'',
-      overall: r.OverallBand||'',
-      scores: { TR: r.TaskResponse||'', CC: r.Coherence||'', LR: r.Lexical||'', GRA: r.Grammar||'' },
-      submissionId: r.SubmissionID||'',
-      needDetail: true
-    }));
-    return `<tr>
-      <td style="color:var(--grey-400)">${sorted.length-i}</td>
-      <td style="font-size:11px;white-space:nowrap">${fmtShort(r.StartedAt||r.Timestamp)}</td>
-      <td style="font-size:11px;white-space:nowrap">${fmtShort(r.SubmittedAt||r.Timestamp)}</td>
-      <td style="font-size:12px;font-weight:600;color:var(--grey-600)">${fmtDur(dur)}</td>
-      <td><strong>${r.StudentName||'—'}</strong></td>
-      <td style="font-size:12px">${r.Class||'—'}</td>
-      <td style="font-size:12px">${r.Mode||'—'}</td>
-      <td style="text-align:center">${r.TaskResponse||'—'}</td>
-      <td style="text-align:center">${r.Coherence||'—'}</td>
-      <td style="text-align:center">${r.Lexical||'—'}</td>
-      <td style="text-align:center">${r.Grammar||'—'}</td>
-      <td style="text-align:center"><span class="badge ${bandCls}">${r.OverallBand||'—'}</span></td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--grey-600)">${String(r.Question||'').substring(0,50)}${(r.Question||'').length>50?'…':''}</td>
-      <td><a href="write-detail.html?row=${rowEnc}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px">👁 View</a></td>
-    </tr>`;
+  var ct=document.getElementById('w-count'); if(ct)ct.textContent=filtered.length+' kết quả';
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--grey-400)">Không có dữ liệu phù hợp.</td></tr>'; return; }
+
+  tbody.innerHTML = filtered.map(function(r) {
+    var band=_wBand(r);
+    var bandCls = band>=7?'badge-green':band>=5.5?'badge-gold':'badge-red';
+    var doc=r.DocURL||r.docUrl||'';
+    var reportBtn = doc
+      ? '<a href="'+doc+'" target="_blank" style="font-size:11px;padding:4px 10px;border-radius:5px;background:var(--red);color:#fff;text-decoration:none;white-space:nowrap">📄 Open</a>'
+      : '<span style="font-size:11px;color:var(--grey-400)">—</span>';
+    var q=_wQ(r);
+    return '<tr>'
+      +'<td style="font-size:11px;color:var(--grey-500);white-space:nowrap">'+(r._sid||'—')+'</td>'
+      +'<td><strong>'+(r.StudentName||'—')+'</strong></td>'
+      +'<td><span style="font-size:11px;background:var(--grey-100);color:var(--grey-600);padding:2px 7px;border-radius:4px;white-space:nowrap">'+(r._class||'—')+'</span></td>'
+      +'<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="'+String(q).replace(/"/g,'&quot;')+'">'+q+'</td>'
+      +'<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">'+_writeFmtShort(_wDate(r))+'</td>'
+      +'<td style="font-size:12px">'+(r.Mode||'—')+'</td>'
+      +'<td style="text-align:center">'+(r.TaskResponse||'—')+'</td>'
+      +'<td style="text-align:center">'+(r.Coherence||'—')+'</td>'
+      +'<td style="text-align:center">'+(r.Lexical||'—')+'</td>'
+      +'<td style="text-align:center">'+(r.Grammar||'—')+'</td>'
+      +'<td style="text-align:center"><span class="badge '+bandCls+'">'+(r.OverallBand||'—')+'</span></td>'
+      +'<td style="text-align:center">'+reportBtn+'</td>'
+      +'</tr>';
   }).join('');
 }
 
 async function loadWriteResults() {
   const tbody = document.getElementById('write-results-tbody');
-  tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  if(tbody) tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--grey-400)">Đang tải…</td></tr>';
+  ['w-f-class','w-f-q'].forEach(function(id){var el=document.getElementById(id);if(el)while(el.options.length>1)el.remove(1);});
   const res = await api('teacher.getAllResults');
-  if (!res.success) { tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
-  _writeRows = (res.writeSubs||[]).slice().reverse();
-  _writeSortField = null; _writeSortAsc = true;
+  if (!res.success) { if(tbody) tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
+  // Enrich with class + studentId from the students list (Write_Results has no class/sid column)
+  var studentMap={};
+  ((App.teacherData && App.teacherData.students)||[]).forEach(function(s){
+    var name=String(s.FullName||s.fullName||'').trim().toLowerCase();
+    if(name) studentMap[name]={cls:String(s.Class||s.class||'—'),sid:String(s.StudentID||s.studentId||'—')};
+  });
+  _writeRows = (res.writeSubs||[]).slice().reverse().map(function(r){
+    var name=String(r.StudentName||'').trim().toLowerCase();
+    var info=studentMap[name]||{cls:String(r.Class||'—'),sid:String(r.AccessCode||'—')};
+    return Object.assign({}, r, {_class:info.cls, _sid:info.sid});
+  });
+  _writeSortField = 'submit'; _writeSortAsc = false;
+  var el=document.getElementById('wsi-submit'); if(el)el.textContent='▼';
   _writeRenderTable(_writeRows);
 }
 
