@@ -416,14 +416,46 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 
     <!-- HISTORY TAB -->
     <div id="tab-content-history" style="display:none">
-      <div class="card">
-        <div class="card-title">
-          <span>📊 Past Sessions</span>
-          <button class="btn btn-secondary btn-sm" onclick="loadHistory()">🔄 Refresh</button>
-        </div>
-        <div id="history-list"><div style="text-align:center;padding:28px;color:var(--grey-400)">Loading…</div></div>
-      </div>
     </div>
+  </div><!-- end setup-wrap -->
+</div><!-- end screen-setup -->
+
+<!-- History full-width panel (outside setup-wrap) -->
+<div id="history-panel" style="display:none;padding:24px 28px 60px;max-width:1100px;margin:0 auto">
+  <!-- Summary bar -->
+  <div id="history-summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+  <!-- Toolbar -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <strong style="font-size:15px;color:var(--navy)">📊 Lịch sử làm bài</strong>
+    <div style="flex:1"></div>
+    <select id="hist-f-book" onchange="renderHistoryTable()"
+      style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);outline:none">
+      <option value="">Tất cả bài</option>
+    </select>
+    <input id="hist-f-search" oninput="renderHistoryTable()" placeholder="🔍 Tìm tên bài…"
+      style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);outline:none;width:160px">
+    <button class="btn btn-secondary btn-sm" onclick="loadHistory()">🔄 Làm mới</button>
+    <span id="hist-count" style="font-size:12px;color:var(--grey-400)"></span>
+  </div>
+
+  <!-- Table -->
+  <div style="overflow:auto;border:1.5px solid var(--grey-200);border-radius:var(--radius-lg)">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--grey-100)">
+          <th onclick="histSort('book')"  style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Tên bài <span id="hsi-book">⇅</span></th>
+          <th onclick="histSort('start')" style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Bắt đầu <span id="hsi-start">⇅</span></th>
+          <th onclick="histSort('end')"   style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Nộp bài <span id="hsi-end">⇅</span></th>
+          <th onclick="histSort('dur')"   style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Thời gian <span id="hsi-dur">⇅</span></th>
+          <th onclick="histSort('sent')"  style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Câu <span id="hsi-sent">⇅</span></th>
+          <th onclick="histSort('words')" style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Từ <span id="hsi-words">⇅</span></th>
+          <th onclick="histSort('correct')" style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Đúng <span id="hsi-correct">⇅</span></th>
+          <th onclick="histSort('acc')"   style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Kết quả <span id="hsi-acc">⇅</span></th>
+        </tr>
+      </thead>
+      <tbody id="history-list"></tbody>
+    </table>
   </div>
 </div>
 
@@ -764,7 +796,13 @@ function goHome(){window.location.href='./index.html';}
 // ===== TABS =====
 function switchTab(tab){
   document.getElementById('tab-content-new').style.display=tab==='new'?'block':'none';
-  document.getElementById('tab-content-history').style.display=tab==='history'?'block':'none';
+  document.getElementById('tab-content-history').style.display='none'; // empty placeholder
+  // History panel is outside setup-wrap → control separately
+  var panel=document.getElementById('history-panel');
+  if(panel) panel.style.display=tab==='history'?'block':'none';
+  // Narrow the setup-wrap when in history (it only frames the hero + tabs)
+  var wrap=document.querySelector('.setup-wrap');
+  if(wrap) wrap.style.paddingBottom=tab==='history'?'0':'60px';
   document.getElementById('tab-new').classList.toggle('active',tab==='new');
   document.getElementById('tab-history').classList.toggle('active',tab==='history');
   if(tab==='history') loadHistory();
@@ -2358,27 +2396,121 @@ async function explainSentence(idx,btn){
 }
 
 // ===== HISTORY =====
+var _histRows=[], _histSortCol=null, _histSortAsc=true;
+
+function _histParseDate(s){
+  if(!s) return null;
+  var m=String(s).match(/(\d{1,2})-(\d{2})-(\d{4})\s*[@\s]\s*(\d{2}):(\d{2})/);
+  if(m) return new Date(m[3]+'-'+m[2]+'-'+m[1]+'T'+m[4]+':'+m[5]+':00');
+  var d=new Date(s); return isNaN(d)?null:d;
+}
+function _histFmtDt(s){
+  var d=_histParseDate(s); if(!d) return s||'—';
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')
+    +' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function _histFmtDur(s,e){
+  var d1=_histParseDate(s),d2=_histParseDate(e); if(!d1||!d2||d2<d1) return '—';
+  var ms=d2-d1,m=Math.floor(ms/60000),h=Math.floor(m/60),rm=m%60;
+  return h>0?h+'h '+rm+'m':rm+'m';
+}
+function _histAccBadge(a){
+  var n=Math.min(100,parseInt(String(a||'0').replace('%',''))||0);
+  var bg=n>=80?'#D1FAE5':n>=60?'#FFF3CD':'#FFE4E6';
+  var col=n>=80?'#065F46':n>=60?'#92400E':'#9B1C1C';
+  return '<span style="display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;background:'+bg+';color:'+col+'">'+n+'%</span>';
+}
+
+function histSort(col){
+  if(_histSortCol===col) _histSortAsc=!_histSortAsc;
+  else{_histSortCol=col;_histSortAsc=col==='start'||col==='end'?false:true;}
+  ['book','start','end','dur','sent','words','correct','acc'].forEach(function(c){
+    var el=document.getElementById('hsi-'+c); if(el) el.textContent='⇅';
+  });
+  var el=document.getElementById('hsi-'+col); if(el) el.textContent=_histSortAsc?'▲':'▼';
+  renderHistoryTable();
+}
+
+function renderHistoryTable(){
+  var tbody=document.getElementById('history-list'); if(!tbody) return;
+  // populate book filter once
+  var bookSel=document.getElementById('hist-f-book');
+  if(bookSel&&bookSel.options.length<=1&&_histRows.length){
+    var books=Array.from(new Set(_histRows.map(function(r){return r.bookTestPart||'';})).values()).filter(Boolean).sort();
+    books.forEach(function(b){var o=document.createElement('option');o.value=b;o.textContent=b;bookSel.appendChild(o);});
+  }
+  var fBook=(bookSel||{value:''}).value||'';
+  var fQ=((document.getElementById('hist-f-search')||{}).value||'').toLowerCase();
+  var rows=_histRows.filter(function(r){
+    if(fBook&&(r.bookTestPart||'')!==fBook) return false;
+    if(fQ&&!(r.bookTestPart||'').toLowerCase().includes(fQ)) return false;
+    return true;
+  });
+  if(_histSortCol){
+    rows=rows.slice().sort(function(a,b){
+      var va,vb;
+      if(_histSortCol==='acc'){va=parseInt(String(a.accuracy||'0').replace('%',''))||0;vb=parseInt(String(b.accuracy||'0').replace('%',''))||0;}
+      else if(_histSortCol==='start'){va=_histParseDate(a.startingTime)||0;vb=_histParseDate(b.startingTime)||0;}
+      else if(_histSortCol==='end'){va=_histParseDate(a.submittingTime)||0;vb=_histParseDate(b.submittingTime)||0;}
+      else if(_histSortCol==='dur'){var d1a=_histParseDate(a.startingTime),d2a=_histParseDate(a.submittingTime);var d1b=_histParseDate(b.startingTime),d2b=_histParseDate(b.submittingTime);va=(d1a&&d2a)?d2a-d1a:0;vb=(d1b&&d2b)?d2b-d1b:0;}
+      else if(_histSortCol==='sent'){va=parseInt(a.sentencesDone)||0;vb=parseInt(b.sentencesDone)||0;}
+      else if(_histSortCol==='words'){va=parseInt(a.totalWords)||0;vb=parseInt(b.totalWords)||0;}
+      else if(_histSortCol==='correct'){va=parseInt(a.correctWords)||0;vb=parseInt(b.correctWords)||0;}
+      else{va=String(a.bookTestPart||'').toLowerCase();vb=String(b.bookTestPart||'').toLowerCase();}
+      if(va<vb) return _histSortAsc?-1:1; if(va>vb) return _histSortAsc?1:-1; return 0;
+    });
+  }
+  var ct=document.getElementById('hist-count'); if(ct) ct.textContent=rows.length+' bài';
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--grey-400)">Không có dữ liệu.</td></tr>';
+    return;
+  }
+  // summary
+  var sumEl=document.getElementById('history-summary');
+  if(sumEl){
+    var total=rows.length;
+    var avgAcc=Math.round(rows.reduce(function(s,r){return s+(parseInt(String(r.accuracy||'0').replace('%',''))||0);},0)/total);
+    var best=rows.reduce(function(mx,r){var a=parseInt(String(r.accuracy||'0').replace('%',''))||0;return a>mx?a:mx;},0);
+    function statBox(val,lbl,col){return '<div style="background:#fff;border:1.5px solid var(--grey-200);border-radius:10px;padding:12px 20px;text-align:center;min-width:100px">'
+      +'<div style="font-size:22px;font-weight:800;color:'+(col||'var(--red)')+'">'+val+'</div>'
+      +'<div style="font-size:11px;color:var(--grey-500);margin-top:2px">'+lbl+'</div></div>';}
+    sumEl.innerHTML=statBox(total,'Tổng số bài')+statBox(avgAcc+'%','Trung bình','var(--navy)')+statBox(best+'%','Cao nhất','#065F46');
+  }
+  var tdSt='padding:11px 12px;border-bottom:0.5px solid var(--grey-100);vertical-align:middle';
+  tbody.innerHTML=rows.map(function(r){
+    var acc=parseInt(String(r.accuracy||'0').replace('%',''))||0;
+    return '<tr style="transition:background .1s" onmouseover="this.style.background=\'var(--grey-100)\'" onmouseout="this.style.background=\'\'">'
+      +'<td style="'+tdSt+';font-weight:600;color:var(--navy);white-space:nowrap">'+escHtml(r.bookTestPart||'—')+'</td>'
+      +'<td style="'+tdSt+';white-space:nowrap;color:var(--grey-600);font-size:12px">'+_histFmtDt(r.startingTime)+'</td>'
+      +'<td style="'+tdSt+';white-space:nowrap;color:var(--grey-600);font-size:12px">'+_histFmtDt(r.submittingTime)+'</td>'
+      +'<td style="'+tdSt+';text-align:center;color:var(--grey-600);font-size:12px">'+_histFmtDur(r.startingTime,r.submittingTime)+'</td>'
+      +'<td style="'+tdSt+';text-align:center;font-size:13px;font-weight:700;color:var(--navy)">'+(r.sentencesDone||'—')+'</td>'
+      +'<td style="'+tdSt+';text-align:center;font-size:13px;font-weight:700">'+(r.totalWords||'—')+'</td>'
+      +'<td style="'+tdSt+';text-align:center;font-size:13px;font-weight:700;color:#065F46">'+(r.correctWords||'—')+'</td>'
+      +'<td style="'+tdSt+';text-align:center">'+_histAccBadge(acc)+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
 async function loadHistory(){
-  var listEl=document.getElementById('history-list'); if(!listEl) return;
-  listEl.innerHTML='<div style="text-align:center;padding:22px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 8px"></div>Loading…</div>';
+  var tbody=document.getElementById('history-list'); if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 8px"></div>Đang tải…</td></tr>';
+  var bookSel=document.getElementById('hist-f-book');
+  if(bookSel) while(bookSel.options.length>1) bookSel.remove(1);
   try{
     var fullName=App.user&&(App.user.fullName||App.user.FullName)||'';
     var res=await api('lis.getHistory',{fullName:fullName});
-    if(!res||!res.sessions||!res.sessions.length){listEl.innerHTML='<div style="text-align:center;padding:28px;color:var(--grey-400)">No past sessions yet.</div>';return;}
-    listEl.innerHTML=res.sessions.map(function(s){
-      var acc=parseInt(s.accuracy)||0;
-      var cls=acc>=80?'high':acc>=60?'mid':'low';
-      return '<div class="history-card">'+
-        '<h4>📅 '+escHtml(s.startingTime||'')+' &nbsp;·&nbsp; <span style="color:var(--navy)">'+escHtml(s.bookTestPart||'Practice')+'</span></h4>'+
-        '<div class="history-stat-row">'+
-        '<div class="history-stat"><div class="hv">'+(s.sentencesDone||'?')+'</div><div class="hl">Sentences</div></div>'+
-        '<div class="history-stat"><div class="hv" style="color:var(--navy)">'+(s.totalWords||0)+'</div><div class="hl">Words</div></div>'+
-        '<div class="history-stat"><div class="hv"><span class="pct-badge '+cls+'">'+acc+'%</span></div><div class="hl">Accuracy</div></div>'+
-        '</div>'+
-        '<div style="font-size:.74rem;color:var(--grey-600)">✅ Correct: <strong>'+(s.correctWords||0)+'</strong></div>'+
-        '</div>';
-    }).join('');
-  }catch(e){listEl.innerHTML='<div style="text-align:center;padding:28px;color:var(--red)">Error loading history.</div>';}
+    if(!res||!res.sessions||!res.sessions.length){
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--grey-400)">Chưa có bài nào.</td></tr>';
+      return;
+    }
+    _histRows=res.sessions.slice().reverse(); // newest first by default
+    _histSortCol='start'; _histSortAsc=false;
+    var el=document.getElementById('hsi-start'); if(el) el.textContent='▼';
+    renderHistoryTable();
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red)">Lỗi tải dữ liệu.</td></tr>';
+  }
 }
 
 // ===== ZOOM =====
