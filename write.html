@@ -630,6 +630,7 @@ body{font-family:var(--fn);background:var(--gd);color:var(--txt);min-height:100v
           </div>
         </div>
       </div>
+      <a id="doc-link-row" href="#" target="_blank" style="display:none;align-items:center;gap:6px;margin:12px 0 0;padding:9px 13px;background:var(--gp);border:1px solid var(--bdr);border-radius:var(--rs);font-size:.84rem;font-weight:700;color:var(--g);text-decoration:none">📄 Mở Google Doc nhận xét của bạn →</a>
       <div class="fbcard"><div class="fbttl">💬 General Feedback</div><div class="fbtxt" id="fbtxt">Loading…</div></div>
       <div class="resacts">
         <button class="btn g sm" onclick="viewFullReport()">📄 View Full Report</button>
@@ -1215,6 +1216,8 @@ async function submitWriting(){
     if (!result) throw new Error('No result from AI');
     S.lastResult=result;
     S.docUrl='';            // reset; saveData will set when doc is ready
+    S.docError='';
+    var _dlr=document.getElementById('doc-link-row'); if(_dlr)_dlr.style.display='none';
     hideLdg();
     showResults(result,S.writingText);
 
@@ -1395,6 +1398,11 @@ async function saveData(result, submittedAt, lsEntry){
       sessionToken: S.sessionToken || ''
     });
     if (res && res.docUrl) { S.docUrl = res.docUrl; }
+    S.docError = (res && res.docError) || '';
+    if (res && typeof res.v !== 'undefined') console.log('[ArticuWrite] backend version:', res.v);
+    if (S.docError) console.warn('[ArticuWrite] DOC CREATION FAILED on server:', S.docError);
+    if (!res || typeof res.v === 'undefined') console.warn('[ArticuWrite] ⚠ Backend has NO doc support — deployed Code.gs is OLD. Redeploy a NEW VERSION.');
+    showDocLink();   // reveal the persistent "open your report" link if a doc exists
     // Update localStorage với submissionId từ GAS
     if (res && res.submissionId) {
       S.lastSubmissionId = res.submissionId;
@@ -1409,6 +1417,12 @@ async function saveData(result, submittedAt, lsEntry){
     console.warn('[ArticuWrite] saveData error:', e.message);
   }
 }
+function showDocLink(){
+  var row=document.getElementById('doc-link-row'); if(!row) return;
+  if(S.docUrl){ row.href=S.docUrl; row.style.display='inline-flex'; }
+  else { row.style.display='none'; }
+}
+
 // ── VIEW FULL REPORT (open student's feedback Google Doc) ──
 var _docMsgs = ['Opening your report…','Creating tables…','Writing detailed feedback…','Formatting corrections…','Building the score card…','Almost there…','Finalizing your document…'];
 function _ensureDocOverlayStyle(){
@@ -1466,7 +1480,9 @@ function viewFullReport(){
     }catch(e){}
     finishDocOverlay(!!url);
     if(url){ if(win){ try{win.location=url;}catch(e){ window.open(url,'_blank'); } } else { window.open(url,'_blank'); } }
-    else { if(win){ try{win.close();}catch(e){} } }
+    else {
+      if(win){ try{ win.document.body.innerHTML='<div style="text-align:center;font-family:sans-serif;margin-top:60px;color:#C8102E"><h2>Report not available</h2><p style="color:#555">'+(S.docError?('Server error: '+S.docError):'The feedback document could not be created. The backend may need to be redeployed.')+'</p></div>'; }catch(e){ try{win.close();}catch(e2){} } }
+    }
   })();
 }
 
