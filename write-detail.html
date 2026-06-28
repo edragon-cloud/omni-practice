@@ -177,7 +177,7 @@ tr:hover td { background: var(--paper); }
 <div class="topbar">
   <div class="brand">Articu<em>Write</em> <span style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:rgba(255,255,255,.3);font-weight:400;margin-left:6px;letter-spacing:.08em;text-transform:uppercase">Reports</span></div>
   <div class="topbar-right">
-    <button class="btn btn-ghost" onclick="backToWrite()" id="btn-back-write">← Back to ArticuWrite</button>
+    <button onclick="backToWrite()" id="btn-back-write" style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.45);border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .18s" onmouseover="this.style.background='rgba(255,255,255,.18)';this.style.borderColor='#fff'" onmouseout="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='rgba(255,255,255,.45)'">← Back to Writing Page</button>
     <button class="btn btn-ghost" onclick="goBack()" id="btn-back" style="display:none">← All Results</button>
     <button class="btn btn-ghost" onclick="exportHTML()" id="btn-export" style="display:none" title="Download as HTML → Upload to Google Drive → Google converts to Doc">📄 Export</button>
     <button class="btn btn-red" onclick="window.print()" id="btn-print" style="display:none">🖨 Print / Save PDF</button>
