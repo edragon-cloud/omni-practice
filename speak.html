@@ -258,6 +258,18 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
 @keyframes si{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
 
 @media(max-width:560px){.crit-grid{grid-template-columns:repeat(2,1fr)}.mode-grid,.sub-grid,.kw-hint-row,.qa-sg{grid-template-columns:1fr}}
+
+/* ── MOBILE (student) ── */
+@media(max-width:640px){
+  .topbar{padding:0 12px}
+  .main{padding:16px 12px !important}
+  h1{font-size:1.4rem !important}
+  table{font-size:12px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .crit-grid{grid-template-columns:1fr !important}
+  .btn-lg,.btn-full{width:100%}
+  input,textarea,select{font-size:16px}
+}
 </style>
 </head>
 <body>

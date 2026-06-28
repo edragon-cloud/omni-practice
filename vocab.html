@@ -24,7 +24,29 @@ html,body{height:100%}
 body{font-family:var(--font-body);background:var(--off-white);color:var(--black);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
 /* ── LAYOUT ── */
 .app-layout{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
-@media(max-width:900px){.app-layout{grid-template-columns:1fr}.sidebar{display:none}}
+@media(max-width:900px){
+  .app-layout{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;height:100vh;width:262px;z-index:300;transform:translateX(-100%);transition:transform .26s ease;box-shadow:var(--shadow-lg,0 10px 40px rgba(0,0,0,.3))}
+  .sidebar.open{transform:translateX(0)}
+  .nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:290}
+  .nav-backdrop.show{display:block}
+  .hamburger{display:inline-flex !important}
+}
+.hamburger{display:none;align-items:center;justify-content:center;width:38px;height:38px;border:none;background:var(--grey-100,#f0f0ee);border-radius:9px;font-size:19px;cursor:pointer;margin-right:10px;flex-shrink:0}
+@media(max-width:640px){
+  .topbar{padding:0 14px;height:54px}
+  .page-content{padding:14px !important;max-width:100%}
+  .topbar-title{font-size:.95rem}
+  .topbar-date{display:none}
+  .section-header h1,h1{font-size:1.35rem !important}
+  .card{padding:15px !important}
+  table{font-size:12px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .btn-lg{width:100%}
+  .quiz-wrap,.copy-wrap{max-width:100%;max-height:100vh;height:100vh;border-radius:0}
+  .mc-grid{grid-template-columns:1fr !important}
+  .stat-grid,.stats-grid{grid-template-columns:1fr 1fr !important}
+}
 /* ── SIDEBAR ── */
 .sidebar{background:var(--black);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sidebar-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -241,10 +263,11 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 <div id="toast-wrap"></div>
 
 <div class="app-layout">
+<div class="nav-backdrop" id="nav-backdrop" onclick="toggleNav(false)"></div>
 <!-- ╔════════════════════════╗
      ║        SIDEBAR         ║
      ╚════════════════════════╝ -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="sidebar-brand-name">Vocab<em>Master</em></div>
     <div class="sidebar-brand-sub">IELTS Vocabulary System</div>
@@ -294,6 +317,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
      ╚════════════════════════╝ -->
 <main class="main-content">
   <div class="topbar">
+    <button class="hamburger" onclick="toggleNav()" aria-label="Menu">☰</button>
     <div class="topbar-title" id="section-title">Overview</div>
     <div class="topbar-date" id="topbar-date"></div>
   </div>
@@ -693,7 +717,17 @@ function toast(msg, type, dur) {
   document.getElementById('toast-wrap').appendChild(el);
   setTimeout(() => el.remove(), dur);
 }
+// ── MOBILE NAV DRAWER ──
+function toggleNav(open){
+  var sb=document.getElementById('sidebar'), bd=document.getElementById('nav-backdrop');
+  if(!sb||!bd) return;
+  var willOpen = (open===undefined) ? !sb.classList.contains('open') : open;
+  sb.classList.toggle('open', willOpen);
+  bd.classList.toggle('show', willOpen);
+}
+
 function showSection(name) {
+  toggleNav(false);   // đóng drawer mobile khi chọn mục
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('section-' + name)?.classList.add('active');
