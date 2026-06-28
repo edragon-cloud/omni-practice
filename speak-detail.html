@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speaking Report — Language Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0E0E0C;--paper:#F8F7F4;--cream:#EDEAE2;--red:#C8102E;--red-l:#FDE8EC;--green:#1A7A4A;--grn-l:#E6F4ED;--gold:#B45309;--gld-l:#FEF3C7;--blue:#1D4ED8;--blue-l:#EFF6FF;--grey:#77776E;--border:#DDD9CF;--shadow:0 2px 16px rgba(14,14,12,.07)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.topbar{background:var(--ink);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100}
+.brand{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff}
+.brand em{color:var(--red);font-style:normal}
+.topbar-right{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;text-decoration:none;white-space:nowrap}
+.btn-ghost{background:rgba(255,255,255,.1);color:rgba(255,255,255,.75)}.btn-ghost:hover{background:rgba(255,255,255,.18);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+.page-wrap{max-width:880px;margin:0 auto;padding:32px 24px 80px}
+/* HEADER CARD */
+.hcard{background:var(--ink);border-radius:16px;overflow:hidden;margin-bottom:20px}
+.htop{padding:28px 32px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start}
+.hlabel{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:4px}
+.hname{font-family:'Playfair Display',serif;font-size:1.6rem;color:#fff;margin-bottom:10px}
+.hbadges{display:flex;gap:12px;flex-wrap:wrap}
+.hbadge{font-size:.75rem;color:rgba(255,255,255,.5)}
+.hbadge strong{color:rgba(255,255,255,.85)}
+/* Meta row */
+.meta-row{display:flex;flex-wrap:wrap;border-top:1.5px solid rgba(255,255,255,.08)}
+.mc{padding:12px 20px;border-right:1px solid rgba(255,255,255,.06);flex:0 0 auto}
+.mc:last-child{border-right:none}
+.mk{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px}
+.mv{font-family:'DM Mono',monospace;font-size:.9rem;color:rgba(255,255,255,.85);font-weight:500}
+/* Band box */
+.bband{text-align:center;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:18px 28px;flex-shrink:0}
+.bnum{font-family:'Playfair Display',serif;font-size:3.2rem;line-height:1;margin-bottom:4px}
+.blbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+/* Criteria row */
+.crit-row{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.5px solid rgba(255,255,255,.08)}
+.cc{padding:16px 20px;border-right:1px solid rgba(255,255,255,.06)}
+.cc:last-child{border-right:none}
+.ck{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px}
+.cv{font-family:'Playfair Display',serif;font-size:1.8rem;margin-bottom:6px}
+.cbar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.cfill{height:100%;border-radius:2px;transition:width .6s ease}
+/* Section */
+.section{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
+.shd{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1.5px solid var(--border);background:var(--paper)}
+.si{font-size:16px}.st{font-family:'Playfair Display',serif;font-size:.92rem;color:var(--ink)}
+.scnt{margin-left:auto;font-size:11px;font-weight:600;color:var(--grey);background:var(--cream);padding:2px 9px;border-radius:100px}
+.sb{padding:20px}
+/* Report box */
+.rbox{font-size:.88rem;line-height:1.85;color:#333;background:var(--grn-l);border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:14px 18px}
+.rbox h3{font-size:.82rem;font-weight:700;color:var(--ink);margin:14px 0 7px;border-bottom:1px solid rgba(0,0,0,.07);padding-bottom:3px}
+.rbox h3:first-child{margin-top:0}
+.rbox table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.8rem}
+.rbox th{background:rgba(0,0,0,.07);padding:7px 10px;text-align:left;font-weight:600}
+.rbox td{padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.07);vertical-align:top}
+.rbox ul{padding-left:16px;margin:5px 0}.rbox li{margin-bottom:3px}
+.rbox strong{color:var(--ink)}.rbox blockquote{border-left:3px solid var(--green);padding:4px 10px;margin:5px 0;background:rgba(0,0,0,.03);border-radius:0 6px 6px 0;font-style:italic}
+/* Q cards */
+.qcard{border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.qhdr{display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--paper);cursor:pointer;transition:.15s}
+.qhdr:hover{background:var(--cream)}
+.qnum{width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qq{flex:1;font-weight:600;font-size:.88rem;line-height:1.5;color:var(--ink)}
+.qband{background:var(--ink);color:#FCD34D;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;padding:3px 11px;border-radius:99px;flex-shrink:0}
+.qchev{color:var(--grey);font-size:11px;flex-shrink:0}
+.qbody{display:none;padding:16px 18px;border-top:1px solid var(--border)}
+.qbody.open{display:block}
+.qlbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);margin-bottom:6px;margin-top:12px}
+.qlbl:first-child{margin-top:0}
+.qans{background:var(--paper);border-radius:8px;padding:11px 14px;font-size:.87rem;line-height:1.75;font-style:italic;color:#444;border-left:3px solid var(--border)}
+.qcorr{background:var(--grn-l);border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:11px 14px;font-size:.87rem;line-height:1.75}
+.qsugg{background:var(--blue-l);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:11px 14px;font-size:.87rem;line-height:1.75}
+.qscores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.qsc{background:var(--paper);border-radius:8px;padding:10px 8px;text-align:center;border:1px solid var(--border)}
+.qsv{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700}
+.qsk{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin-top:2px}
+.qscmt{font-size:.73rem;color:var(--grey);margin-top:4px;line-height:1.5;text-align:left}
+/* Empty */
+.empty{text-align:center;padding:80px 20px;color:var(--grey)}
+.empty-icon{font-size:2.5rem;margin-bottom:12px}
+@media(max-width:600px){
+  .htop{grid-template-columns:1fr}.crit-row{grid-template-columns:repeat(2,1fr)}
+  .mc{padding:10px 16px}.qscores{grid-template-columns:repeat(2,1fr)}.page-wrap{padding:16px 14px 60px}
+}
+@media print{.topbar,.btn{display:none!important}.page-wrap{padding:0;max-width:100%}.section{break-inside:avoid;box-shadow:none}body{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">Fluen<em>talk</em> <span style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:rgba(255,255,255,.3);font-weight:400;margin-left:6px;letter-spacing:.08em;text-transform:uppercase">Session Report</span></div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost btn-sm" onclick="history.back()">← Back</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
+  </div>
+</div>
+<div class="page-wrap" id="root">
+  <div class="empty"><div class="empty-icon">⏳</div><div>Loading…</div></div>
+</div>
+<script>
+// ── HELPERS ──────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtDT(s){
+  if(!s)return'—';
+  try{const d=new Date(s);if(isNaN(d))return s;
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}
+  catch(e){return s;}
+}
+function dur(a,b,m){
+  if(m)return parseInt(m)+' min';
+  try{const ms=new Date(b)-new Date(a);if(isNaN(ms)||ms<=0)return'—';const mn=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);return mn>0?mn+'m '+s+'s':s+'s';}catch(e){return'—';}
+}
+function bc(v){const n=parseFloat(v);if(!n)return'var(--grey)';return n>=7?'var(--green)':n>=5.5?'var(--gold)':'var(--red)';}
+function bp(v){const n=parseFloat(v);return n>0?Math.round(n/9*100)+'%':'0%';}
+function avgB(res){const b=res.map(r=>parseFloat(r.overall)||0).filter(v=>v>0);return b.length?Math.round(b.reduce((a,v)=>a+v,0)/b.length*2)/2:0;}
+function avgC(res,k){const b=res.map(r=>(r.scores&&(r.scores[k]?.score||r.scores[k]))||0).filter(v=>v>0);return b.length?Math.round(b.reduce((a,v)=>a+v,0)/b.length*2)/2:0;}
+function togQ(h){const b=h.nextElementSibling;const o=b.classList.toggle('open');h.querySelector('.qchev').textContent=o?'▲':'▼';}
+function md(s){
+  if(!s)return'';
+  return s.replace(/^#{3}\s(.+)$/gm,'<h3>$1</h3>').replace(/^#{2}\s(.+)$/gm,'<h3>$1</h3>').replace(/^#{1}\s(.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^>\s(.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^-\s(.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>(?:\n<li>[\s\S]*?<\/li>)*)/g,'<ul>$1</ul>')
+    .replace(/((?:^\|.+\|\n?)+)/gm,tb=>{
+      const rows=tb.trim().split('\n').filter(r=>r.trim()&&!r.match(/^\|[-\s|:]+\|$/));
+      if(!rows.length)return tb;
+      const[head,...body]=rows;
+      const ths=head.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
+      const brs=body.map(r=>{const cs=r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');return`<tr>${cs}</tr>`;}).join('');
+      return`<table><thead><tr>${ths}</tr></thead><tbody>${brs}</tbody></table>`;
+    }).replace(/---+/g,'<hr>').replace(/\n{2,}/g,'</p><p>');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+window.onload = () => {
+  const p = new URLSearchParams(location.search);
+  const rowParam = p.get('row');
+  if (!rowParam) {
+    document.getElementById('root').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>No data. Please open from dashboard.</div></div>';
+    return;
+  }
+  try { render(JSON.parse(decodeURIComponent(rowParam))); }
+  catch(e) { document.getElementById('root').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div>Parse error: ${e.message}</div></div>`; }
+};
+
+function render(r) {
+  let results = [];  try { results = JSON.parse(r.resultsJSON||'[]'); } catch(_){}
+  let questions = []; try { questions = JSON.parse(r.questionsJSON||'[]'); } catch(_){}
+
+  const overall = avgB(results);
+  const isCEFR  = String(r.mode||'').toLowerCase().includes('cefr');
+  const crits   = isCEFR
+    ? [['fluency','Fluency'],['vocabulary','Vocabulary'],['grammar','Grammar'],['coherence','Coherence']]
+    : [['fluency','Fluency & Coh.'],['lexical','Lexical Res.'],['grammar','Gram. Range'],['pronunciation','Pronunciation']];
+  const qCount  = questions.length || results.length;
+  const duration = dur(r.startingTime, r.submittingTime, r.durationMin);
+
+  // ── CRITERIA BARS ──
+  const critBars = crits.map(([k,l])=>{
+    const v = avgC(results,k);
+    return `<div class="cc"><div class="ck">${l}</div>
+      <div class="cv" style="color:${bc(v)}">${v||'—'}</div>
+      <div class="cbar"><div class="cfill" style="width:${bp(v)};background:${bc(v)}"></div></div></div>`;
+  }).join('');
+
+  // ── META CELLS ──
+  const metas = [
+    ['Student ID', r.accessCode||'—'],
+    ['Class',      r.class||'—'],
+    ['Mode',       r.mode||'—'],
+    ['Start',      fmtDT(r.startingTime)],
+    ['Finish',     fmtDT(r.submittingTime)],
+    ['Duration',   duration],
+    ['Questions',  String(qCount)],
+  ];
+
+  // ── AI REPORT ──
+  const reportSec = r.reportText ? `
+  <div class="section">
+    <div class="shd"><span class="si">📊</span><span class="st">AI Feedback Report</span></div>
+    <div class="sb"><div class="rbox">${md(r.reportText)}</div></div>
+  </div>` : '';
+
+  // ── PER-Q ──
+  const qaHTML = results.length ? results.map((res,i)=>{
+    const q    = res.question || questions[i] || `Question ${i+1}`;
+    const a    = res.studentAnswer || res.a || '';
+    const band = res.overall || '';
+    const corr = res.corrected || '';
+    const sugg = res.suggestion || '';
+    const sc   = res.scores || {};
+
+    // Per-Q score cells
+    const scCells = Object.keys(sc).length ? crits.map(([k,l])=>{
+      const sv  = sc[k]?.score !== undefined ? sc[k].score : (typeof sc[k]==='number' ? sc[k] : '');
+      const cmt = sc[k]?.comment || '';
+      return `<div class="qsc">
+        <div class="qsv" style="color:${bc(sv)}">${sv!==''?sv:'—'}</div>
+        <div class="qsk">${l.split(' ')[0].replace('.','')}</div>
+        ${cmt?`<div class="qscmt">${esc(cmt)}</div>`:''}
+      </div>`;
+    }).join('') : '';
+
+    return `<div class="qcard">
+      <div class="qhdr" onclick="togQ(this)">
+        <div class="qnum">${i+1}</div>
+        <div class="qq">${esc(q)}</div>
+        ${band?`<div class="qband">Band ${band}</div>`:''}
+        <div class="qchev">▼</div>
+      </div>
+      <div class="qbody">
+        <div class="qlbl">🎙 Your Answer</div>
+        <div class="qans">${esc(a)||'<em style="color:var(--grey)">[No answer recorded]</em>'}</div>
+        ${corr?`<div class="qlbl">✅ Corrected Version</div><div class="qcorr">${esc(corr)}</div>`:''}
+        ${sugg?`<div class="qlbl">💡 Suggestion</div><div class="qsugg">${esc(sugg)}</div>`:''}
+        ${scCells?`<div class="qlbl">📈 Scores</div><div class="qscores">${scCells}</div>`:''}
+      </div>
+    </div>`;
+  }).join('')
+  : '<div style="text-align:center;padding:30px;color:var(--grey);font-size:13px">No per-question data.</div>';
+
+  document.title = `Speaking Report — ${r.studentName||'Student'}`;
+  document.getElementById('root').innerHTML = `
+  <div class="hcard">
+    <div class="htop">
+      <div>
+        <div class="hlabel">Speaking Session Report</div>
+        <div class="hname">${esc(r.studentName||'Student')}</div>
+        <div class="hbadges">
+          <span class="hbadge">🔑 <strong>${esc(r.accessCode||'—')}</strong></span>
+          <span class="hbadge">🎓 <strong>${esc(r.class||'—')}</strong></span>
+          <span class="hbadge">🎙 <strong>${esc(r.mode||'—')}</strong></span>
+        </div>
+      </div>
+      <div class="bband">
+        <div class="bnum" style="color:${bc(overall)}">${overall||'—'}</div>
+        <div class="blbl">${isCEFR?'CEFR Level':'Overall Band'}</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      ${metas.map(([k,v])=>`<div class="mc"><div class="mk">${k}</div><div class="mv">${esc(v)}</div></div>`).join('')}
+    </div>
+    <div class="crit-row">${critBars}</div>
+  </div>
+
+  ${reportSec}
+
+  <div class="section">
+    <div class="shd"><span class="si">🎙</span><span class="st">Per-Question Detail</span><span class="scnt">${results.length} câu</span></div>
+    <div class="sb">${qaHTML}</div>
+  </div>
+
+  <div style="text-align:center;padding:28px 0 0;font-size:.75rem;color:var(--grey)">
+    Developed by Dương Thanh Tú — DNU English Faculty
+  </div>`;
+}
+</script>
+</body>
+</html>
