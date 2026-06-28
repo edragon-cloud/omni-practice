@@ -581,8 +581,7 @@ tr:hover td{background:var(--grey-100)}
       <div style="display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:20px">
         <button class="vocab-subtab active" id="vstab-assignments" onclick="showVocabSubtab('assignments')" style="flex:1;padding:8px;border:none;background:#fff;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;box-shadow:var(--shadow-sm)">📚 Assignments</button>
 
-        <button class="vocab-subtab" id="vstab-inclass" onclick="showVocabSubtab('inclass')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">🔄 In-Class</button>
-        <button class="vocab-subtab" id="vstab-inclass-log" onclick="showVocabSubtab('inclass-log');renderInclassSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Review Log</button>
+        <button class="vocab-subtab" id="vstab-inclass-log" onclick="showVocabSubtab('inclass-log');renderInclassSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">🔄 In-class Log</button>
         <button class="vocab-subtab" id="vstab-freeread" onclick="showVocabSubtab('freeread');loadFreeReadResults()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📖 Free Reading</button>
       </div>
 
@@ -593,30 +592,26 @@ tr:hover td{background:var(--grey-100)}
         </div>
       </div>
 
-      <!-- In-Class Submission Log -->
+      <!-- In-Class Submission Log (gộp scheduling + results) -->
       <div id="vsec-inclass-log" style="display:none">
         <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <div>
-            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📋 In-Class Review Log</div>
-            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Kết quả khảo bài tại lớp — mỗi buổi 1 bảng, bấm tên buổi để thu gọn/mở</div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">🔄 In-class Log</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Lên lịch + kết quả khảo bài tại lớp — mỗi buổi 1 bảng, bấm tên buổi để thu gọn/mở</div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="renderInclassSubmissionLog(true)">🔄 Refresh</button>
-        </div>
-        <div id="inclass-log-cards"><div style="text-align:center;padding:40px;color:var(--grey-400)">Click "Review Log" to load.</div></div>
-      </div>
-
-      <!-- In-Class Review sub-section -->
-      <div id="vsec-inclass" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-          <div>
-            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">🔄 In-Class Review Sessions</div>
-            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Khảo bài tại lớp — 3 phút đọc bài, sau đó làm quiz. Chỉ 1 lần làm.</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="openInClassReviewForm()">+ Schedule Review</button>
+            <button class="btn btn-secondary btn-sm" onclick="renderInclassSubmissionLog(true)">🔄 Refresh</button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openInClassReviewForm()">+ Schedule Review</button>
         </div>
-        <div id="inclass-review-list">
-          <div style="text-align:center;padding:60px;color:var(--grey-400)">Loading…</div>
+        <!-- Filter toolbar (giống Listening) -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+          <select id="rev-class-filter" class="form-select" style="width:150px;font-size:13px" onchange="renderInclassSubmissionLog()"><option value="">Tất cả lớp</option></select>
+          <input type="text" id="rev-search" class="form-input" placeholder="🔍 Tên / MSSV..." style="max-width:240px;font-size:13px" oninput="renderInclassSubmissionLog()">
+          <button class="btn btn-outline btn-sm" onclick="clearRevFilters()">Xóa lọc</button>
+          <span id="rev-result-count" style="font-size:13px;color:var(--grey-600)"></span>
         </div>
+        <div id="inclass-log-cards"><div style="text-align:center;padding:40px;color:var(--grey-400)">Click "In-class Log" to load.</div></div>
       </div>
 
       <!-- Free Reading sub-section -->
@@ -1625,7 +1620,7 @@ async function archiveStudent(studentId, archived) {
       (_ovAllStudents||[]).forEach(s => { if (String(s.studentId)===String(studentId)) s.archived = archived?'Y':''; });
       (App.teacherData.students||[]).forEach(s => { if (String(s.StudentID||s.studentId)===String(studentId)) s.Archived = archived?'Y':''; });
       filterOverviewTable((document.getElementById('ov-search')||{}).value || '');
-      renderOverviewTab();
+      renderOverviewTab(); try{renderStudentsActivationTab();}catch(e){}
       toast(archived ? '📦 Đã lưu trữ' : '↩ Đã khôi phục', 'success');
     } else toast(res.error || 'Lỗi', 'error');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
@@ -1648,7 +1643,7 @@ async function archiveExpired() {
         (App.teacherData.students||[]).forEach(s => { if (String(s.StudentID||s.studentId)===String(id)) s.Archived='Y'; });
       });
       filterOverviewTable((document.getElementById('ov-search')||{}).value || '');
-      renderOverviewTab();
+      renderOverviewTab(); try{renderStudentsActivationTab();}catch(e){}
       toast('📦 Đã lưu trữ ' + (res.updated||ids.length) + ' SV hết hạn', 'success', 4000);
     } else toast(res.error || 'Lỗi', 'error');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
@@ -1658,7 +1653,7 @@ async function archiveExpired() {
 // STUDENTS ACTIVATION TAB
 // ═══════════════════════════════════════════════════
 function renderStudentsActivationTab() {
-  const students = (App.teacherData.students || []).map(norm);
+  const students = (App.teacherData.students || []).map(norm).filter(s => s.archived !== 'Y');
   const pending = students.filter(s => s.status === 'Pending');
 
   const alertEl = document.getElementById('pending-alert');
@@ -1908,7 +1903,7 @@ function renderVocabClassTables() {
   (data.submissions||[]).forEach(s => { const sid=String(s.StudentID); if(!submMap[sid])submMap[sid]={}; const aid=s.AssignmentID; if(!submMap[sid][aid])submMap[sid][aid]=[]; submMap[sid][aid].push(s); });
 
   wrap.innerHTML = (data.assignments||[]).map((asn) => {
-    let students = (data.students || []).map(norm);
+    let students = (data.students || []).map(norm).filter(s => s.archived !== 'Y');
     if (filterClass) students = students.filter(s => s.class === filterClass);
     if (_vocabSortField) {
       students = students.slice().sort((a, b) => {
@@ -2033,7 +2028,7 @@ async function teacherSetReviewChecked(studentId, reviewId, checked, checkbox) {
   }
 }
 function showVocabSubtab(tab) {
-  ['assignments','inclass','inclass-log','freeread'].forEach(function(t) {
+  ['assignments','inclass-log','freeread'].forEach(function(t) {
     var sec = document.getElementById('vsec-' + t);
     var btn = document.getElementById('vstab-' + t);
     if (sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -2046,10 +2041,9 @@ function showVocabSubtab(tab) {
   var actionBtn = document.getElementById('btn-vocab-new-action');
   if (actionBtn) {
     if (tab === 'assignments') { actionBtn.textContent = '+ New Assignment'; actionBtn.onclick = function(){ openVocabAssignmentForm(); }; actionBtn.style.display='inline-flex'; }
-    else if (tab === 'inclass') { actionBtn.textContent = '+ Schedule Review'; actionBtn.onclick = function(){ openInClassReviewForm(); }; actionBtn.style.display='inline-flex'; }
+    else if (tab === 'inclass-log') { actionBtn.textContent = '+ Schedule Review'; actionBtn.onclick = function(){ openInClassReviewForm(); }; actionBtn.style.display='inline-flex'; }
     else { actionBtn.style.display = 'none'; }
   }
-  if (tab === 'inclass')   loadInClassReviewList();
   if (tab === 'freeread')  loadFreeReadResults();
 }
 
@@ -2279,36 +2273,91 @@ function _sortRevLog(field) {
   _renderRevLogTable(_revLogRows);
 }
 
+// Set of archived student IDs — excluded from all results/lists
+function _archivedIdSet() {
+  var set = {};
+  (App.teacherData.students||[]).forEach(function(s){
+    if (String(s.Archived||s.archived||'') === 'Y') set[String(s.StudentID||s.studentId)] = true;
+  });
+  return set;
+}
+
+function clearRevFilters() {
+  var c = document.getElementById('rev-class-filter'); if (c) c.value = '';
+  var s = document.getElementById('rev-search'); if (s) s.value = '';
+  renderInclassSubmissionLog();
+}
+
 function _renderRevLogTable(rows) {
   const wrap = document.getElementById('inclass-log-cards');
   if (!wrap) return;
   const sessions = (App.teacherData.reviewSessions||[]);
+  const archived = _archivedIdSet();
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
+  const now = new Date();
 
-  // Group submissions by ReviewID
+  // Filters
+  const fClass = (document.getElementById('rev-class-filter')||{}).value || '';
+  const fSearch = ((document.getElementById('rev-search')||{}).value || '').toLowerCase().trim();
+
+  // Populate class dropdown (once, from sessions' assigned classes + sub classes)
+  const classSel = document.getElementById('rev-class-filter');
+  if (classSel) {
+    const classes = new Set();
+    sessions.forEach(s => String(s.AssignedClasses||'').split(',').forEach(c => { c=c.trim(); if(c && c.toUpperCase()!=='ALL') classes.add(c); }));
+    (rows||[]).forEach(r => { if(r.Class) classes.add(String(r.Class)); });
+    const cur = classSel.value;
+    classSel.innerHTML = '<option value="">Tất cả lớp</option>' + [...classes].sort().map(c => `<option value="${c}">${c}</option>`).join('');
+    classSel.value = cur;
+  }
+
+  // Group submissions by ReviewID (exclude archived students)
   const byReview = {};
-  (rows||[]).forEach(r => { const rid=String(r.ReviewID||''); if(!byReview[rid])byReview[rid]=[]; byReview[rid].push(r); });
+  (rows||[]).forEach(r => {
+    if (archived[String(r.StudentID)]) return;
+    const rid=String(r.ReviewID||''); if(!byReview[rid])byReview[rid]=[]; byReview[rid].push(r);
+  });
 
-  // Build a card per session (sessions newest first); include any orphan review IDs too
   let order = sessions.map(s => String(s.ID));
   Object.keys(byReview).forEach(rid => { if(order.indexOf(rid)===-1) order.push(rid); });
   order = order.reverse();
 
-  if (!order.length) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--grey-400)">No in-class reviews yet.</div>'; return; }
+  if (!order.length) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--grey-400)">Chưa có buổi khảo nào. Bấm <strong>+ Schedule Review</strong> để tạo.</div>'; return; }
 
-  wrap.innerHTML = order.map(rid => {
+  let shownRows = 0;
+  const cardsHtml = order.map(rid => {
     const sess = sessions.find(s => String(s.ID)===rid);
     const title = sess ? (sess.Title||rid) : rid;
+    const sessClasses = sess ? String(sess.AssignedClasses||'') : '';
+    // Class filter: skip session if it doesn't involve the selected class (unless ALL)
+    if (fClass && sess) {
+      const isAll = sessClasses.split(',').map(c=>c.trim().toUpperCase()).indexOf('ALL') !== -1;
+      const inHeader = sessClasses.split(',').map(c=>c.trim()).indexOf(fClass) !== -1;
+      const inSubs = (byReview[rid]||[]).some(r => String(r.Class)===fClass);
+      if (!isAll && !inHeader && !inSubs) return '';
+    }
+
     let subs = (byReview[rid]||[]).slice();
+    if (fClass) subs = subs.filter(r => String(r.Class)===fClass);
+    if (fSearch) subs = subs.filter(r => (String(r.FullName||'')+' '+String(r.StudentID||'')).toLowerCase().includes(fSearch));
+    if ((fClass||fSearch) && !subs.length) return '';   // hide empty sessions when filtering
+
     if (_revLogSort.field) {
       subs.sort((a,b) => {
         const va=String(a[_revLogSort.field]||'').toLowerCase(), vb=String(b[_revLogSort.field]||'').toLowerCase();
         return _revLogSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
       });
     }
+    shownRows += subs.length;
     const collapsed = !!_revCollapsed[rid];
     const ridSafe = rid.replace(/'/g,"\\'");
-    const startInfo = sess && sess.StartTime ? ('Start: ' + fmtS(sess.StartTime)) : '';
+    const titleSafe = String(title).replace(/'/g,"\\'");
+    const startTime = sess && sess.StartTime ? new Date(sess.StartTime) : null;
+    const isLive = startTime && now >= startTime && !(String(sess.Closed||'')==='Y');
+    const badge = (String((sess||{}).Closed||'')==='Y')
+      ? '<span class="badge badge-grey">🔒 Closed</span>'
+      : isLive ? '<span class="badge badge-red">🔴 Live</span>' : '<span class="badge badge-gold">⏰ Scheduled</span>';
+    const startInfo = startTime ? ('Start: ' + fmtS(sess.StartTime)) : '';
     const durInfo   = sess && sess.DurationMinutes ? (' · ' + sess.DurationMinutes + ' phút') : '';
 
     const body = subs.length ? subs.map(r => {
@@ -2334,11 +2383,17 @@ function _renderRevLogTable(rows) {
     }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:20px">Chưa có sinh viên nộp.</td></tr>';
 
     return `<div class="card" style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleRevCard('${ridSafe}')">
-        <span id="rvcaret-${rid}" style="font-size:14px;color:var(--grey-500)">${collapsed?'▸':'▾'}</span>
-        <div>
-          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">🔄 ${title}</div>
-          <div style="font-size:12px;color:var(--grey-600);margin-top:2px">${startInfo}${durInfo} · ${subs.length} nộp</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="toggleRevCard('${ridSafe}')">
+          <span id="rvcaret-${rid}" style="font-size:14px;color:var(--grey-500)">${collapsed?'▸':'▾'}</span>
+          <div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">🔄 ${title} ${badge}</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">${startInfo}${durInfo} · ${subs.length} nộp</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openInClassReviewForm('${ridSafe}')">✏️ Edit</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();closeReviewAbsent('${ridSafe}','${titleSafe}')" style="background:var(--gold,#B45309);color:#fff;border:none" title="Ghi 0 cho SV chưa nộp; phạt từ sai của lớp">🔒 Đóng &amp; phạt vắng</button>
         </div>
       </div>
       <div id="rvbody-${rid}" style="display:${collapsed?'none':'block'};margin-top:12px">
@@ -2349,7 +2404,7 @@ function _renderRevLogTable(rows) {
             <th onclick="_sortRevLog('Class')" style="cursor:pointer">Class ↕</th>
             <th>Starting Time</th>
             <th>Finishing Time</th>
-            <th style="text-align:center">Result</th>
+            <th style="text-align:center" title="Số từ đúng / tổng">Result</th>
             <th>Punish (từ sai)</th>
             <th style="text-align:center" title="Tick khi SV đã thuộc các từ sai">Check</th>
           </tr></thead>
@@ -2358,6 +2413,10 @@ function _renderRevLogTable(rows) {
       </div>
     </div>`;
   }).join('');
+
+  wrap.innerHTML = cardsHtml || '<div style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả khớp bộ lọc.</div>';
+  const cnt = document.getElementById('rev-result-count');
+  if (cnt) cnt.textContent = (fClass||fSearch) ? (shownRows + ' kết quả') : '';
 }
 
 async function renderInclassSubmissionLog(force) {
@@ -2398,6 +2457,7 @@ function _renderFreeReadAgg() {
   if (!tbody) return;
   var filterClass = (document.getElementById('vocab-class-filter')||{}).value || '';
   var rows = (App.teacherData.frResults||[]).slice();
+  { var _arc=_archivedIdSet(); rows = rows.filter(function(r){ return !_arc[String(r.StudentID||'')]; }); }
   if (filterClass) rows = rows.filter(r => String(r.Class||'') === filterClass);
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--grey-400)">No free reading sessions yet.</td></tr>'; return; }
 
@@ -2975,6 +3035,7 @@ function _writeRenderTable(rows) {
   const tbody = document.getElementById('write-results-tbody');
   if (!tbody) return;
   rows = rows || [];
+  { var _arc=_archivedIdSet(); rows = rows.filter(function(r){ return !_arc[String(r.StudentID||r.studentId||r.MSSV||'')]; }); }
 
   // Populate filter dropdowns once
   var clsSel=document.getElementById('w-f-class');
@@ -3124,6 +3185,7 @@ function lisSort(col) {
 function renderListenTable(rows) {
   var tbody = document.getElementById('listen-results-tbody');
   if (!tbody) return;
+  { var _arc=_archivedIdSet(); rows = (rows||[]).filter(function(r){ return !_arc[String(r._sid||r.StudentID||r.studentId||r.MSSV||'')]; }); }
   var clsSel = document.getElementById('lis-f-class');
   var bookSel = document.getElementById('lis-f-book');
   if (clsSel && clsSel.options.length <= 1 && rows && rows.length) {
@@ -3350,6 +3412,7 @@ async function loadSpeakResults() {
     if (results.length) avgBand = Math.round(results.reduce((a,x) => a+(parseFloat(x.overall)||0),0)/results.length*2)/2;
     return Object.assign({}, r, { _cls: info.cls, _sid: info.sid, _results: results, _questions: questions, _avgBand: avgBand });
   });
+  { var _arc=_archivedIdSet(); _spkRows = _spkRows.filter(function(r){ return !_arc[String(r._sid||'')]; }); }
 
   // Raw table
   if (tbody) {
