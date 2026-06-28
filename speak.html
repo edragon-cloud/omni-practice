@@ -263,6 +263,22 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
 <body>
 <div id="toast-wrap"></div>
 
+<!-- GEMINI KEY MODAL (preflight / out-of-quota) -->
+<div id="gkey-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,15,20,.66);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px">
+  <div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.4)">
+    <div style="font-size:32px;margin-bottom:6px">🔑</div>
+    <div style="font-family:var(--font-display,serif);font-size:1.3rem;font-weight:800;margin-bottom:6px" id="gkey-title">Cần Gemini API key</div>
+    <div id="gkey-msg" style="font-size:13.5px;color:var(--g600,#555);line-height:1.55;margin-bottom:16px">Nhập Gemini API key để bắt đầu luyện nói. Key miễn phí lấy tại Google AI Studio.</div>
+    <input id="gkey-input" type="password" placeholder="AIza…" style="width:100%;padding:11px 13px;border:1.5px solid var(--g200,#ddd);border-radius:10px;font-size:14px;outline:none;box-sizing:border-box" onkeydown="if(event.key==='Enter')gkeySubmit()">
+    <div id="gkey-status" style="font-size:12.5px;margin-top:8px;min-height:16px"></div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button id="gkey-save" class="btn btn-purple" style="flex:1" onclick="gkeySubmit()">Kiểm tra &amp; bắt đầu</button>
+      <button class="btn btn-ghost" onclick="gkeyCancel()" style="border:1.5px solid var(--g200,#ddd)">Huỷ</button>
+    </div>
+    <a href="https://aistudio.google.com/apikey" target="_blank" style="display:block;margin-top:12px;font-size:12px;color:#7C3AED;text-decoration:none">→ Lấy key miễn phí tại Google AI Studio</a>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════
      HOME
 ══════════════════════════════════════════════ -->
@@ -601,10 +617,10 @@ window._Modality = Modality;
 </script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyNN9nNKUE9NsS0EN6o6I0y8-66da9EKU96QeDdUaAMMWnYrrwm7nG5rgkcaHBRtyJkYA/exec';
 // Alias models — Google tự cập nhật version mới nhất, không cần đổi code
 const GM_PRIMARY = 'gemini-2.5-flash';      // always latest Gemini 2.5 Flash
-const GM_FALLBACK= 'gemini-2.5-flash-lite-001'; // lite fallback khi hết quota
+const GM_FALLBACK= 'gemini-2.5-flash-lite'; // lite fallback khi hết quota
 const GM_REST    = GM_PRIMARY;
 const GM_LIVE  = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
@@ -650,6 +666,76 @@ function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v
 function toggleKV(){const i=document.getElementById('key-inp');i.type=i.type==='password'?'text':'password';}
 function kSt(ok){const e=document.getElementById('key-st');e.textContent=ok?'✓ Key OK':'⚠ Chưa có';e.className='key-st '+(ok?'key-ok':'key-bad');}
 function needKey(){if(!S.gkey){toast('Vui lòng nhập Gemini API key','error',4000);document.getElementById('key-inp').focus();return false;}return true;}
+
+// ── PRE-FLIGHT: kiểm tra key + quota TRƯỚC khi cho SV tập nói ──────────
+// Tiny probe call (1 token, model lite) → tốn cực ít quota. Trả {ok} | {ok:false,status}
+async function geminiTestKey(key){
+  try{
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key='+key,
+      {method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({contents:[{parts:[{text:'hi'}]}],generationConfig:{maxOutputTokens:1}})});
+    if(r.ok) return {ok:true};
+    let status=r.status, raw=''; try{ const j=await r.json(); raw=j.error?.message||''; }catch(_){}
+    return {ok:false,status:status,raw:raw};
+  }catch(e){ return {ok:false,status:0,raw:e.message}; }
+}
+
+let _gkeyResolve=null;
+function gkeyShow(title,msg){
+  document.getElementById('gkey-title').textContent=title||'Cần Gemini API key';
+  document.getElementById('gkey-msg').textContent=msg||'Nhập Gemini API key để bắt đầu.';
+  document.getElementById('gkey-input').value='';
+  document.getElementById('gkey-status').textContent='';
+  document.getElementById('gkey-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('gkey-input').focus(),60);
+}
+function gkeyCancel(){
+  document.getElementById('gkey-modal').style.display='none';
+  if(_gkeyResolve){ const r=_gkeyResolve; _gkeyResolve=null; r(false); }
+}
+async function gkeySubmit(){
+  const v=document.getElementById('gkey-input').value.trim();
+  const st=document.getElementById('gkey-status');
+  if(!v.startsWith('AIza')){ st.style.color='#DC2626'; st.textContent='Key phải bắt đầu bằng "AIza".'; return; }
+  st.style.color='var(--g600,#666)'; st.textContent='⏳ Đang kiểm tra key…';
+  const btn=document.getElementById('gkey-save'); btn.disabled=true;
+  const res=await geminiTestKey(v);
+  btn.disabled=false;
+  if(res.ok){
+    S.gkey=v; localStorage.setItem('fl_key',v);
+    try{ document.getElementById('key-inp').value=v; kSt(true); }catch(_){}
+    st.style.color='#059669'; st.textContent='✓ Key hợp lệ, còn quota. Bắt đầu được!';
+    setTimeout(()=>{
+      document.getElementById('gkey-modal').style.display='none';
+      if(_gkeyResolve){ const r=_gkeyResolve; _gkeyResolve=null; r(true); }
+    },550);
+  } else if(res.status===429){
+    st.style.color='#DC2626'; st.textContent='Key này đã HẾT QUOTA. Hãy dùng key khác.';
+  } else if(res.status===400||res.status===403){
+    st.style.color='#DC2626'; st.textContent='Key không hợp lệ hoặc chưa bật Gemini API.';
+  } else {
+    st.style.color='#DC2626'; st.textContent='Không kiểm tra được key (lỗi '+(res.status||'mạng')+'). Thử lại.';
+  }
+}
+// Promise: hiện modal, resolve(true) khi nhập được key hợp lệ, resolve(false) nếu huỷ
+function gkeyPrompt(title,msg){ return new Promise(r=>{ _gkeyResolve=r; gkeyShow(title,msg); }); }
+
+// Đảm bảo có key dùng được TRƯỚC khi tập nói. Trả true nếu sẵn sàng.
+async function geminiPreflight(){
+  if(!S.gkey){
+    return await gkeyPrompt('Cần Gemini API key','Nhập Gemini API key để bắt đầu luyện nói. Key miễn phí tại Google AI Studio.');
+  }
+  const res=await geminiTestKey(S.gkey);
+  if(res.ok) return true;
+  if(res.status===429){
+    return await gkeyPrompt('Key đã hết quota','Key hiện tại đã hết lượt dùng hôm nay. Nhập key Gemini khác để bắt đầu — bạn sẽ không bị gián đoạn giữa chừng.');
+  }
+  if(res.status===400||res.status===403){
+    return await gkeyPrompt('Key không hợp lệ','Key Gemini hiện tại không dùng được. Nhập key khác để tiếp tục.');
+  }
+  // Lỗi mạng tạm thời — vẫn cho đi tiếp (không chặn oan)
+  return true;
+}
 
 // ── GAS JSONP ─────────────────────────────────────────────────────────
 function gasCall(action,payload){
@@ -866,22 +952,22 @@ function setSetupMode(m){
 }
 
 // ── START FROM SETUP ──────────────────────────────────────────────────
-function startFromSetup(){
-  if(!needKey())return;
+async function startFromSetup(){
   const qs=collectQs(S.mode);
   if(!qs.length){toast('Vui lòng nhập ít nhất 1 câu hỏi','error');return;}
   // Live mode for Part 1/2/3/full — pass questions to Gemini Live as examiner script
   if(_setupMode==='live'||S.mode==='ielts-live'){
     S.liveIeltQs=qs;
-    startLiveSession('ielts-live');
+    startLiveSession('ielts-live');   // tự preflight bên trong
     return;
   }
+  if(!(await geminiPreflight())) return;   // check key/quota TRƯỚC khi tập nói
   launch(S.mode,qs);
 }
-function startForecast(){
-  if(!needKey())return;
+async function startForecast(){
   const lines=document.getElementById('fc-bank').value.split('\n').map(l=>l.trim()).filter(Boolean);
   if(lines.length<2){toast('Nhập ít nhất 2 câu hỏi','error');return;}
+  if(!(await geminiPreflight())) return;
   const n=parseInt(document.getElementById('fc-count').value)||5;
   const picked=lines.sort(()=>Math.random()-.5).slice(0,n).map(q=>({question:q,keywords:[],partLabel:''}));
   S.mode='forecast';launch('forecast',picked);
@@ -1328,7 +1414,7 @@ BẮT ĐẦU: Chào thí sinh, xác nhận tên, giải thích format bài thi n
 
 // ── LIVE SESSION INIT ─────────────────────────────────────────────────
 async function startLiveSession(mode){
-  if(!needKey())return;
+  if(!(await geminiPreflight())) return;
   S.liveMode=mode; S.liveTranscript=[]; S.liveQCount=0;
   S.liveDurationSec=0; S.liveCefrLevel='A1';
   S.liveStartTime=new Date(); S.liveEndTime=null;
@@ -1437,15 +1523,15 @@ async function liveAskNext(){
     ? buildCEFRSystemPrompt(S.liveCefrLevel)
     : buildIELTSLivePrompt(S.liveIeltQs);
 
-  // Build context from conversation history
-  const histLines=S.liveTranscript.slice(-10)
+  // Build context from conversation history (giảm token: chỉ 6 lượt gần nhất)
+  const histLines=S.liveTranscript.slice(-6)
     .map(l=>(l.role==='ai'?'Examiner':'Student')+': '+l.text).join('\n');
   const userMsg=S.liveTranscript.length===0
     ? 'Please start the conversation with your opening question.'
     : `Conversation so far:\n${histLines}\n\nAsk your next question. Return ONLY the question text, nothing else.`;
 
   try{
-    const aiText=await gemFetch(systemPrompt, userMsg, 200);
+    const aiText=await gemFetch(systemPrompt, userMsg, 120);
     const q=(aiText||'').trim();
     if(!q)throw new Error('Empty response');
 
@@ -1466,6 +1552,15 @@ async function liveAskNext(){
     setMicBtn('idle');
   }catch(e){
     const msg = e.message || 'Lỗi không xác định';
+    const isQuota = /quota|429/i.test(msg);
+    if (isQuota) {
+      setLiveState('⏳ Key hết quota — nhập key mới để tiếp tục');
+      setMicBtn('ai-turn');
+      const ok = await gkeyPrompt('Key hết quota giữa chừng','Key Gemini đã hết lượt. Nhập key khác để tiếp tục buổi nói — tiến trình hiện tại vẫn được giữ.');
+      if (ok) { return liveAskNext(); }   // retry với key mới
+      setLiveState('⚠️ Đã dừng do hết quota'); setMicBtn('idle');
+      return;
+    }
     setLiveState('⚠️ ' + msg);
     setMicBtn('idle');
     toast(msg, 'error', 6000);
@@ -1508,9 +1603,17 @@ async function liveToggleMic(){
         // Next AI turn
         await liveAskNext();
       }catch(e){
-        setLiveState('Lỗi transcribe: '+e.message);
+        const msg=e.message||'Lỗi';
+        if(/quota|429/i.test(msg)){
+          setLiveState('⏳ Key hết quota — nhập key mới để tiếp tục');
+          const ok=await gkeyPrompt('Key hết quota giữa chừng','Key Gemini đã hết lượt khi nhận diện giọng nói. Nhập key khác rồi thu âm lại câu vừa rồi.');
+          setMicBtn('idle'); setLiveOrb('listening','🎤');
+          setLiveState(ok?'Key mới đã lưu — nhấn 🎤 nói lại câu vừa rồi':'Đã dừng do hết quota');
+          return;
+        }
+        setLiveState('Lỗi transcribe: '+msg);
         setMicBtn('idle');
-        toast('Lỗi xử lý audio: '+e.message,'error',5000);
+        toast('Lỗi xử lý audio: '+msg,'error',5000);
       }
     };
     _liveMr.start(100);
