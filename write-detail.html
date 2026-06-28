@@ -177,6 +177,7 @@ tr:hover td { background: var(--paper); }
 <div class="topbar">
   <div class="brand">Articu<em>Write</em> <span style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:rgba(255,255,255,.3);font-weight:400;margin-left:6px;letter-spacing:.08em;text-transform:uppercase">Reports</span></div>
   <div class="topbar-right">
+    <button class="btn btn-ghost" onclick="backToWrite()" id="btn-back-write">← Back to ArticuWrite</button>
     <button class="btn btn-ghost" onclick="goBack()" id="btn-back" style="display:none">← All Results</button>
     <button class="btn btn-ghost" onclick="exportHTML()" id="btn-export" style="display:none" title="Download as HTML → Upload to Google Drive → Google converts to Doc">📄 Export</button>
     <button class="btn btn-red" onclick="window.print()" id="btn-print" style="display:none">🖨 Print / Save PDF</button>
@@ -694,6 +695,10 @@ async function fetchOverallAndCorrected(entry) {
 
   // Re-render toàn bộ report với data mới
   document.getElementById('report-view').innerHTML = buildFullReport(S.currentEntry);
+}
+
+function backToWrite() {
+  window.location.href = './write.html';
 }
 
 function goBack() {
