@@ -733,74 +733,51 @@ tr:hover td{background:var(--grey-100)}
       <div class="section-header">
         <div><h1>Fluentalk — Speaking Results</h1><p>IELTS & CEFR speaking session data</p></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <!-- View toggle -->
-          <div style="display:flex;gap:0;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--grey-200)">
-            <button id="spk-view-matrix" onclick="spkSetView('matrix')"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--red);color:#fff;transition:.15s">
-              📊 Matrix
-            </button>
-            <button id="spk-view-progress" onclick="spkSetView('progress')"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--grey-100);color:var(--grey-600);transition:.15s;border-left:1.5px solid var(--grey-200)">
-              📈 Progress
-            </button>
-            <button id="spk-view-table" onclick="spkSetView('table')"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--grey-100);color:var(--grey-600);transition:.15s;border-left:1.5px solid var(--grey-200)">
-              📋 Raw Table
-            </button>
-          </div>
-          <select id="spk-matrix-class" onchange="spkSetView(_spkView)" style="padding:6px 11px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none">
-            <option value="">All Classes</option>
-          </select>
-          <input id="spk-matrix-search" oninput="spkSetView(_spkView)" type="text" placeholder="🔍 Search student…"
-            style="padding:6px 11px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:160px">
-          <button class="btn btn-secondary btn-sm" onclick="loadSpeakResults()">🔄 Refresh</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadSpeakResults(true)">🔄 Refresh</button>
         </div>
       </div>
 
-      <!-- Matrix view -->
-      <div id="spk-matrix-wrap">
-        <div id="spk-matrix-infobar" style="font-size:12px;color:var(--grey-600);margin-bottom:10px;min-height:18px"></div>
-        <div id="spk-matrix-container" style="overflow:auto;max-height:calc(100vh - 280px);border:1px solid var(--grey-200);border-radius:var(--radius-lg);background:#FAFAF8">
-          <div style="text-align:center;padding:60px;color:var(--grey-400)">Loading…</div>
-        </div>
-        <div id="spk-matrix-tooltip" style="
-          position:fixed;pointer-events:none;z-index:9999;
-          background:#1A1A16;color:#fff;border-radius:11px;padding:13px 15px;
-          font-family:var(--font-body);font-size:12px;line-height:1.65;
-          box-shadow:0 10px 36px rgba(0,0,0,.32);max-width:260px;word-break:break-word;
-          opacity:0;transition:opacity .15s;
-        "></div>
-        <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--grey-600);align-items:center;flex-wrap:wrap">
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#D1FAE5;border:1.5px solid #6EE7B7;display:inline-block"></span>Band ≥ 7</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#FFF3CD;border:1.5px solid #FFD97D;display:inline-block"></span>Band 5.5–6.9</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#FFE4E6;border:1.5px solid #FCA5A5;display:inline-block"></span>Band &lt; 5.5</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:4px;background:#F4F4F2;border:1.5px solid #E0E0DA;display:inline-block"></span>Chưa làm</span>
-          <span style="color:var(--grey-400)">· Hover để xem chi tiết từng câu</span>
-        </div>
+      <!-- Category tabs: IELTS vs CEFR -->
+      <div style="display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:16px;max-width:460px">
+        <button id="spkcat-ielts" onclick="spkSetCat('ielts')" style="flex:1;padding:8px;border:none;background:#fff;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;box-shadow:var(--shadow-sm)">🎤 IELTS Speaking &amp; Simulation</button>
+        <button id="spkcat-cefr" onclick="spkSetCat('cefr')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">💬 CEFR Chat</button>
       </div>
 
-      <!-- Progress Chart view -->
-      <div id="spk-progress-wrap" style="display:none">
-        <div id="spk-progress-infobar" style="font-size:12px;color:var(--grey-600);margin-bottom:12px;min-height:18px"></div>
-        <div id="spk-progress-container"></div>
-        <div id="spk-progress-tooltip" style="
-          position:fixed;pointer-events:none;z-index:9999;
-          background:#1A1A16;color:#fff;border-radius:11px;padding:12px 15px;
-          font-family:var(--font-body);font-size:12px;line-height:1.65;
-          box-shadow:0 10px 36px rgba(0,0,0,.32);max-width:240px;
-          opacity:0;transition:opacity .15s;
-        "></div>
+      <!-- Filter toolbar (giống Listening) -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <select id="spk-f-class" class="form-select" style="width:140px;font-size:13px" onchange="renderSpeakDetailed()"><option value="">Tất cả lớp</option></select>
+        <select id="spk-f-mode" class="form-select" style="width:150px;font-size:13px" onchange="renderSpeakDetailed()"><option value="">Tất cả mode</option></select>
+        <input type="text" id="spk-f-search" class="form-input" placeholder="🔍 Tên / MSSV..." style="max-width:220px;font-size:13px" oninput="renderSpeakDetailed()">
+        <button class="btn btn-outline btn-sm" onclick="clearSpkFilters()">Xóa lọc</button>
+        <span id="spk-result-count" style="font-size:13px;color:var(--grey-600)"></span>
       </div>
 
-      <!-- Raw table view -->
-      <div id="spk-table-wrap" style="display:none">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Date</th><th>Student</th><th>Mode</th><th>Questions</th><th>Avg Band</th></tr></thead>
-            <tbody id="speak-results-tbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
-          </table>
-        </div>
+      <!-- Detailed results table -->
+      <div class="table-wrap" style="overflow-x:auto">
+        <table style="min-width:1050px">
+          <thead><tr>
+            <th onclick="_spkSort('_sid')" style="cursor:pointer">Student ID ↕</th>
+            <th onclick="_spkSort('StudentName')" style="cursor:pointer">Full Name ↕</th>
+            <th onclick="_spkSort('_cls')" style="cursor:pointer">Class ↕</th>
+            <th onclick="_spkSort('Mode')" style="cursor:pointer">Mode ↕</th>
+            <th>Start</th>
+            <th>End</th>
+            <th style="text-align:center">Duration</th>
+            <th style="text-align:center" title="Số câu hỏi">Q</th>
+            <th style="text-align:center">Fluency</th>
+            <th style="text-align:center">Vocab</th>
+            <th style="text-align:center">Grammar</th>
+            <th style="text-align:center">Pron.</th>
+            <th onclick="_spkSort('_avgBand')" style="cursor:pointer;text-align:center">Overall ↕</th>
+          </tr></thead>
+          <tbody id="speak-results-tbody"><tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+        </table>
       </div>
+
+      <!-- Hidden legacy views (kept for compatibility, not shown) -->
+      <div id="spk-matrix-wrap" style="display:none"><div id="spk-matrix-infobar"></div><div id="spk-matrix-container"></div><div id="spk-matrix-tooltip" style="position:fixed;opacity:0;pointer-events:none"></div></div>
+      <div id="spk-progress-wrap" style="display:none"><div id="spk-progress-infobar"></div><div id="spk-progress-container"></div><div id="spk-progress-tooltip" style="position:fixed;opacity:0;pointer-events:none"></div></div>
+      <div id="spk-table-wrap" style="display:none"></div>
     </div>
 
     <!-- HOMEWORK TAB -->
@@ -1453,7 +1430,7 @@ function showTeacherTab(tab) {
   if (secEl) secEl.classList.add('active');
   if (tab === 'write')    loadWriteResults();
   if (tab === 'listen')   { loadListenResults(); }
-  if (tab === 'speak')    { loadSpeakResults(); setTimeout(()=>spkSetView(_spkView||'matrix'), 100); }
+  if (tab === 'speak')    { loadSpeakResults(true); }
   if (tab === 'settings') loadSettings();
   if (tab === 'homework') hwLoadPanel();
 }
@@ -3387,16 +3364,55 @@ window.closeLisLogModal = function() {
 };
 
 // ── SPEAK RESULTS ──
-async function loadSpeakResults() {
-  const tbody = document.getElementById('speak-results-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
-  const res = await api('teacher.getAllResults');
-  if (!res.success) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`;
-    return;
-  }
+var _spkCat = 'ielts';           // 'ielts' | 'cefr'
+var _spkSortF = '', _spkSortAsc = true;
+var _spkExpanded = {};
+var _spkLoaded = false;
 
-  // Enrich with class + studentId from students list
+function spkSetCat(cat){
+  _spkCat = cat;
+  document.getElementById('spkcat-ielts').style.background = cat==='ielts'?'#fff':'transparent';
+  document.getElementById('spkcat-ielts').style.color      = cat==='ielts'?'var(--red)':'var(--grey-600)';
+  document.getElementById('spkcat-ielts').style.boxShadow  = cat==='ielts'?'var(--shadow-sm)':'none';
+  document.getElementById('spkcat-cefr').style.background  = cat==='cefr'?'#fff':'transparent';
+  document.getElementById('spkcat-cefr').style.color       = cat==='cefr'?'var(--red)':'var(--grey-600)';
+  document.getElementById('spkcat-cefr').style.boxShadow   = cat==='cefr'?'var(--shadow-sm)':'none';
+  renderSpeakDetailed();
+}
+function clearSpkFilters(){
+  var c=document.getElementById('spk-f-class'); if(c)c.value='';
+  var m=document.getElementById('spk-f-mode'); if(m)m.value='';
+  var s=document.getElementById('spk-f-search'); if(s)s.value='';
+  renderSpeakDetailed();
+}
+function _spkSort(field){
+  if(_spkSortF===field)_spkSortAsc=!_spkSortAsc; else {_spkSortF=field;_spkSortAsc=true;}
+  renderSpeakDetailed();
+}
+function toggleSpkRow(i){ _spkExpanded[i]=!_spkExpanded[i]; renderSpeakDetailed(); }
+
+function _spkIsCefr(r){ return String(r.Mode||'').toLowerCase().indexOf('cefr')!==-1; }
+function _spkCrit(scores, keys){
+  // scores is an object {fluency:{score},...}; return the first matching key's score or null
+  if(!scores) return null;
+  for(var i=0;i<keys.length;i++){ var v=scores[keys[i]]; if(v!=null){ return typeof v==='object'?(v.score!=null?v.score:null):v; } }
+  return null;
+}
+// Session-average for a criterion across all questions
+function _spkAvgCrit(results, keys){
+  var vals=[];
+  (results||[]).forEach(function(x){ var s=_spkCrit(x.scores||x.score||x, keys); if(s!=null && !isNaN(parseFloat(s))) vals.push(parseFloat(s)); });
+  if(!vals.length) return null;
+  return Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length*2)/2;
+}
+
+async function loadSpeakResults(force){
+  const tbody = document.getElementById('speak-results-tbody');
+  if (tbody && !_spkLoaded) tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  if (_spkLoaded && !force) { renderSpeakDetailed(); return; }
+  const res = await api('teacher.getAllResults');
+  if (!res.success) { if (tbody) tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
+
   const studentMap = {};
   (App.teacherData.students||[]).forEach(s => {
     const name = String(s.FullName||s.fullName||'').trim().toLowerCase();
@@ -3413,20 +3429,102 @@ async function loadSpeakResults() {
     return Object.assign({}, r, { _cls: info.cls, _sid: info.sid, _results: results, _questions: questions, _avgBand: avgBand });
   });
   { var _arc=_archivedIdSet(); _spkRows = _spkRows.filter(function(r){ return !_arc[String(r._sid||'')]; }); }
+  _spkLoaded = true;
+  renderSpeakDetailed();
+}
 
-  // Raw table
-  if (tbody) {
-    tbody.innerHTML = _spkRows.map((r,i) => {
-      const band = r._avgBand || 0;
-      const bandCls = band>=7?'badge-green':band>=5.5?'badge-gold':'badge-red';
-      return `<tr><td>${_spkRows.length-i}</td><td style="font-size:12px">${fmtDateTime(new Date(r.StartingTime||0))}</td>
-        <td><strong>${r.StudentName||''}</strong></td><td>${r.Mode||''}</td>
-        <td style="text-align:center">${r._questions.length||'—'}</td>
-        <td><span class="badge ${bandCls}">Band ${band||'—'}</span></td></tr>`;
-    }).join('');
+function renderSpeakDetailed(){
+  const tbody = document.getElementById('speak-results-tbody');
+  if (!tbody) return;
+  const fmtT = v => { try{ if(!v) return '—'; const d=new Date(v); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); }catch(e){return '—';} };
+  const FL=['fluency'], VC=['lexical','vocabulary','vocab'], GR=['grammar'], PR=['pronunciation','coherence'];
+
+  // Category split
+  let rows = (_spkRows||[]).filter(r => _spkCat==='cefr' ? _spkIsCefr(r) : !_spkIsCefr(r));
+
+  // Populate mode dropdown (per category)
+  const modeSel = document.getElementById('spk-f-mode');
+  if (modeSel) {
+    const modes = [...new Set(rows.map(r => String(r.Mode||'').trim()).filter(Boolean))].sort();
+    const cur = modeSel.value;
+    modeSel.innerHTML = '<option value="">Tất cả mode</option>' + modes.map(m=>`<option value="${m}">${m}</option>`).join('');
+    modeSel.value = cur;
+  }
+  // Populate class dropdown
+  const clsSel = document.getElementById('spk-f-class');
+  if (clsSel && clsSel.options.length<=1) {
+    const cls = [...new Set((_spkRows||[]).map(r=>String(r._cls||'')).filter(c=>c&&c!=='—'))].sort();
+    clsSel.innerHTML = '<option value="">Tất cả lớp</option>' + cls.map(c=>`<option value="${c}">${c}</option>`).join('');
   }
 
-  if (_spkView === 'matrix') renderSpkMatrix();
+  // Filters
+  const fClass=(document.getElementById('spk-f-class')||{}).value||'';
+  const fMode=(document.getElementById('spk-f-mode')||{}).value||'';
+  const fSearch=((document.getElementById('spk-f-search')||{}).value||'').toLowerCase().trim();
+  if(fClass) rows=rows.filter(r=>String(r._cls)===fClass);
+  if(fMode) rows=rows.filter(r=>String(r.Mode||'').trim()===fMode);
+  if(fSearch) rows=rows.filter(r=>(String(r.StudentName||'')+' '+String(r._sid||'')).toLowerCase().includes(fSearch));
+
+  // Sort
+  if(_spkSortF){
+    rows.sort((a,b)=>{
+      let va=a[_spkSortF], vb=b[_spkSortF];
+      if(_spkSortF==='_avgBand'){ va=parseFloat(va)||0; vb=parseFloat(vb)||0; return _spkSortAsc?va-vb:vb-va; }
+      va=String(va||'').toLowerCase(); vb=String(vb||'').toLowerCase();
+      return _spkSortAsc?va.localeCompare(vb):vb.localeCompare(va);
+    });
+  }
+
+  const cnt=document.getElementById('spk-result-count');
+  if(cnt) cnt.textContent = rows.length + ' kết quả';
+
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
+
+  const bandColor = b => b>=7?'var(--green)':b>=5.5?'var(--gold)':b>0?'var(--red)':'var(--grey-400)';
+  const cell = v => v!=null ? `<span style="font-weight:600;color:${bandColor(v)}">${v}</span>` : '<span style="color:var(--grey-400)">—</span>';
+
+  tbody.innerHTML = rows.map((r,i) => {
+    const flA=_spkAvgCrit(r._results,FL), vcA=_spkAvgCrit(r._results,VC), grA=_spkAvgCrit(r._results,GR), prA=_spkAvgCrit(r._results,PR);
+    const dur = r.DurationMin ? (r.DurationMin + (String(r.DurationMin).indexOf('m')>=0?'':' min')) : '—';
+    const expanded = !!_spkExpanded[i];
+    const modeBadge = `<span class="badge badge-grey">${r.Mode||'—'}${r.SimMode?(' · '+r.SimMode):''}</span>`;
+    const main = `<tr style="cursor:pointer;${expanded?'background:rgba(124,58,237,.05)':''}" onclick="toggleSpkRow(${i})">
+      <td style="font-family:var(--font-mono);font-size:11px"><span style="color:var(--grey-500)">${expanded?'▾':'▸'}</span> ${r._sid||'—'}</td>
+      <td><strong>${r.StudentName||'—'}</strong></td>
+      <td><span class="badge badge-grey">${r._cls||'—'}</span></td>
+      <td>${modeBadge}</td>
+      <td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtT(r.StartingTime)}</td>
+      <td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtT(r.SubmittingTime)}</td>
+      <td style="text-align:center;font-size:12px">${dur}</td>
+      <td style="text-align:center">${r._questions.length||'—'}</td>
+      <td style="text-align:center">${cell(flA)}</td>
+      <td style="text-align:center">${cell(vcA)}</td>
+      <td style="text-align:center">${cell(grA)}</td>
+      <td style="text-align:center">${cell(prA)}</td>
+      <td style="text-align:center"><strong style="color:${bandColor(r._avgBand)}">${r._avgBand||'—'}</strong></td>
+    </tr>`;
+
+    let detail = '';
+    if (expanded) {
+      const qrows = (r._questions||[]).map((q,qi) => {
+        const rr = (r._results||[])[qi] || {};
+        const sc = rr.scores || {};
+        const fl=_spkCrit(sc,FL), vc=_spkCrit(sc,VC), gr=_spkCrit(sc,GR), pr=_spkCrit(sc,PR);
+        const qText = typeof q==='string'? q : (q.question||'');
+        return `<div style="padding:8px 0;border-bottom:1px solid #eee">
+          <div style="font-size:12px;margin-bottom:4px"><strong>Q${qi+1}.</strong> ${qText}</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--grey-600)">
+            <span>Fluency: ${cell(fl)}</span><span>Vocab: ${cell(vc)}</span>
+            <span>Grammar: ${cell(gr)}</span><span>Pron: ${cell(pr)}</span>
+            <span>Overall: <strong style="color:${bandColor(parseFloat(rr.overall)||0)}">${rr.overall!=null?rr.overall:'—'}</strong></span>
+          </div>
+          ${rr.summary?`<div style="font-size:11px;color:var(--grey-500);margin-top:3px">${rr.summary}</div>`:''}
+        </div>`;
+      }).join('') || '<div style="font-size:12px;color:var(--grey-400);padding:8px">Không có chi tiết câu hỏi.</div>';
+      detail = `<tr><td colspan="13" style="background:#FAFAF8;padding:10px 16px">${qrows}</td></tr>`;
+    }
+    return main + detail;
+  }).join('');
 }
 
 // ── SETTINGS ──
