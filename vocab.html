@@ -546,6 +546,10 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
         <div class="quiz-title-sm" id="quiz-title">Quiz</div>
         <div class="quiz-sub" id="quiz-sub">Question 1 of 60</div>
       </div>
+      <div id="quiz-timer-box" style="display:none;margin-left:auto;text-align:right">
+        <div class="timer-lbl">Time left</div>
+        <div class="timer-display" id="quiz-timer" style="font-size:1.3rem">--:--</div>
+      </div>
       <button class="quiz-close" onclick="confirmCloseQuiz()">✕</button>
     </div>
     <div class="quiz-progress-bar-wrap">
@@ -975,6 +979,11 @@ function startReview(reviewId) {
 
   App.quizIsReview = true;
   App.quizReviewId = reviewId;
+  App.quizReviewDuration = parseInt(r.DurationMinutes) || 10;
+  // Fixed class end time = StartTime + Duration (everyone closes at the same wall-clock moment)
+  var _stMs = r.StartTime ? new Date(r.StartTime).getTime() : NaN;
+  App.quizReviewEndMs = !isNaN(_stMs) ? (_stMs + App.quizReviewDuration*60000)
+                                      : (Date.now() + App.quizReviewDuration*60000);
 
   const asn = App.assignments.find(a => a.ID === r.AssignmentID);
   if (asn) {
@@ -1100,9 +1109,53 @@ function launchQuiz(asn, isReview, mode) {
   if (!vocab.length) { toast('No vocabulary found for this assignment.', 'error'); return; }
 
   App.quizWords = buildQuestions(vocab, 60, App.quizMode, App.quizIsReview);
+  App.quizTimedOut = false;
   document.getElementById('quiz-title').textContent = asn.Title;
   openModal('quiz-modal');
   renderQuestion();
+  // In-class review: count down to the FIXED class end time (StartTime + Duration)
+  if (App.quizIsReview) startReviewCountdown(App.quizReviewEndMs);
+  else { var _b=document.getElementById('quiz-timer-box'); if(_b)_b.style.display='none'; }
+}
+
+// ── IN-CLASS REVIEW COUNTDOWN (to an absolute end timestamp in ms) ──
+function startReviewCountdown(endMs) {
+  clearInterval(App.reviewCountdown);
+  var box = document.getElementById('quiz-timer-box');
+  if (!endMs) { if (box) box.style.display = 'none'; return; }
+  if (box) box.style.display = 'block';
+  var disp = document.getElementById('quiz-timer');
+  var tick = function() {
+    var secs = Math.round((endMs - Date.now())/1000);
+    if (secs < 0) secs = 0;
+    var m = Math.floor(secs/60), s = secs%60;
+    if (disp) {
+      disp.textContent = m + ':' + (s<10?'0':'') + s;
+      disp.classList.toggle('urgent', secs <= 30);
+    }
+    if (secs <= 0) {
+      clearInterval(App.reviewCountdown);
+      autoSubmitReviewOnTimeout();
+    }
+  };
+  tick();
+  App.reviewCountdown = setInterval(tick, 1000);
+}
+
+// When the review timer hits 0: count all not-yet-answered questions' words as wrong,
+// then submit. Unattempted + wrong words all flow into punishment (chép phạt).
+function autoSubmitReviewOnTimeout() {
+  if (App.quizTimedOut) return;
+  App.quizTimedOut = true;
+  // Add every word from the questions the student hasn't reached/answered yet
+  for (var i = App.quizIdx; i < App.quizWords.length; i++) {
+    var w = App.quizWords[i] && App.quizWords[i].word;
+    if (w && App.quizWrong.indexOf(w) === -1) App.quizWrong.push(w);
+  }
+  // Jump to results — renderResults() submits to backend (wrongWords → punishment)
+  App.quizIdx = App.quizWords.length;
+  toast('⏰ Hết giờ! Bài đã được nộp tự động.', 'error', 4000);
+  renderResults();
 }
 
 // ── BUILD 60 QUESTIONS ─────────────
@@ -1369,6 +1422,8 @@ function nextQ() { App.quizIdx++; renderQuestion(); }
 
 // ── RESULTS ──────────────────────────
 function renderResults() {
+  clearInterval(App.reviewCountdown);
+  var _tb = document.getElementById('quiz-timer-box'); if (_tb) _tb.style.display = 'none';
   const total = App.quizWords.length;
   const pct   = Math.round((App.quizScore / total) * 100);
   const pass  = pct >= 80;
@@ -1502,9 +1557,17 @@ function renderResults() {
 }
 
 function confirmCloseQuiz() {
+  // In-class review = một lần làm: đóng giữa chừng sẽ nộp luôn (từ chưa làm tính sai)
+  if (App.quizIsReview && App.quizReviewId && App.quizIdx < App.quizWords.length && !App.quizTimedOut) {
+    if (!confirm('Đây là bài khảo tại lớp (chỉ làm 1 lần). Thoát bây giờ sẽ NỘP BÀI, các từ chưa làm tính là sai. Tiếp tục thoát?')) return;
+    clearInterval(App.reviewCountdown);
+    autoSubmitReviewOnTimeout();
+    return;
+  }
   if (App.quizIdx > 0 && App.quizIdx < App.quizWords.length) {
     if (!confirm('Exit quiz? Progress will be lost.')) return;
   }
+  clearInterval(App.reviewCountdown);
   closeModal('quiz-modal');
 }
 

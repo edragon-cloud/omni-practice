@@ -501,7 +501,7 @@ tr:hover td{background:var(--grey-100)}
       <!-- All users table -->
       <div class="card">
         <div class="card-title">📋 All Students — Package & Expiry</div>
-        <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <input type="text" class="form-input" id="ov-search" placeholder="Search name / class / email..." style="max-width:280px" oninput="filterOverviewTable(this.value)">
           <select id="ov-status-filter" class="form-select" style="width:140px" onchange="filterOverviewTable(document.getElementById('ov-search').value)">
             <option value="">All Status</option>
@@ -509,6 +509,10 @@ tr:hover td{background:var(--grey-100)}
             <option value="Pending">Pending</option>
             <option value="Inactive">Inactive</option>
           </select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--grey-600);cursor:pointer;white-space:nowrap">
+            <input type="checkbox" id="ov-show-archived" onchange="filterOverviewTable(document.getElementById('ov-search').value)" style="width:15px;height:15px;cursor:pointer"> 📦 Hiện đã lưu trữ
+          </label>
+          <button class="btn btn-sm" onclick="archiveExpired()" style="background:var(--gold,#B45309);color:#fff;border:none;margin-left:auto" title="Lưu trữ tất cả SV đã hết hạn">📦 Archive expired</button>
         </div>
         <div class="table-wrap">
           <table id="ov-users-table">
@@ -568,7 +572,7 @@ tr:hover td{background:var(--grey-100)}
       <div class="section-header">
         <div><h1>VocabMaster — Class Management</h1><p>Create assignments, schedule in-class reviews &amp; track student performance</p></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <select id="vocab-class-filter" class="form-input" style="width:150px;font-size:13px" onchange="renderVocabClassTables()"><option value="">All Classes</option></select>
+          <select id="vocab-class-filter" class="form-input" style="width:150px;font-size:13px" onchange="renderVocabClassTables();_renderFreeReadAgg&&_renderFreeReadAgg()"><option value="">All Classes</option></select>
           <button class="btn btn-secondary btn-sm" onclick="loadTeacherData()">🔄 Refresh</button>
           <button class="btn btn-primary btn-sm" id="btn-vocab-new-action" onclick="openVocabAssignmentForm()">+ New Assignment</button>
         </div>
@@ -580,7 +584,6 @@ tr:hover td{background:var(--grey-100)}
         <button class="vocab-subtab" id="vstab-inclass" onclick="showVocabSubtab('inclass')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">🔄 In-Class</button>
         <button class="vocab-subtab" id="vstab-inclass-log" onclick="showVocabSubtab('inclass-log');renderInclassSubmissionLog()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📋 Review Log</button>
         <button class="vocab-subtab" id="vstab-freeread" onclick="showVocabSubtab('freeread');loadFreeReadResults()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📖 Free Reading</button>
-        <button class="vocab-subtab" id="vstab-matrix" onclick="showVocabSubtab('matrix');renderProgressMatrix()" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📊 Matrix</button>
       </div>
 
       <!-- Assignments sub-section -->
@@ -595,27 +598,11 @@ tr:hover td{background:var(--grey-100)}
         <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <div>
             <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📋 In-Class Review Log</div>
-            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Kết quả khảo bài tại lớp của sinh viên (1 lần / bài)</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Kết quả khảo bài tại lớp — mỗi buổi 1 bảng, bấm tên buổi để thu gọn/mở</div>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="renderInclassSubmissionLog(true)">🔄 Refresh</button>
         </div>
-        <div style="overflow-x:auto">
-          <table style="min-width:860px;width:100%;border-collapse:collapse">
-            <thead><tr>
-              <th>#</th>
-              <th onclick="_sortRevLog('StudentID')" style="cursor:pointer">Student ID ↕</th>
-              <th onclick="_sortRevLog('FullName')"   style="cursor:pointer">Name ↕</th>
-              <th onclick="_sortRevLog('Class')"      style="cursor:pointer">Class ↕</th>
-              <th>Review Session</th>
-              <th>Start</th>
-              <th>Submit</th>
-              <th style="text-align:center">Correct / Total</th>
-              <th>Wrong Words</th>
-              <th style="text-align:center" title="Tick sau khi đã khảo lại từ sai với SV">Re-Checked</th>
-            </tr></thead>
-            <tbody id="inclass-log-tbody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">Click "Review Log" to load.</td></tr></tbody>
-          </table>
-        </div>
+        <div id="inclass-log-cards"><div style="text-align:center;padding:40px;color:var(--grey-400)">Click "Review Log" to load.</div></div>
       </div>
 
       <!-- In-Class Review sub-section -->
@@ -634,58 +621,27 @@ tr:hover td{background:var(--grey-100)}
 
       <!-- Free Reading sub-section -->
       <div id="vsec-freeread" style="display:none">
-        <div style="margin-bottom:16px">
-          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📖 Free Reading Sessions</div>
-          <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Sinh viên tự chọn bài đọc, tự thêm từ vựng và làm quiz. Kết quả ghi nhận ở đây.</div>
+        <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📖 Free Reading Results</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">SV tự chọn bài — 3 lần 100% là hoàn thành. Bấm 1 SV để xem từng session.</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadFreeReadResults(true)">🔄 Refresh</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Date &amp; Time</th><th>Student</th><th>Class</th><th>Topic</th><th>Words</th><th>Score</th><th>Mode</th><th></th></tr></thead>
-            <tbody id="freeread-results-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
-          </table>
-        </div>
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th onclick="_sortFr('studentId')" style="cursor:pointer">Student ID ↕</th>
+            <th onclick="_sortFr('fullName')" style="cursor:pointer">Name ↕</th>
+            <th onclick="_sortFr('class')" style="cursor:pointer">Class ↕</th>
+            <th>Starting Time</th>
+            <th>Finishing Time</th>
+            <th style="text-align:center">Attempts</th>
+            <th style="text-align:center">Complete (3/3)</th>
+          </tr></thead>
+          <tbody id="freeread-results-tbody"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+        </table></div>
       </div>
 
-      <!-- Progress Matrix sub-section -->
-      <div id="vsec-matrix" style="display:none">
-        <!-- Filters + Toggle -->
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700;flex:1">📊 Progress Matrix</div>
-          <!-- Mode toggle -->
-          <div style="display:flex;gap:0;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--grey-200)">
-            <button id="matrix-mode-asn" onclick="toggleMatrixMode(true)"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--red);color:#fff;transition:.15s">
-              📚 Assignment
-            </button>
-            <button id="matrix-mode-rev" onclick="toggleMatrixMode(false)"
-              style="padding:6px 14px;border:none;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;background:var(--grey-100);color:var(--grey-600);transition:.15s;border-left:1.5px solid var(--grey-200)">
-              🔄 In-Class
-            </button>
-          </div>
-          <select id="matrix-class-filter" onchange="renderProgressMatrix()" style="padding:7px 12px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:140px">
-            <option value="">All Classes</option>
-          </select>
-          <input id="matrix-search" oninput="renderProgressMatrix()" type="text" placeholder="🔍 Search student…" style="padding:7px 12px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-family:var(--font-body);font-size:13px;outline:none;min-width:180px">
-          <button class="btn btn-secondary btn-sm" onclick="renderProgressMatrix()">🔄 Refresh</button>
-        </div>
-        <!-- Info bar -->
-        <div id="matrix-info-bar" style="font-size:12px;color:var(--grey-600);margin-bottom:12px;min-height:18px"></div>
-        <!-- Matrix container -->
-        <div id="matrix-container" style="position:relative;overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--grey-200);border-radius:var(--radius-lg);background:#FAFAF8">
-          <div style="text-align:center;padding:60px;color:var(--grey-400)">Click "Matrix" tab to load.</div>
-        </div>
-        <!-- Tooltip (DOM-built, no innerHTML injection) -->
-        <div id="matrix-tooltip" style="
-          position:fixed;pointer-events:none;z-index:9999;
-          background:#1A1A16;color:#fff;
-          border-radius:11px;padding:13px 15px;
-          font-family:'DM Sans',sans-serif;
-          font-size:12px;line-height:1.65;
-          box-shadow:0 10px 36px rgba(0,0,0,.32);
-          max-width:240px;word-break:break-word;
-          opacity:0;transition:opacity .15s;
-        "></div>
-      </div>
 
     </div>
 
@@ -1145,6 +1101,7 @@ function norm(s) {
     expiryDate:   String(s.ExpiryDate   || s.expiryDate   || ''),
     packageMonths:parseInt(s.PackageMonths || s.packageMonths || 0) || 0,
     registeredAt: String(s.RegisteredAt || s.registeredAt || ''),
+    archived:     String(s.Archived || s.archived || ''),
     _raw: s
   };
 }
@@ -1510,7 +1467,8 @@ function showTeacherTab(tab) {
 // OVERVIEW TAB
 // ═══════════════════════════════════════════════════
 function renderOverviewTab() {
-  const students = (App.teacherData.students || []).map(norm);
+  const allStudents = (App.teacherData.students || []).map(norm);
+  const students = allStudents.filter(s => s.archived !== 'Y');
   const now = new Date();
 
   document.getElementById('ov-total-users').textContent   = students.length;
@@ -1543,7 +1501,7 @@ function renderOverviewTab() {
     }).join('');
   }
 
-  renderOverviewTable(students);
+  renderOverviewTable(allStudents);
 }
 
 var _ovAllStudents = [];
@@ -1598,8 +1556,11 @@ function renderOverviewTable(students) {
 }
 function filterOverviewTable(search) {
   const statusFilter = (document.getElementById('ov-status-filter')||{}).value || '';
+  const showArchived = !!(document.getElementById('ov-show-archived')||{}).checked;
   const now = new Date();
   let filtered = _ovAllStudents;
+  // Hide archived unless "show archived" is on; when on, show ONLY archived
+  filtered = filtered.filter(s => showArchived ? (s.archived === 'Y') : (s.archived !== 'Y'));
   if (search) {
     const q = search.toLowerCase();
     filtered = filtered.filter(s => [s.fullName, s.class, s.email, s.studentId].some(v => v.toLowerCase().includes(q)));
@@ -1607,7 +1568,7 @@ function filterOverviewTable(search) {
   if (statusFilter) filtered = filtered.filter(s => s.status === statusFilter);
 
   const tbody = document.getElementById('ov-users-tbody');
-  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--grey-400)">No students found.</td></tr>'; return; }
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--grey-400)">'+(showArchived?'Không có SV nào trong lưu trữ.':'No students found.')+'</td></tr>'; return; }
 
   // Apply sort — compute daysLeft as numeric for sorting
   const now2 = new Date();
@@ -1636,6 +1597,10 @@ function filterOverviewTable(search) {
     const statusColor = s.status==='Active' ? 'var(--green)' : s.status==='Pending' ? 'var(--gold)' : 'var(--red)';
     const pkg = s.packageMonths ? s.packageMonths + ' month' + (s.packageMonths>1?'s':'') : '—';
     const skey = storeStudent(s);
+    const sidSafe = String(s.studentId).replace(/'/g,"\\'");
+    const archBtn = (s.archived === 'Y')
+      ? '<button class="btn btn-sm" onclick="archiveStudent(\''+sidSafe+'\',false)" style="background:var(--green-light,#dcfce7);color:var(--green);border:none" title="Khôi phục">↩ Restore</button>'
+      : '<button class="btn btn-sm" onclick="archiveStudent(\''+sidSafe+'\',true)" style="background:var(--grey-100);color:var(--grey-600);border:none" title="Lưu trữ SV này">📦</button>';
 
     return '<tr>'
       + '<td><strong>' + s.studentId + '</strong></td>'
@@ -1647,9 +1612,46 @@ function filterOverviewTable(search) {
       + '<td>' + appChips + '</td>'
       + '<td style="font-size:13px">' + expiryStr + '</td>'
       + '<td style="font-weight:700;font-size:13px;color:' + daysColor + '">' + daysLeft + '</td>'
-      + '<td><button class="btn btn-outline btn-sm activate-btn" data-key="' + skey + '">Edit</button></td>'
+      + '<td style="display:flex;gap:6px"><button class="btn btn-outline btn-sm activate-btn" data-key="' + skey + '">Edit</button>' + archBtn + '</td>'
       + '</tr>';
   }).join('');
+}
+
+// ── ARCHIVE STUDENTS ──
+async function archiveStudent(studentId, archived) {
+  try {
+    const res = await api('teacher.setArchived', { studentId, archived });
+    if (res && res.success) {
+      (_ovAllStudents||[]).forEach(s => { if (String(s.studentId)===String(studentId)) s.archived = archived?'Y':''; });
+      (App.teacherData.students||[]).forEach(s => { if (String(s.StudentID||s.studentId)===String(studentId)) s.Archived = archived?'Y':''; });
+      filterOverviewTable((document.getElementById('ov-search')||{}).value || '');
+      renderOverviewTab();
+      toast(archived ? '📦 Đã lưu trữ' : '↩ Đã khôi phục', 'success');
+    } else toast(res.error || 'Lỗi', 'error');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function archiveExpired() {
+  const now = new Date();
+  const expired = (_ovAllStudents||[]).filter(s => {
+    if (s.archived === 'Y' || !s.expiryDate) return false;
+    const exp = new Date(s.expiryDate); return !isNaN(exp) && (exp - now) < 0;
+  });
+  if (!expired.length) { toast('Không có SV nào đã hết hạn để lưu trữ.', 'info'); return; }
+  if (!confirm('Lưu trữ ' + expired.length + ' SV đã hết hạn?\nCác em sẽ được ẩn khỏi danh sách (bật "Hiện đã lưu trữ" để xem lại / khôi phục).')) return;
+  try {
+    const ids = expired.map(s => s.studentId);
+    const res = await api('teacher.setArchived', { studentIds: ids, archived: true });
+    if (res && res.success) {
+      ids.forEach(id => {
+        (_ovAllStudents||[]).forEach(s => { if (String(s.studentId)===String(id)) s.archived='Y'; });
+        (App.teacherData.students||[]).forEach(s => { if (String(s.StudentID||s.studentId)===String(id)) s.Archived='Y'; });
+      });
+      filterOverviewTable((document.getElementById('ov-search')||{}).value || '');
+      renderOverviewTab();
+      toast('📦 Đã lưu trữ ' + (res.updated||ids.length) + ' SV hết hạn', 'success', 4000);
+    } else toast(res.error || 'Lỗi', 'error');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1878,6 +1880,21 @@ function vocabSortIcon(field) {
     : '<span style="color:var(--red);font-size:10px"> ▼</span>';
 }
 
+var _vocabCollapsed = {};   // assignmentID → true if collapsed
+function toggleVocabCard(id){
+  _vocabCollapsed[id] = !_vocabCollapsed[id];
+  var body = document.getElementById('vbody-' + id);
+  var car  = document.getElementById('vcaret-' + id);
+  if (body) body.style.display = _vocabCollapsed[id] ? 'none' : 'block';
+  if (car)  car.textContent = _vocabCollapsed[id] ? '▸' : '▾';
+}
+function _vFmtDT(v){
+  if(!v) return '—';
+  try{ var d=new Date(v); if(isNaN(d)) return '—';
+    return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  }catch(e){ return '—'; }
+}
+
 function renderVocabClassTables() {
   const wrap = document.getElementById('vocab-class-tables');
   if (!wrap) return;
@@ -1887,15 +1904,12 @@ function renderVocabClassTables() {
     wrap.innerHTML = '<div class="card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-weight:600;margin-bottom:6px">No assignments yet</div><p style="color:var(--grey-600);font-size:14px">Click "+ New Assignment" to create your first vocabulary assignment.</p></div>';
     return;
   }
-  const submMap = {}, revSubMap = {}, punMap = {};
+  const submMap = {};
   (data.submissions||[]).forEach(s => { const sid=String(s.StudentID); if(!submMap[sid])submMap[sid]={}; const aid=s.AssignmentID; if(!submMap[sid][aid])submMap[sid][aid]=[]; submMap[sid][aid].push(s); });
-  (data.reviewSubs||[]).forEach(r => { const sid=String(r.StudentID); if(!revSubMap[sid])revSubMap[sid]={}; revSubMap[sid][r.ReviewID]=r; });
-  (data.punishments||[]).forEach(p => { const sid=String(p.StudentID); if(!punMap[sid])punMap[sid]=[]; punMap[sid].push(p); });
 
   wrap.innerHTML = (data.assignments||[]).map((asn) => {
     let students = (data.students || []).map(norm);
     if (filterClass) students = students.filter(s => s.class === filterClass);
-    // Apply sort
     if (_vocabSortField) {
       students = students.slice().sort((a, b) => {
         const va = String(a[_vocabSortField]||'').toLowerCase();
@@ -1908,73 +1922,62 @@ function renderVocabClassTables() {
       const subRows = (submMap[sid]||{})[asn.ID] || [];
       const attempts = subRows.length;
       const perfectCount = subRows.filter(r => parseInt(r.Score) === 100).length;
-      const revSessions = (data.reviewSessions||[]).filter(r => r.AssignmentID === asn.ID);
-      let wrongWords = [], revDone = false;
-      revSessions.forEach(rev => {
-        const rs = (revSubMap[sid]||{})[rev.ID];
-        if (rs) { revDone=true; try{JSON.parse(rs.WrongWords||'[]').forEach(w=>wrongWords.push(w));}catch(e){} }
+      const complete = perfectCount >= 3;
+      // Starting = earliest StartedAt; Finishing = latest SubmittedAt/LastAttempt
+      let starting = '', finishing = '';
+      subRows.forEach(r => {
+        const sa = r.StartedAt || '';
+        if (sa && (!starting || new Date(sa) < new Date(starting))) starting = sa;
+        const fa = r.SubmittedAt || r.LastAttempt || '';
+        if (fa && (!finishing || new Date(fa) > new Date(finishing))) finishing = fa;
       });
-      wrongWords = [...new Set(wrongWords)];
-      const punRows = punMap[sid]||[];
-      let copyDone = wrongWords.filter(w => { const pr=punRows.find(p=>p.Word===w); return pr&&pr.CompletedAt; }).length;
-      let copyStatus = wrongWords.length===0
-        ? (revDone ? '<span style="color:var(--green);font-size:12px;font-weight:600">✓ No errors</span>' : '—')
-        : copyDone===wrongWords.length
-          ? `<span style="color:var(--green);font-size:12px;font-weight:600">✅ ${copyDone}/${wrongWords.length}</span>`
-          : `<span style="color:var(--gold);font-size:12px;font-weight:600">⏳ ${copyDone}/${wrongWords.length}</span>`;
-      // Teacher check: find if any punishment row has TeacherChecked + CheckedAt
-      const checkedPuns = punRows.filter(p => p.TeacherChecked === '✓' || p.TeacherChecked === true);
-      const checkedAt   = checkedPuns.length > 0
-        ? (checkedPuns[0].CheckedAt || checkedPuns[0].CompletedAt || '')
-        : '';
-      const allChecked  = wrongWords.length > 0 && checkedPuns.length >= wrongWords.length;
-      const isChecked   = allChecked || (checkedPuns.length > 0);
-      const asnIdSafe   = asn.ID.replace(/'/g,"\\'");
-      const sidSafe     = st.studentId.replace(/'/g,"\\'");
-      const teacherCheckCell = wrongWords.length === 0 ? '<span style="color:var(--grey-400);font-size:12px">—</span>'
-        : `<div style="display:flex;align-items:center;gap:6px;justify-content:center">
-             <input type="checkbox" ${isChecked?'checked':''} onchange="teacherCheckPunishment('${asnIdSafe}','${sidSafe}',this.checked,this)"
-               title="Mark as checked" style="width:16px;height:16px;cursor:pointer">
-             <span style="font-size:11px;color:var(--grey-500)" id="chk-date-${asnIdSafe}-${sidSafe}">${checkedAt ? fmtDate(new Date(checkedAt)) : ''}</span>
-             ${isChecked?`<span style="font-size:10px;color:var(--green)">✓</span>`:''}
-           </div>`;
-      return '<tr>'
+      const rowBg = complete ? 'background:rgba(26,122,74,.08)' : '';
+      const completeCell = attempts>0
+        ? '<strong style="color:'+(complete?'var(--green)':'var(--red)')+'">'+perfectCount+'</strong><span style="color:var(--grey-400);font-size:11px">/3</span>'+(complete?' <span style="font-size:11px">✅</span>':'')
+        : '<span style="color:var(--grey-400)">—</span>';
+      return '<tr style="'+rowBg+'">'
         + '<td><strong>' + st.studentId + '</strong></td>'
         + '<td>' + st.fullName + '</td>'
         + '<td><span class="badge badge-grey">' + st.class + '</span></td>'
+        + '<td style="font-size:12px;white-space:nowrap;color:var(--grey-600)">' + (attempts>0?_vFmtDT(starting):'—') + '</td>'
+        + '<td style="font-size:12px;white-space:nowrap;color:var(--grey-600)">' + (attempts>0?_vFmtDT(finishing):'—') + '</td>'
         + '<td style="text-align:center">' + (attempts>0?'<strong>'+attempts+'×</strong>':'<span style="color:var(--grey-400)">—</span>') + '</td>'
-        + '<td style="text-align:center">' + (attempts>0
-            ? '<strong style="color:'+(perfectCount>=3?'var(--green)':'var(--red)')+'">'+perfectCount+'</strong><span style="color:var(--grey-400);font-size:11px">/3</span>'
-            : '<span style="color:var(--grey-400)">—</span>') + '</td>'
-        + '<td style="text-align:center">' + (wrongWords.length>0?'<span style="color:var(--red);font-weight:700;cursor:pointer" title="'+wrongWords.join(', ')+'">'+wrongWords.length+' ▾</span>':'<span style="color:var(--green)">0</span>') + '</td>'
-        + '<td style="text-align:center">' + copyStatus + '</td>'
-        + '<td style="text-align:center">' + teacherCheckCell + '</td>'
+        + '<td style="text-align:center">' + completeCell + '</td>'
         + '</tr>';
     }).join('');
     const deadline = asn.Deadline ? fmtDate(new Date(asn.Deadline)) : '—';
-    return `<div class="card" style="margin-bottom:20px">
-      <div class="flex-between mb-4">
-        <div>
-          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📖 ${asn.Title}</div>
-          <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Deadline: ${deadline} · Classes: ${asn.AssignedClasses||'—'}</div>
+    const collapsed = !!_vocabCollapsed[asn.ID];
+    const aidSafe = asn.ID.replace(/'/g,"\\'");
+    const titleSafe = (asn.Title||'').replace(/'/g,"\\'");
+    return `<div class="card" style="margin-bottom:16px">
+      <div class="flex-between mb-4" style="align-items:center">
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="toggleVocabCard('${aidSafe}')">
+          <span id="vcaret-${asn.ID}" style="font-size:14px;color:var(--grey-500)">${collapsed?'▸':'▾'}</span>
+          <div>
+            <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">📖 ${asn.Title}</div>
+            <div style="font-size:12px;color:var(--grey-600);margin-top:2px">Deadline: ${deadline} · Classes: ${asn.AssignedClasses||'—'}</div>
+          </div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="editVocabAssignment('${asn.ID}')">✏️ Edit</button>
-        <button class="btn btn-sm" onclick="deleteVocabAssignment('${asn.ID}','${asn.Title.replace(/'/g,"\\'")}')"
-          style="background:var(--red-light);color:var(--red);border:1px solid var(--red-light);margin-left:6px">🗑 Delete</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editVocabAssignment('${aidSafe}')">✏️ Edit</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();deleteVocabAssignment('${aidSafe}','${titleSafe}')"
+            style="background:var(--red-light);color:var(--red);border:1px solid var(--red-light)">🗑 Delete</button>
+        </div>
       </div>
-      <div class="table-wrap"><table>
-        <thead><tr>
-          <th onclick="sortVocabBy('studentId')" style="cursor:pointer;user-select:none">Student ID${vocabSortIcon('studentId')}</th>
-          <th onclick="sortVocabBy('fullName')" style="cursor:pointer;user-select:none">Full Name${vocabSortIcon('fullName')}</th>
-          <th onclick="sortVocabBy('class')" style="cursor:pointer;user-select:none">Class${vocabSortIcon('class')}</th>
-          <th style="text-align:center" title="Tổng số lần làm quiz">Attempts</th>
-          <th style="text-align:center" title="Số lần đạt 100% — đỏ nếu < 3">100% ✓</th>
-          <th style="text-align:center">In-Class Review</th>
-          <th style="text-align:center">Copying Words</th>
-          <th style="text-align:center">Teacher Check ✓</th>
-        </tr></thead>
-        <tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:20px">No students in this class.</td></tr>'}</tbody>
-      </table></div>
+      <div id="vbody-${asn.ID}" style="display:${collapsed?'none':'block'}">
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th onclick="sortVocabBy('studentId')" style="cursor:pointer;user-select:none">Student ID${vocabSortIcon('studentId')}</th>
+            <th onclick="sortVocabBy('fullName')" style="cursor:pointer;user-select:none">Full Name${vocabSortIcon('fullName')}</th>
+            <th onclick="sortVocabBy('class')" style="cursor:pointer;user-select:none">Class${vocabSortIcon('class')}</th>
+            <th title="Lần làm đầu tiên">Starting Time</th>
+            <th title="Lần nộp gần nhất">Finishing Time</th>
+            <th style="text-align:center" title="Tổng số lần làm quiz">Attempts</th>
+            <th style="text-align:center" title="Số lần đạt 100% — đủ 3/3 là hoàn thành">Complete (3/3)</th>
+          </tr></thead>
+          <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--grey-400);padding:20px">No students in this class.</td></tr>'}</tbody>
+        </table></div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -2030,7 +2033,7 @@ async function teacherSetReviewChecked(studentId, reviewId, checked, checkbox) {
   }
 }
 function showVocabSubtab(tab) {
-  ['assignments','inclass','inclass-log','freeread','matrix'].forEach(function(t) {
+  ['assignments','inclass','inclass-log','freeread'].forEach(function(t) {
     var sec = document.getElementById('vsec-' + t);
     var btn = document.getElementById('vstab-' + t);
     if (sec) sec.style.display = t === tab ? 'block' : 'none';
@@ -2169,12 +2172,29 @@ async function loadInClassReviewList() {
       + '</div></div>'
       + '<div style="display:flex;gap:8px">'
       + '<button class="btn btn-outline btn-sm" onclick="openInClassReviewForm(\'' + r.ID + '\')">✏️ Edit</button>'
+      + '<button class="btn btn-sm" onclick="closeReviewAbsent(\'' + r.ID + '\',\'' + (r.Title||'').replace(/'/g,"\\'") + '\')" style="background:var(--gold,#B45309);color:#fff;border:none" title="Ghi 0 điểm cho SV chưa nộp; SV vắng phải chép phạt các từ mà SV khác trong lớp làm sai">🔒 Đóng &amp; phạt vắng</button>'
       + '</div></div>'
       + '<div class="table-wrap"><table>'
       + '<thead><tr><th>Student ID</th><th>Full Name</th><th>Class</th><th style="text-align:center">Score</th><th>Submitted At</th><th>Wrong Words</th></tr></thead>'
       + '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:var(--grey-400);padding:16px">No students assigned.</td></tr>') + '</tbody>'
       + '</table></div></div>';
   }).join('');
+}
+
+// ── CLOSE REVIEW & PUNISH ABSENT STUDENTS ──
+async function closeReviewAbsent(reviewId, title) {
+  if (!confirm('Đóng buổi khảo "' + title + '"?\n\nTất cả SV trong lớp CHƯA nộp sẽ bị ghi 0 điểm và phải chép phạt TẤT CẢ những từ mà các SV KHÁC trong lớp đã làm sai ở buổi khảo này.\n\nTiếp tục?')) return;
+  try {
+    const res = await api('teacher.vocab.closeReviewAbsent', { reviewId });
+    if (res && res.success) {
+      toast('✓ Đã xử lý ' + (res.absentCount||0) + ' SV vắng · chép phạt ' + (res.totalWords||0) + ' từ (từ sai của lớp)', 'success', 4000);
+      await loadTeacherData();
+      loadInClassReviewList();
+      renderInclassSubmissionLog(true);
+    } else {
+      toast(res.error || 'Lỗi khi đóng buổi khảo', 'error');
+    }
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
 
 // ── FREE READING RESULTS ──
@@ -2244,6 +2264,15 @@ async function renderAsnSubmissionLog(force) {
 // ══════════════════════════════
 var _revLogRows = [], _revLogSort = {field:'', asc:true};
 
+var _revCollapsed = {};   // reviewID → true if collapsed
+function toggleRevCard(id){
+  _revCollapsed[id] = !_revCollapsed[id];
+  var body = document.getElementById('rvbody-' + id);
+  var car  = document.getElementById('rvcaret-' + id);
+  if (body) body.style.display = _revCollapsed[id] ? 'none' : 'block';
+  if (car)  car.textContent = _revCollapsed[id] ? '▸' : '▾';
+}
+
 function _sortRevLog(field) {
   if (_revLogSort.field === field) _revLogSort.asc = !_revLogSort.asc;
   else { _revLogSort.field = field; _revLogSort.asc = true; }
@@ -2251,47 +2280,83 @@ function _sortRevLog(field) {
 }
 
 function _renderRevLogTable(rows) {
-  const tbody = document.getElementById('inclass-log-tbody');
-  if (!tbody) return;
-  const revMap = {};
-  (App.teacherData.reviewSessions||[]).forEach(r => { revMap[r.ID] = r.Title||r.ID; });
-  let sorted = [...rows];
-  if (_revLogSort.field) {
-    sorted.sort((a,b) => {
-      const va = String(a[_revLogSort.field]||'').toLowerCase();
-      const vb = String(b[_revLogSort.field]||'').toLowerCase();
-      return _revLogSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
-    });
-  }
-  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">No in-class submissions yet.</td></tr>'; return; }
+  const wrap = document.getElementById('inclass-log-cards');
+  if (!wrap) return;
+  const sessions = (App.teacherData.reviewSessions||[]);
   const fmtS = s => { try { if(!s) return '—'; const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false}); } catch(e){return '—';} };
-  const th = 'padding:9px 12px;border-bottom:1px solid #f0f0ee';
-  tbody.innerHTML = sorted.map((r,i) => {
-    const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-    const pct = total>0 ? Math.round(correct/total*100) : parseInt(r.Score||0);
-    const clr = pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
-    const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
-    return '<tr>'
-      + `<td style="${th};color:var(--grey-400)">${sorted.length-i}</td>`
-      + `<td style="${th};font-family:var(--font-mono);font-size:11px">${r.StudentID||'—'}</td>`
-      + `<td style="${th}"><strong>${r.FullName||'—'}</strong></td>`
-      + `<td style="${th}"><span class="badge badge-grey">${r.Class||'—'}</span></td>`
-      + `<td style="${th};font-size:12px">${revMap[r.ReviewID]||r.ReviewID||'—'}</td>`
-      + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.StartedAt||r.SubmittedAt)}</td>`
-      + `<td style="${th};font-size:11px;white-space:nowrap">${fmtS(r.SubmittedAt)}</td>`
-      + `<td style="${th};text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
-      + `<td style="${th};max-width:260px;font-size:11px;color:var(--red);white-space:normal;word-break:break-word">${wrongs.length?wrongs.join(', '):'<span style="color:var(--grey-400)">—</span>'}</td>`
-      + (() => {
-          const checked = (r.ReChecked === '✓' || r.ReChecked === true);
-          const sidS = String(r.StudentID||'').replace(/'/g,"\\'");
-          const ridS = String(r.ReviewID||'').replace(/'/g,"\\'");
-          const at = r.ReCheckedAt ? fmtS(r.ReCheckedAt) : '';
-          return `<td style="${th};text-align:center"><div style="display:flex;align-items:center;gap:6px;justify-content:center">`
-            + `<input type="checkbox" ${checked?'checked':''} onchange="teacherSetReviewChecked('${sidS}','${ridS}',this.checked,this)" title="Đã khảo lại từ sai" style="width:16px;height:16px;cursor:pointer">`
-            + `<span style="font-size:10px;color:var(--grey-500)" id="revchk-${sidS}-${ridS}">${at}</span>`
-            + `</div></td>`;
-        })()
-      + '</tr>';
+
+  // Group submissions by ReviewID
+  const byReview = {};
+  (rows||[]).forEach(r => { const rid=String(r.ReviewID||''); if(!byReview[rid])byReview[rid]=[]; byReview[rid].push(r); });
+
+  // Build a card per session (sessions newest first); include any orphan review IDs too
+  let order = sessions.map(s => String(s.ID));
+  Object.keys(byReview).forEach(rid => { if(order.indexOf(rid)===-1) order.push(rid); });
+  order = order.reverse();
+
+  if (!order.length) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--grey-400)">No in-class reviews yet.</div>'; return; }
+
+  wrap.innerHTML = order.map(rid => {
+    const sess = sessions.find(s => String(s.ID)===rid);
+    const title = sess ? (sess.Title||rid) : rid;
+    let subs = (byReview[rid]||[]).slice();
+    if (_revLogSort.field) {
+      subs.sort((a,b) => {
+        const va=String(a[_revLogSort.field]||'').toLowerCase(), vb=String(b[_revLogSort.field]||'').toLowerCase();
+        return _revLogSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+    }
+    const collapsed = !!_revCollapsed[rid];
+    const ridSafe = rid.replace(/'/g,"\\'");
+    const startInfo = sess && sess.StartTime ? ('Start: ' + fmtS(sess.StartTime)) : '';
+    const durInfo   = sess && sess.DurationMinutes ? (' · ' + sess.DurationMinutes + ' phút') : '';
+
+    const body = subs.length ? subs.map(r => {
+      const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
+      const clr = (total>0 && correct/total>=0.8)?'var(--green)':(total>0 && correct/total>=0.6)?'var(--gold)':'var(--red)';
+      const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+      const checked = (r.ReChecked === '✓' || r.ReChecked === true);
+      const sidS = String(r.StudentID||'').replace(/'/g,"\\'");
+      const at = r.ReCheckedAt ? fmtS(r.ReCheckedAt) : '';
+      return '<tr>'
+        + `<td style="font-family:var(--font-mono);font-size:11px">${r.StudentID||'—'}</td>`
+        + `<td><strong>${r.FullName||'—'}</strong></td>`
+        + `<td><span class="badge badge-grey">${r.Class||'—'}</span></td>`
+        + `<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtS(r.StartedAt||r.SubmittedAt)}</td>`
+        + `<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtS(r.SubmittedAt)}</td>`
+        + `<td style="text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+        + `<td style="max-width:260px;font-size:11px;color:var(--red);white-space:normal;word-break:break-word">${wrongs.length?wrongs.join(', '):'<span style="color:var(--grey-400)">—</span>'}</td>`
+        + `<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px;justify-content:center">`
+        + `<input type="checkbox" ${checked?'checked':''} onchange="teacherSetReviewChecked('${sidS}','${ridSafe}',this.checked,this)" title="Đã khảo lại từ sai" style="width:16px;height:16px;cursor:pointer">`
+        + `<span style="font-size:10px;color:var(--grey-500)" id="revchk-${sidS}-${ridSafe}">${at}</span>`
+        + `</div></td>`
+        + '</tr>';
+    }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:20px">Chưa có sinh viên nộp.</td></tr>';
+
+    return `<div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleRevCard('${ridSafe}')">
+        <span id="rvcaret-${rid}" style="font-size:14px;color:var(--grey-500)">${collapsed?'▸':'▾'}</span>
+        <div>
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:700">🔄 ${title}</div>
+          <div style="font-size:12px;color:var(--grey-600);margin-top:2px">${startInfo}${durInfo} · ${subs.length} nộp</div>
+        </div>
+      </div>
+      <div id="rvbody-${rid}" style="display:${collapsed?'none':'block'};margin-top:12px">
+        <div class="table-wrap"><table>
+          <thead><tr>
+            <th onclick="_sortRevLog('StudentID')" style="cursor:pointer">Student ID ↕</th>
+            <th onclick="_sortRevLog('FullName')" style="cursor:pointer">Name ↕</th>
+            <th onclick="_sortRevLog('Class')" style="cursor:pointer">Class ↕</th>
+            <th>Starting Time</th>
+            <th>Finishing Time</th>
+            <th style="text-align:center">Result</th>
+            <th>Punish (từ sai)</th>
+            <th style="text-align:center" title="Tick khi SV đã thuộc các từ sai">Check</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table></div>
+      </div>
+    </div>`;
   }).join('');
 }
 
@@ -2304,51 +2369,107 @@ async function renderInclassSubmissionLog(force) {
   _renderRevLogTable(_revLogRows);
 }
 
-async function loadFreeReadResults() {
+var _frSort = {field:'', asc:true};
+var _frExpanded = {};
+function _sortFr(field){
+  if(_frSort.field===field) _frSort.asc=!_frSort.asc; else { _frSort.field=field; _frSort.asc=true; }
+  _renderFreeReadAgg();
+}
+function toggleFrStudent(sid){ _frExpanded[sid]=!_frExpanded[sid]; _renderFreeReadAgg(); }
+
+async function loadFreeReadResults(force) {
   var tbody = document.getElementById('freeread-results-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
   try {
-    // Use cached data from teacherGetClassStats, or fetch separately
     var rows = (App.teacherData.frResults||[]).slice();
-    if (!rows.length) {
+    if (!rows.length || force) {
       var res = await api('teacher.vocab.getFreeReadResults');
       if (res && res.success) { rows = (res.rows||[]).slice(); App.teacherData.frResults = rows; }
     }
-    rows = rows.slice().reverse(); // newest first
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">No free reading sessions yet.</td></tr>'; return; }
-    tbody.innerHTML = rows.map(function(r, i) {
-      var sc = parseInt(r.Score)||0;
-      var scColor = sc>=80?'var(--green)':sc>=60?'var(--gold)':'var(--red)';
-      var rowEnc = encodeURIComponent(JSON.stringify({
-        timestamp:   r.Timestamp||'',
-        studentName: r.FullName||r.StudentName||'',
-        studentId:   r.StudentID||'',
-        class:       r.Class||'',
-        topic:       r.Topic||'Free Reading',
-        score:       sc,
-        quizMode:    r.QuizMode||'mixed',
-        wordCount:   r.WordCount||0,
-        passage:     r.ReadingPassage||'',
-        vocabulary:  (function(){ try{ return JSON.parse(r.VocabularyJSON||'[]'); }catch(e){ return []; } })(),
-        questions:   (function(){ try{ return JSON.parse(r.QuestionsJSON||'[]'); }catch(e){ return []; } })(),
-        wrongWords:  (function(){ try{ return JSON.parse(r.WrongWords||'[]'); }catch(e){ return []; } })()
-      }));
-      return '<tr>'
-        + '<td>' + (rows.length - i) + '</td>'
-        + '<td style="font-size:12px">' + (r.Timestamp ? fmtDateTime(new Date(r.Timestamp)) : '—') + '</td>'
-        + '<td><strong>' + (r.FullName||r.StudentName||'') + '</strong></td>'
-        + '<td><span class="badge badge-grey">' + (r.Class||'—') + '</span></td>'
-        + '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">' + (r.Topic||'Free Reading') + '</td>'
-        + '<td style="text-align:center">' + (r.WordCount||'—') + '</td>'
-        + '<td><strong style="color:' + scColor + '">' + sc + '%</strong></td>'
-        + '<td style="font-size:11px;color:var(--grey-600)">' + (r.QuizMode||'mixed') + '</td>'
-        + '<td><a href="vocab-detail.html?row=' + rowEnc + '" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px">👁 View</a></td>'
-        + '</tr>';
-    }).join('');
+    _renderFreeReadAgg();
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--red)">Error: ' + e.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red)">Error: ' + e.message + '</td></tr>';
   }
+}
+
+function _renderFreeReadAgg() {
+  var tbody = document.getElementById('freeread-results-tbody');
+  if (!tbody) return;
+  var filterClass = (document.getElementById('vocab-class-filter')||{}).value || '';
+  var rows = (App.teacherData.frResults||[]).slice();
+  if (filterClass) rows = rows.filter(r => String(r.Class||'') === filterClass);
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--grey-400)">No free reading sessions yet.</td></tr>'; return; }
+
+  // Group by StudentID
+  var byStu = {};
+  rows.forEach(r => {
+    var sid = String(r.StudentID||r.FullName||'');
+    if(!byStu[sid]) byStu[sid] = { studentId:r.StudentID||'—', fullName:r.FullName||r.StudentName||'—', class:r.Class||'—', sessions:[] };
+    byStu[sid].sessions.push(r);
+  });
+
+  var students = Object.keys(byStu).map(k => {
+    var s = byStu[k];
+    var attempts = s.sessions.length;
+    var perfect = s.sessions.filter(x => parseInt(x.Score)===100).length;
+    var starting='', finishing='';
+    s.sessions.forEach(x => {
+      var sa = x.StartedAt || x.Timestamp || '';
+      if(sa && (!starting || new Date(sa) < new Date(starting))) starting = sa;
+      var fa = x.SubmittedAt || x.Timestamp || '';
+      if(fa && (!finishing || new Date(fa) > new Date(finishing))) finishing = fa;
+    });
+    return { ...s, attempts, perfect, starting, finishing, complete: perfect>=3 };
+  });
+
+  if (_frSort.field) {
+    students.sort((a,b) => {
+      var va=String(a[_frSort.field]||'').toLowerCase(), vb=String(b[_frSort.field]||'').toLowerCase();
+      return _frSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+
+  tbody.innerHTML = students.map(s => {
+    var rowBg = s.complete ? 'background:rgba(26,122,74,.08)' : '';
+    var completeCell = '<strong style="color:'+(s.complete?'var(--green)':'var(--red)')+'">'+s.perfect+'</strong><span style="color:var(--grey-400);font-size:11px">/3</span>'+(s.complete?' <span style="font-size:11px">✅</span>':'');
+    var sidSafe = String(s.studentId).replace(/'/g,"\\'");
+    var expanded = !!_frExpanded[s.studentId];
+    var mainRow = '<tr style="'+rowBg+';cursor:pointer" onclick="toggleFrStudent(\''+sidSafe+'\')">'
+      + '<td><span style="color:var(--grey-500);font-size:11px">'+(expanded?'▾':'▸')+'</span> <strong>'+s.studentId+'</strong></td>'
+      + '<td>'+s.fullName+'</td>'
+      + '<td><span class="badge badge-grey">'+s.class+'</span></td>'
+      + '<td style="font-size:12px;white-space:nowrap;color:var(--grey-600)">'+_vFmtDT(s.starting)+'</td>'
+      + '<td style="font-size:12px;white-space:nowrap;color:var(--grey-600)">'+_vFmtDT(s.finishing)+'</td>'
+      + '<td style="text-align:center"><strong>'+s.attempts+'×</strong></td>'
+      + '<td style="text-align:center">'+completeCell+'</td>'
+      + '</tr>';
+    var detail = '';
+    if (expanded) {
+      var sess = s.sessions.slice().sort((a,b)=> new Date(b.Timestamp||0)-new Date(a.Timestamp||0));
+      var inner = sess.map(r => {
+        var sc = parseInt(r.Score)||0;
+        var scColor = sc>=80?'var(--green)':sc>=60?'var(--gold)':'var(--red)';
+        var rowEnc = encodeURIComponent(JSON.stringify({
+          timestamp:r.Timestamp||'', studentName:r.FullName||r.StudentName||'', studentId:r.StudentID||'', class:r.Class||'',
+          topic:r.Topic||'Free Reading', score:sc, quizMode:r.QuizMode||'mixed', wordCount:r.WordCount||0,
+          passage:r.ReadingPassage||'',
+          vocabulary:(function(){try{return JSON.parse(r.VocabularyJSON||'[]');}catch(e){return [];}})(),
+          questions:(function(){try{return JSON.parse(r.QuestionsJSON||'[]');}catch(e){return [];}})(),
+          wrongWords:(function(){try{return JSON.parse(r.WrongWords||'[]');}catch(e){return [];}})()
+        }));
+        return '<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid #f0f0ee;font-size:12px">'
+          + '<span style="color:var(--grey-500);white-space:nowrap">'+ (r.Timestamp?fmtDateTime(new Date(r.Timestamp)):'—') +'</span>'
+          + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.Topic||'Free Reading')+'</span>'
+          + '<span style="color:var(--grey-600)">'+(r.WordCount||'—')+' từ</span>'
+          + '<strong style="color:'+scColor+'">'+sc+'%</strong>'
+          + '<a href="vocab-detail.html?row='+rowEnc+'" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 9px" onclick="event.stopPropagation()">👁 View</a>'
+          + '</div>';
+      }).join('');
+      detail = '<tr><td colspan="7" style="background:#FAFAF8;padding:10px 16px">'+inner+'</td></tr>';
+    }
+    return mainRow + detail;
+  }).join('');
 }
 
 // ── DATE FORMATTER  DD-MM-YYYY @ HH:MM ──
