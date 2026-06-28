@@ -214,7 +214,7 @@ tr:hover td { background: var(--paper); }
 
 <script>
 'use strict';
-const HUB_GAS = 'https://script.google.com/macros/s/AKfycby6tUJxFfZ0hDe2EVD-e1uTDVEv-42ivsJyOzqMWI5LFaZnXsxgQcvYbZ9W2ADbObk-NQ/exec';
+const HUB_GAS = 'https://script.google.com/macros/s/AKfycbyNN9nNKUE9NsS0EN6o6I0y8-66da9EKU96QeDdUaAMMWnYrrwm7nG5rgkcaHBRtyJkYA/exec';
 
 const S = { name: '', code: '', sessionToken: '', rows: [], currentEntry: null };
 
@@ -222,6 +222,33 @@ const S = { name: '', code: '', sessionToken: '', rows: [], currentEntry: null }
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+function escA(s){ return esc(s).replace(/"/g,'&quot;'); }
+// ── Hover tooltip for truncated cells (any element with data-tip) ──
+(function(){
+  if(window.__tipInit) return; window.__tipInit=true;
+  function ready(fn){ if(document.body) fn(); else document.addEventListener('DOMContentLoaded',fn); }
+  ready(function(){
+    var tip=document.createElement('div');
+    tip.style.cssText='position:fixed;z-index:99999;max-width:380px;background:#1A1A16;color:#fff;font-size:12.5px;line-height:1.55;padding:9px 12px;border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.28);pointer-events:none;display:none;white-space:normal';
+    document.body.appendChild(tip);
+    function place(e){
+      var pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
+      var x=e.clientX+pad, y=e.clientY+pad;
+      if(x+w>window.innerWidth-8) x=e.clientX-w-pad;
+      if(y+h>window.innerHeight-8) y=e.clientY-h-pad;
+      tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';
+    }
+    document.addEventListener('mouseover',function(e){
+      var t=e.target.closest&&e.target.closest('[data-tip]'); if(!t)return;
+      var txt=t.getAttribute('data-tip'); if(!txt)return;
+      tip.textContent=txt; tip.style.display='block'; place(e);
+    });
+    document.addEventListener('mousemove',function(e){ if(tip.style.display==='block') place(e); });
+    document.addEventListener('mouseout',function(e){
+      var t=e.target.closest&&e.target.closest('[data-tip]'); if(t) tip.style.display='none';
+    });
+  });
+})();
 function fmtDate(s) {
   try { const d = new Date(s); if (isNaN(d)) return s||'—'; return d.toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}); }
   catch(e) { return s||'—'; }
@@ -884,7 +911,7 @@ function _renderHistRows(){
       : `<button class="btn btn-outline btn-sm" onclick="viewHistoryRow(${realIdx})">👁 View</button>`;
     const q=_histQ(r);
     return `<tr>
-      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(q)}">${esc(q)}</td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default" data-tip="${escA(q)}">${esc(q)}</td>
       <td style="font-size:.78rem;white-space:nowrap">${fmtDate(_histDate(r))}</td>
       <td><span class="mode-tag">${esc(r.Mode||r.mode||'—')}</span></td>
       <td style="text-align:center">${_histScore(r,['TaskResponse'])||(r.scores&&r.scores.TR)||'—'}</td>

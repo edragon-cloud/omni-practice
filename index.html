@@ -2795,6 +2795,33 @@ async function saveVAAssignment() {
 
 
 // ── WRITE RESULTS ──
+function escA(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+(function(){
+  if(window.__tipInit) return; window.__tipInit=true;
+  function ready(fn){ if(document.body) fn(); else document.addEventListener('DOMContentLoaded',fn); }
+  ready(function(){
+    var tip=document.createElement('div');
+    tip.style.cssText='position:fixed;z-index:99999;max-width:420px;background:#1A1A16;color:#fff;font-size:12.5px;line-height:1.55;padding:9px 12px;border-radius:9px;box-shadow:0 8px 28px rgba(0,0,0,.28);pointer-events:none;display:none;white-space:normal';
+    document.body.appendChild(tip);
+    function place(e){
+      var pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
+      var x=e.clientX+pad, y=e.clientY+pad;
+      if(x+w>window.innerWidth-8) x=e.clientX-w-pad;
+      if(y+h>window.innerHeight-8) y=e.clientY-h-pad;
+      tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';
+    }
+    document.addEventListener('mouseover',function(e){
+      var t=e.target.closest&&e.target.closest('[data-tip]'); if(!t)return;
+      var txt=t.getAttribute('data-tip'); if(!txt)return;
+      tip.textContent=txt; tip.style.display='block'; place(e);
+    });
+    document.addEventListener('mousemove',function(e){ if(tip.style.display==='block') place(e); });
+    document.addEventListener('mouseout',function(e){
+      var t=e.target.closest&&e.target.closest('[data-tip]'); if(t) tip.style.display='none';
+    });
+  });
+})();
+
 var _writeRows = [];
 var _writeSortField = null;
 var _writeSortAsc = true;
@@ -2881,9 +2908,9 @@ function _writeRenderTable(rows) {
     var q=_wQ(r);
     return '<tr>'
       +'<td style="font-size:11px;color:var(--grey-500);white-space:nowrap">'+(r._sid||'—')+'</td>'
-      +'<td><strong>'+(r.StudentName||'—')+'</strong></td>'
+      +'<td><strong data-tip="'+escA(r.StudentName||'')+'" style="cursor:default">'+(r.StudentName||'—')+'</strong></td>'
       +'<td><span style="font-size:11px;background:var(--grey-100);color:var(--grey-600);padding:2px 7px;border-radius:4px;white-space:nowrap">'+(r._class||'—')+'</span></td>'
-      +'<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="'+String(q).replace(/"/g,'&quot;')+'">'+q+'</td>'
+      +'<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:default" data-tip="'+escA(q)+'">'+q+'</td>'
       +'<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">'+_writeFmtShort(_wDate(r))+'</td>'
       +'<td style="font-size:12px">'+(r.Mode||'—')+'</td>'
       +'<td style="text-align:center">'+(r.TaskResponse||'—')+'</td>'
