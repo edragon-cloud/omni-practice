@@ -2339,18 +2339,23 @@ function _renderRevLogTable(rows) {
 
     const body = subs.length ? subs.map(r => {
       const correct = parseInt(r.Correct||0), total = parseInt(r.Total||60);
-      const clr = (total>0 && correct/total>=0.8)?'var(--green)':(total>0 && correct/total>=0.6)?'var(--gold)':'var(--red)';
       const wrongs = (() => { try { return JSON.parse(r.WrongWords||'[]'); } catch(e) { return []; } })();
+      // Absent marker: empty StartedAt + score 0 (set by vocabCloseReviewAbsent)
+      const isAbsent = !String(r.StartedAt||'').trim() && parseInt(r.Score||0)===0;
+      const clr = (total>0 && correct/total>=0.8)?'var(--green)':(total>0 && correct/total>=0.6)?'var(--gold)':'var(--red)';
+      const resultCell = isAbsent
+        ? `<span class="badge badge-grey" title="Không làm bài — bị phạt ${wrongs.length} từ của lớp">🚫 Vắng</span>`
+        : `<span style="font-weight:700;color:${clr}">${correct}/${total}</span>`;
       const checked = (r.ReChecked === '✓' || r.ReChecked === true);
       const sidS = String(r.StudentID||'').replace(/'/g,"\\'");
       const at = r.ReCheckedAt ? fmtS(r.ReCheckedAt) : '';
-      return '<tr>'
+      return '<tr'+(isAbsent?' style="background:rgba(180,83,9,.05)"':'')+'>'
         + `<td style="font-family:var(--font-mono);font-size:11px">${r.StudentID||'—'}</td>`
         + `<td><strong>${r.FullName||'—'}</strong></td>`
         + `<td><span class="badge badge-grey">${r.Class||'—'}</span></td>`
-        + `<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtS(r.StartedAt||r.SubmittedAt)}</td>`
+        + `<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${isAbsent?'—':fmtS(r.StartedAt||r.SubmittedAt)}</td>`
         + `<td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtS(r.SubmittedAt)}</td>`
-        + `<td style="text-align:center;font-weight:700;color:${clr}">${correct}/${total}</td>`
+        + `<td style="text-align:center">${resultCell}</td>`
         + `<td style="max-width:260px;font-size:11px;color:var(--red);white-space:normal;word-break:break-word">${wrongs.length?wrongs.join(', '):'<span style="color:var(--grey-400)">—</span>'}</td>`
         + `<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px;justify-content:center">`
         + `<input type="checkbox" ${checked?'checked':''} onchange="teacherSetReviewChecked('${sidS}','${ridSafe}',this.checked,this)" title="Đã khảo lại từ sai" style="width:16px;height:16px;cursor:pointer">`
