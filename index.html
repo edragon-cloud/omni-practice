@@ -175,7 +175,18 @@ tr:hover td{background:var(--grey-100)}
    PAGE: STUDENT DASHBOARD
 ══════════════════════════════════════ */
 .student-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-@media(max-width:900px){.student-layout{grid-template-columns:1fr} .student-sidebar{display:none}}
+@media(max-width:900px){
+  .student-layout{display:block}
+  .student-main{min-height:100vh;overflow:visible}
+  .student-sidebar{position:fixed;top:0;left:0;bottom:0;height:auto;width:84vw;max-width:300px;z-index:1000;transform:translateX(-100%);transition:transform .26s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .student-sidebar.open{transform:translateX(0)}
+  .stu-nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999}
+  .stu-nav-backdrop.show{display:block}
+  .stu-hamburger{display:inline-flex !important}
+  .student-topbar{position:fixed;top:0;left:0;right:0;z-index:200}
+  .student-content{padding-top:80px !important}
+}
+.stu-hamburger{display:none;align-items:center;justify-content:center;width:38px;height:38px;border:none;background:var(--grey-100,#f0f0ee);border-radius:9px;font-size:19px;cursor:pointer;margin-right:10px;flex-shrink:0}
 .student-sidebar{background:var(--black);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sidebar-brand{padding:28px 24px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
 .sidebar-brand-name{font-family:var(--font-display);font-size:1.3rem;color:var(--white)}
@@ -209,7 +220,7 @@ tr:hover td{background:var(--grey-100)}
 .student-topbar{background:var(--white);border-bottom:1px solid var(--grey-200);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .topbar-title{font-family:var(--font-display);font-size:1.1rem;color:var(--black)}
 .student-content{padding:32px;max-width:1000px}
-@media(max-width:600px){.student-content{padding:20px}}
+@media(max-width:600px){.student-content{padding:80px 16px 20px !important}.student-topbar{padding:0 14px;height:56px}.app-cards-grid{grid-template-columns:1fr !important;gap:12px}.stats-grid{grid-template-columns:1fr 1fr !important}}
 .student-section{display:none}
 .student-section.active{display:block;animation:fadeIn .3s ease}
 
@@ -363,7 +374,8 @@ tr:hover td{background:var(--grey-100)}
 ══════════════════════════════════════ -->
 <div id="page-student" class="page">
 <div class="student-layout">
-  <aside class="student-sidebar">
+  <div class="stu-nav-backdrop" id="stu-nav-backdrop" onclick="toggleStuNav(false)"></div>
+  <aside class="student-sidebar" id="student-sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-name">Language <em>Hub</em></div>
       <div class="sidebar-brand-sub">ALL-IN-ONE SYSTEM</div>
@@ -402,6 +414,7 @@ tr:hover td{background:var(--grey-100)}
 
   <main class="student-main">
     <div class="student-topbar">
+      <button class="stu-hamburger" onclick="toggleStuNav()" aria-label="Menu">☰</button>
       <div class="topbar-title" id="student-section-title">Dashboard</div>
       <div style="display:flex;gap:12px;align-items:center">
         <div id="topbar-date" style="font-size:13px;color:var(--grey-600)"></div>
@@ -1245,7 +1258,16 @@ function initStudentDashboard() {
   });
 }
 
+function toggleStuNav(open){
+  var sb=document.getElementById('student-sidebar'), bd=document.getElementById('stu-nav-backdrop');
+  if(!sb||!bd) return;
+  var willOpen = (open===undefined) ? !sb.classList.contains('open') : open;
+  sb.classList.toggle('open', willOpen);
+  bd.classList.toggle('show', willOpen);
+}
+
 function showStudentSection(name) {
+  toggleStuNav(false);
   document.querySelectorAll('.student-section').forEach(function(s){ s.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
   var sec = document.getElementById('section-' + name);
