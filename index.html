@@ -1176,15 +1176,7 @@ async function apiPost(action, payload) {
 // ═══════════════════════════════════════════════════
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const page = document.getElementById(id);
-  page.classList.add('active');
-  requestAnimationFrame(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    const main = page.querySelector('.student-main, .teacher-main');
-    if (main) main.scrollTop = 0;
-  });
+  document.getElementById(id).classList.add('active');
 }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1286,9 +1278,6 @@ function showStudentSection(name) {
   var titles = {home:'Dashboard',vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk'};
   var t = document.getElementById('student-section-title');
   if (t) t.textContent = titles[name] || name;
-  var main = document.querySelector('.student-main');
-  if (main) main.scrollTop = 0;
-  window.scrollTo(0, 0);
 }
 
 function openApp(app) {
