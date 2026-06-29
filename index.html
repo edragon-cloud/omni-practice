@@ -177,9 +177,9 @@ tr:hover td{background:var(--grey-100)}
 .student-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
 @media(max-width:900px){
   .student-layout{display:block}
-  .student-main{min-height:100vh;overflow:visible}
-  .student-sidebar{position:fixed;top:0;left:0;bottom:0;height:auto;width:84vw;max-width:300px;z-index:1000;transform:translateX(-100%);transition:transform .26s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .student-sidebar.open{transform:translateX(0)}
+  .student-main{min-height:100vh;overflow-x:hidden;max-width:100vw}
+  .student-sidebar{position:fixed;top:0;left:0;bottom:0;height:auto;width:84vw;max-width:300px;z-index:1000;transform:translateX(-100%);transition:transform .26s ease,visibility .26s;overflow-y:auto;-webkit-overflow-scrolling:touch;visibility:hidden;pointer-events:none}
+  .student-sidebar.open{transform:translateX(0);visibility:visible;pointer-events:auto}
   .stu-nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999}
   .stu-nav-backdrop.show{display:block}
   .stu-hamburger{display:inline-flex !important}
