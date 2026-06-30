@@ -1243,7 +1243,8 @@ function startSession(){
   document.getElementById('full-script-display').textContent=App.sentences.join('\n');
   document.getElementById('vocab-pill').textContent=App.sentences.length+' sentences';
   var override=document.getElementById('study-time-override').value;
-  var studySecs=getStudySeconds(part,override);
+  var partNum=(document.getElementById('part-input')||{value:''}).value;
+  var studySecs=getStudySeconds(partNum,override);
   showScreen('screen-vocab');
   if(studySecs>0){
     startCountdown(studySecs);
