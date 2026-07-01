@@ -652,14 +652,15 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
     </div>
   </div>
   <div class="main" style="max-width:860px">
-    <h2 style="margin-bottom:4px">📋 Lịch sử luyện Speaking</h2>
-    <p style="font-size:13px;color:var(--g600,#666);margin-bottom:18px">Các buổi luyện tập của bạn — bấm dòng để xem chi tiết.</p>
-    <div id="hist-loading" style="text-align:center;padding:40px;color:var(--g600,#888)">Đang tải…</div>
-    <div id="hist-empty" style="display:none;text-align:center;padding:40px;color:var(--g600,#888)">Chưa có buổi luyện tập nào.</div>
+    <h2 style="margin-bottom:4px">📋 Speaking History</h2>
+    <p style="font-size:14px;color:var(--g600,#666);margin-bottom:18px">Your practice sessions — click Detail to review AI feedback, or Retry to practice again.</p>
+    <div id="hist-loading" style="text-align:center;padding:40px;color:var(--g600,#888)">Loading…</div>
+    <div id="hist-empty" style="display:none;text-align:center;padding:40px;color:var(--g600,#888)">No practice sessions yet.</div>
     <div class="table-wrap" style="overflow-x:auto;display:none" id="hist-table-wrap">
-      <table style="min-width:660px;width:100%">
+      <table style="min-width:700px;width:100%;font-size:14px">
         <thead><tr>
-          <th>Ngày</th><th>Mode</th><th>Topic</th><th>Q</th><th style="text-align:center">Lần</th>
+          <th>Date</th><th>Mode</th><th>Topic</th>
+          <th style="text-align:center">Q</th><th style="text-align:center">Attempts</th>
           <th style="text-align:center">Fluency</th><th style="text-align:center">Vocab</th>
           <th style="text-align:center">Grammar</th><th style="text-align:center">Pron.</th>
           <th style="text-align:center">Overall</th><th></th>
@@ -1240,7 +1241,7 @@ function setupKWUI(qo){
   const kwLocked=(S.retryCount||0)>=4;
   if(!hasKW||kwLocked){
     bar.style.display='none';
-    if(kwLocked&&hasKW) toast('Lần luyện thứ '+(S.retryCount+1)+' — Keywords đã bị ẩn hoàn toàn 💪','info',3000);
+    if(kwLocked&&hasKW) toast('Attempt '+(S.retryCount+1)+' — Keywords are hidden. Speak from memory! 💪','info',3000);
     return;
   }
   bar.style.display='grid';
@@ -1367,8 +1368,8 @@ async function finishSession(){
       const rc=S.retryCount||0;
       const info=document.getElementById('retry-info');
       if(info){
-        const kwMsg=rc>=3?'🔒 Keywords đã bị ẩn hoàn toàn từ lần này':'🔑 Keywords còn hiển thị '+(3-rc)+' lần nữa';
-        info.innerHTML=`Lần luyện tập thứ <strong>${rc+1}</strong> &nbsp;·&nbsp; ${kwMsg}`;
+        const kwMsg=rc>=3?'🔒 Keywords are now fully hidden — speak from memory':'🔑 Keywords visible for '+(3-rc)+' more attempt(s)';
+        info.innerHTML=`Practice attempt <strong>${rc+1}</strong> &nbsp;·&nbsp; ${kwMsg}`;
       }
     },300);
   }catch(e){gStep('Lỗi: '+e.message);toast('Lỗi: '+e.message,'error',6000);setTimeout(()=>SS('S-session'),3000);}
