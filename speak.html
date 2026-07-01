@@ -2422,13 +2422,42 @@ function finishAndExit(){
 function retryFromHistory(i){
   const row=(window._histRows||[])[i];if(!row)return;
   let qs=[];
+
+  // Thử 1: QuestionsJSON
   try{
     const raw=JSON.parse(row.QuestionsJSON||'[]');
-    qs=raw.map(q=>({question:typeof q==='string'?q:(q.question||q),keywords:[],hints:[]}));
-  }catch(e){toast('Không đọc được câu hỏi cũ','error');return;}
-  if(!qs.length){toast('Không có câu hỏi để retry','error');return;}
+    if(Array.isArray(raw)&&raw.length)
+      qs=raw.map(q=>({question:typeof q==='string'?q:(q.question||String(q)),keywords:[],hints:[]}));
+  }catch(e){}
+
+  // Thử 2: lấy câu hỏi từ ResultsJSON (mỗi item có field question)
+  if(!qs.length){
+    try{
+      const res=JSON.parse(row.ResultsJSON||'[]');
+      if(Array.isArray(res)&&res.length){
+        qs=res.filter(r=>r.question).map(r=>({question:r.question,keywords:[],hints:[]}));
+      }
+    }catch(e){}
+  }
+
   const nextRetry=(parseInt(row.RetryCount||0))+1;
-  S.topic = row.Topic||row.topic||'';  // giữ topic cũ
+  S.topic=row.Topic||row.topic||'';
+
+  // Thử 3: không có câu hỏi nào → mở setup form với topic đã điền sẵn
+  if(!qs.length){
+    const mode=row.Mode||'part1';
+    toast('Could not restore questions — please re-enter them below','info',4000);
+    S.mode=mode;
+    buildSetup(mode);
+    SS('S-setup');
+    // Điền topic sẵn nếu có
+    setTimeout(()=>{
+      const ti=document.getElementById('topic-inp');
+      if(ti&&S.topic) ti.value=S.topic;
+    },100);
+    return;
+  }
+
   const mode=row.Mode||'custom';
   launch(mode,qs,nextRetry);
 }
