@@ -407,6 +407,11 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       </div>
     </div>
     <div id="setup-qs"></div>
+    <!-- TOPIC -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);display:block;margin-bottom:6px">📌 Topic / Chủ đề</label>
+      <input id="topic-inp" type="text" placeholder="Vd: Hometown, Technology, Education…" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:14px;font-family:var(--f);outline:none" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--g200)'">
+    </div>
     <!-- Mode selector: Record (graded later) vs Live (real-time voice) -->
     <div style="background:var(--g100);border-radius:var(--rl);padding:13px 14px;margin-bottom:12px;border:1.5px solid var(--g200)">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);margin-bottom:9px">Chọn chế độ luyện:</div>
@@ -453,6 +458,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       </div>
     </div>
     <button class="btn btn-primary btn-lg btn-full" onclick="startForecast()">🎲 Random &amp; Start</button>
+    <button class="btn btn-outline btn-lg btn-full" style="margin-top:8px" onclick="SS('S-history');loadSpeakHistory()">📋 Lịch sử luyện tập của tôi</button>
   </div>
 </div>
 
@@ -469,12 +475,11 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
     </div>
   </div>
   <div class="main">
-    <div class="prog-hdr"><span id="prog-txt">Question 1</span><span id="prog-pct">0%</span></div>
+    <div class="prog-hdr"><span id="prog-txt">Question 1</span><span id="ptt-countdown" style="font-family:var(--fm);font-weight:700;color:var(--red)">1:00</span><span id="prog-pct">0%</span></div>
     <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
     <div class="q-box">
       <div class="q-box-lbl" id="q-lbl">QUESTION</div>
       <div class="q-box-txt" id="q-txt">Loading…</div>
-      <div class="q-tts" id="tts-btn" onclick="replayQ()" title="Listen again">🔊</div>
       <div class="q-num" id="q-num">1</div>
     </div>
     <div id="prep-wrap" style="display:none">
@@ -491,16 +496,17 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
     <div id="hints-disp" class="kw-display"></div>
     <div id="words-disp" class="kw-display"></div>
     <div class="rec-area" id="rec-area">
-      <div class="rec-btn" id="rec-btn" onclick="toggleRec()">🎤</div>
+      <div class="rec-btn" id="rec-btn" onclick="toggleTalk()">🎤</div>
       <div class="wvf" id="wvf"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
-      <div class="rec-status" id="rec-st">Tap mic to start recording</div>
+      <div class="rec-status" id="rec-st">Nhấn <b>SPACE</b> (hoặc 🎤) để bắt đầu nói</div>
       <div class="rec-timer" id="rec-time" style="display:none">0:00</div>
-      <div class="rec-hint" id="rec-hint">Tap mic again to stop</div>
+      <div class="rec-hint" id="rec-hint">Nhấn SPACE lần nữa để chốt câu</div>
+      <div id="ptt-interim" style="font-size:13px;color:var(--g600,#666);margin-top:8px;min-height:18px;font-style:italic"></div>
     </div>
+    <button class="btn btn-primary btn-full btn-lg" id="next-q-btn" onclick="nextQuestion()" style="margin-bottom:14px">Next →</button>
     <div id="submit-wrap" style="display:none;margin-bottom:14px">
-      <button class="btn btn-green btn-lg btn-full" onclick="submitAll()">✅ Submit All &amp; Get Results</button>
+      <button class="btn btn-green btn-lg btn-full" onclick="finishSession()">✅ Xem kết quả</button>
     </div>
-    <button class="btn btn-outline btn-full" id="replay-btn" onclick="replayQ()" disabled style="margin-bottom:22px">🔊 Replay Question</button>
   </div>
 </div>
 
@@ -615,10 +621,43 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       <div class="rpt-box" id="rpt-body"></div>
     </div>
     <div id="qa-list"><div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div></div>
+    <div id="retry-info" style="text-align:center;font-size:12px;color:var(--g600,#666);margin-bottom:10px"></div>
     <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:28px">
-      <button class="btn btn-primary btn-lg" style="flex:1" onclick="again()">🔄 Practice Again</button>
+      <button class="btn btn-primary btn-lg" id="btn-retry" style="flex:1" onclick="again()">🔄 Re-try</button>
+      <button class="btn btn-green btn-lg" style="flex:1" onclick="finishAndExit()">✅ Finish</button>
+      <button class="btn btn-outline btn-lg" style="flex:1" onclick="SS('S-history');loadSpeakHistory()">📋 Lịch sử</button>
       <button class="btn btn-grey btn-lg" style="flex:1" onclick="goHub()">🏠 Dashboard</button>
     </div>
+  </div>
+</div>
+
+<!-- ── STUDENT HISTORY SCREEN ── -->
+<div class="screen" id="S-history">
+  <div class="topbar">
+    <span class="tb-brand">Language <em>Hub</em></span>
+    <span class="tb-app">/ Speaking History</span>
+    <div class="tb-right">
+      <span class="tb-user" id="u-hist"></span>
+      <button class="tb-back" onclick="SS('S-home')">← Back</button>
+    </div>
+  </div>
+  <div class="main" style="max-width:860px">
+    <h2 style="margin-bottom:4px">📋 Lịch sử luyện Speaking</h2>
+    <p style="font-size:13px;color:var(--g600,#666);margin-bottom:18px">Các buổi luyện tập của bạn — bấm dòng để xem chi tiết.</p>
+    <div id="hist-loading" style="text-align:center;padding:40px;color:var(--g600,#888)">Đang tải…</div>
+    <div id="hist-empty" style="display:none;text-align:center;padding:40px;color:var(--g600,#888)">Chưa có buổi luyện tập nào.</div>
+    <div class="table-wrap" style="overflow-x:auto;display:none" id="hist-table-wrap">
+      <table style="min-width:660px;width:100%">
+        <thead><tr>
+          <th>Ngày</th><th>Mode</th><th>Topic</th><th>Q</th><th style="text-align:center">Lần</th>
+          <th style="text-align:center">Fluency</th><th style="text-align:center">Vocab</th>
+          <th style="text-align:center">Grammar</th><th style="text-align:center">Pron.</th>
+          <th style="text-align:center">Overall</th><th></th>
+        </tr></thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+    <div id="hist-detail" style="margin-top:24px"></div>
   </div>
 </div>
 
@@ -672,6 +711,82 @@ let ttsCache={}, _ttsId=0;
 })();
 
 function goHub(){location.href='./index.html';}
+
+// ── STUDENT HISTORY ──
+async function loadSpeakHistory(){
+  const u=document.getElementById('u-hist');
+  if(u&&S.user) u.textContent=S.user.fullName||'';
+  const loading=document.getElementById('hist-loading');
+  const empty=document.getElementById('hist-empty');
+  const wrap=document.getElementById('hist-table-wrap');
+  const tbody=document.getElementById('hist-tbody');
+  const detail=document.getElementById('hist-detail');
+  if(loading) loading.style.display='block';
+  if(empty) empty.style.display='none';
+  if(wrap) wrap.style.display='none';
+  if(detail) detail.innerHTML='';
+  try{
+    const res=await gasCall('speak.getMyHistory',{});
+    if(loading) loading.style.display='none';
+    const rows=(res.sessions||[]).slice().reverse();
+    if(!rows.length){if(empty)empty.style.display='block';return;}
+    if(wrap) wrap.style.display='block';
+    const fmtD=v=>{try{const d=new Date(v);return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}catch(e){return '—';}};
+    const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#999';
+    const cell=v=>v!=null?`<strong style="color:${bc(v)}">${v}</strong>`:'<span style="color:#bbb">—</span>';
+    const avgCrit=(rs,keys)=>{const vs=[];(rs||[]).forEach(r=>{const sc=r.scores||{};for(const k of keys){const x=sc[k];if(x!=null){const n=typeof x==='object'?x.score:x;if(!isNaN(parseFloat(n))){vs.push(parseFloat(n));break;}}}});return vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length*2)/2:null;};
+    tbody.innerHTML=rows.map((row,i)=>{
+      let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
+      let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
+      const avg=results.length?Math.round(results.reduce((a,x)=>a+(parseFloat(x.overall)||0),0)/results.length*2)/2:null;
+      const attempts=parseInt(row.RetryCount||0)+1;  // 1-based (lần đầu=1, retry1=2, ...)
+      const fl=avgCrit(results,['fluency']),vc=avgCrit(results,['lexical','vocabulary']),gr=avgCrit(results,['grammar']),pr=avgCrit(results,['pronunciation']);
+      return `<tr>
+        <td style="font-size:11px;white-space:nowrap">${fmtD(row.StartingTime)}</td>
+        <td><span style="background:#f0f0ee;border-radius:5px;padding:2px 7px;font-size:11px">${row.Mode||'—'}</span></td>
+        <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${row.Topic||''}">${row.Topic||'<span style="color:#bbb">—</span>'}</td>
+        <td style="text-align:center">${qs.length||results.length||'—'}</td>
+        <td style="text-align:center"><span style="background:${attempts>=10?'#dc2626':attempts>=5?'#d97706':'#6b7280'};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700">${attempts}x</span></td>
+        <td style="text-align:center">${cell(fl)}</td>
+        <td style="text-align:center">${cell(vc)}</td>
+        <td style="text-align:center">${cell(gr)}</td>
+        <td style="text-align:center">${cell(pr)}</td>
+        <td style="text-align:center;font-size:1rem"><strong style="color:${bc(avg||0)}">${avg??'—'}</strong></td>
+        <td style="white-space:nowrap">
+          <button onclick="showHistDetail(${i})" style="border:none;background:none;color:#2563eb;font-size:12px;cursor:pointer;padding:2px 6px">🔍 Detail</button>
+          <button onclick="retryFromHistory(${i})" style="border:none;background:none;color:#dc2626;font-size:12px;cursor:pointer;padding:2px 6px">🔄 Retry</button>
+        </td>
+      </tr>`;
+    }).join('');
+    // Store rows for detail view
+    window._histRows=rows;
+  }catch(e){
+    if(loading) loading.style.display='none';
+    if(empty){empty.style.display='block';empty.textContent='Lỗi tải lịch sử: '+e.message;}
+  }
+}
+function showHistDetail(i){
+  const row=(window._histRows||[])[i];if(!row)return;
+  let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
+  let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
+  const detail=document.getElementById('hist-detail');
+  if(!detail)return;
+  const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#999';
+  detail.innerHTML=`<h3 style="margin-bottom:12px">Chi tiết buổi: ${row.Mode||''} — ${new Date(row.StartingTime).toLocaleDateString('vi-VN')}</h3>`
+    +(results.map((r,qi)=>{
+      const sc=r.scores||{};
+      const qText=typeof qs[qi]==='string'?qs[qi]:(qs[qi]?.question||'');
+      return `<div style="border:1px solid #eee;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#444">Q${qi+1}. ${qText}</div>
+        <div style="font-size:12px;color:#666;margin-bottom:8px;font-style:italic">"${r.studentAnswer||'—'}"</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px">
+          ${['fluency','lexical','grammar','pronunciation'].map(k=>{const x=sc[k];const s=x&&typeof x==='object'?x.score:x;return `<span>${k}: <strong style="color:${bc(parseFloat(s)||0)}">${s??'—'}</strong>${x?.comment?` — ${x.comment}`:''}</span>`;}).join('')}
+        </div>
+        ${r.suggestion?`<div style="margin-top:6px;font-size:12px;color:#555">💡 ${r.suggestion}</div>`:''}
+      </div>`;
+    }).join('')||'<div style="color:#aaa;font-size:13px">Chưa có chi tiết từng câu.</div>');
+  detail.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function SS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function toast(m,t,d){t=t||'info';d=d||3400;const el=document.createElement('div');el.className='toast '+t;el.innerHTML=`<span>${{success:'✓',error:'✕',info:'ℹ'}[t]||'ℹ'}</span><span>${m}</span>`;document.getElementById('toast-wrap').appendChild(el);setTimeout(()=>el.remove(),d);}
 function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v.startsWith('AIza')){toast('Key phải bắt đầu bằng "AIza"','error');return;}S.gkey=v;localStorage.setItem('fl_key',v);kSt(true);toast('API key đã lưu ✓','success');}
@@ -967,6 +1082,7 @@ function setSetupMode(m){
 async function startFromSetup(){
   const qs=collectQs(S.mode);
   if(!qs.length){toast('Vui lòng nhập ít nhất 1 câu hỏi','error');return;}
+  S.topic=(document.getElementById('topic-inp')||{value:''}).value.trim()||'';
   // Live mode for Part 1/2/3/full — pass questions to Gemini Live as examiner script
   if(_setupMode==='live'||S.mode==='ielts-live'){
     S.liveIeltQs=qs;
@@ -986,29 +1102,31 @@ async function startForecast(){
 }
 
 // ── LAUNCH IELTS RECORD SESSION ───────────────────────────────────────
-function launch(mode,qs){
-  S.mode=mode;S.qs=qs;S.recs=qs.map(q=>({question:q.question,audioBlob:null,audioBase64:null,mimeType:null}));
+function launch(mode,qs,retryCount){
+  S.mode=mode;S.qs=qs;S.recs=qs.map(q=>({question:q.question,studentAnswer:''}));
+  S.gradeP=new Array(qs.length).fill(null);
   S.idx=0;S.t0=new Date().toISOString();
+  S.retryCount=(retryCount||0);   // lần luyện thứ (0=lần đầu, 1=retry1, ...)
+  S.qSeconds=(mode==='part2')?120:90;
   const lbl={part1:'/ IELTS Part 1',part2:'/ IELTS Part 2',part3:'/ IELTS Part 3',full:'/ Full Simulation',custom:'/ Custom Practice',forecast:'/ Forecast Test'};
   document.getElementById('sess-tb').textContent=lbl[mode]||'/ Speaking';
   updProg();SS('S-session');loadQ(0);
 }
 
-async function loadQ(idx){
+function loadQ(idx){
   const qo=S.qs[idx];if(!qo)return;
-  if(S.ttsAu){try{S.ttsAu.onended=null;S.ttsAu.onerror=null;S.ttsAu.pause();S.ttsAu.currentTime=0;}catch(e){}S.ttsAu=null;}ttsId++;
   document.getElementById('q-txt').textContent=qo.question;
   document.getElementById('q-num').textContent=idx+1;
   const lblMap={part1:'IELTS PART 1',part2:'IELTS PART 2 — LONG TURN',part3:'IELTS PART 3',full:qo.partLabel?'IELTS '+qo.partLabel.toUpperCase():'IELTS',custom:'QUESTION',forecast:'QUESTION'};
   document.getElementById('q-lbl').textContent=(lblMap[S.mode]||'QUESTION')+' — Q'+(idx+1);
-  updProg();resetRecUI();document.getElementById('replay-btn').disabled=true;setupKWUI(qo);
+  updProg();setupKWUI(qo);
+  S.curAnswer='';S.talking=false;
+  resetTalkUI();
+  document.getElementById('submit-wrap').style.display='none';
+  document.getElementById('next-q-btn').textContent=(idx>=S.qs.length-1)?'Hoàn thành ✓':'Next →';
   if(S.mode==='part2'||(S.mode==='full'&&qo.partLabel==='Part 2'))startPrep();
   else{document.getElementById('prep-wrap').style.display='none';clearInterval(S.prepTm);}
-  const rb=document.getElementById('rec-btn');rb.style.opacity='.4';rb.style.pointerEvents='none';
-  await speakQ(qo.question);
-  rb.style.opacity='1';rb.style.pointerEvents='auto';
-  document.getElementById('replay-btn').disabled=false;
-  if(S.mode!=='cefr'&&S.qs[idx+1])gasCall('speak.getTTS',{text:S.qs[idx+1].question.substring(0,300),voice:'nova'}).then(r=>{if(r.success&&r.audio)ttsCache[S.qs[idx+1].question]='data:audio/mpeg;base64,'+r.audio;}).catch(()=>{});
+  startQCountdown(S.qSeconds||90);
 }
 function setupKWUI(qo){
   S.hintsVis=false;S.wordsVis=false;
@@ -1016,10 +1134,16 @@ function setupKWUI(qo){
   hd.className='kw-display';hd.innerHTML='';wd.className='kw-display';wd.innerHTML='';
   const hasKW=qo.keywords&&qo.keywords.length>0;
   const bar=document.getElementById('kw-bar');
-  if(!hasKW){bar.style.display='none';return;}
+  // Lần 5+ (retryCount >= 4): keywords bị ẩn hoàn toàn, không cho unhide
+  const kwLocked=(S.retryCount||0)>=4;
+  if(!hasKW||kwLocked){
+    bar.style.display='none';
+    if(kwLocked&&hasKW) toast('Lần luyện thứ '+(S.retryCount+1)+' — Keywords đã bị ẩn hoàn toàn 💪','info',3000);
+    return;
+  }
   bar.style.display='grid';
   document.getElementById('hints-btn').style.display='none';
-  document.getElementById('words-btn').style.display=hasKW?'flex':'none';
+  document.getElementById('words-btn').style.display='flex';
   if(hasKW)wd.innerHTML=qo.keywords.map(w=>`<div class="kw-pill">${w}</div>`).join('');
 }
 function toggleHints(){S.hintsVis=!S.hintsVis;const d=document.getElementById('hints-disp'),b=document.getElementById('hints-btn');d.className='kw-display'+(S.hintsVis?' vis':'');b.textContent=S.hintsVis?'👀 Visible':'🙈 Hidden';b.className='kwbtn'+(S.hintsVis?' on':'');}
@@ -1027,25 +1151,143 @@ function toggleWords(){S.wordsVis=!S.wordsVis;const d=document.getElementById('w
 function updProg(){const tot=S.qs.length,idx=S.idx;const pct=tot?Math.round((idx/tot)*100):0;document.getElementById('prog-txt').textContent='Question '+(idx+1)+' of '+tot;document.getElementById('prog-pct').textContent=pct+'%';document.getElementById('prog-fill').style.width=pct+'%';}
 function startPrep(){document.getElementById('prep-wrap').style.display='block';S.prepLeft=60;clearInterval(S.prepTm);updPrepUI();S.prepTm=setInterval(()=>{S.prepLeft--;updPrepUI();if(S.prepLeft<=0){clearInterval(S.prepTm);document.getElementById('prep-wrap').style.display='none';toast('Prep time over!','info');}},1000);}
 function updPrepUI(){const m=Math.floor(S.prepLeft/60),s=S.prepLeft%60;document.getElementById('prep-cd').textContent=m+':'+String(s).padStart(2,'0');document.getElementById('prep-pfill').style.width=(S.prepLeft/60*100)+'%';}
-function resetRecUI(){if(S.isRec)stopRec(false);S.isRec=false;S.chunks=[];S.recSec=0;clearInterval(S.recTm);const rb=document.getElementById('rec-btn');rb.textContent='🎤';rb.className='rec-btn';rb.disabled=false;rb.style.opacity='1';rb.style.pointerEvents='auto';document.getElementById('rec-area').className='rec-area';document.getElementById('rec-st').textContent='Tap mic to start recording';document.getElementById('rec-time').style.display='none';document.getElementById('rec-hint').textContent='Tap mic again to stop';}
-async function toggleRec(){if(S.isRec)stopRec(true);else await startRec();}
-async function startRec(){
-  try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';S.mr=new MediaRecorder(stream,{mimeType:mime});S.chunks=[];S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};S.mr.onstop=onRecStop;S.mr.stream=stream;S.mr.start(100);S.isRec=true;S.recSec=0;const rb=document.getElementById('rec-btn');rb.textContent='⏹';rb.className='rec-btn act';document.getElementById('rec-area').className='rec-area recg';document.getElementById('rec-st').textContent='Recording… speak now';document.getElementById('rec-time').style.display='block';document.getElementById('rec-hint').textContent='Tap to stop';S.recTm=setInterval(()=>{S.recSec++;const m=Math.floor(S.recSec/60),s=S.recSec%60;document.getElementById('rec-time').textContent=m+':'+String(s).padStart(2,'0');},1000);}catch(e){toast('Microphone access denied','error');}
+// ── HYBRID STT: Web Speech (free) khi hỗ trợ; iOS Safari → MediaRecorder + Gemini ──
+const _SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const _isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const USE_WEBSPEECH=!!_SR&&!_isIOS;
+
+function resetTalkUI(){
+  const rb=document.getElementById('rec-btn');
+  rb.textContent='🎤';rb.className='rec-btn';rb.disabled=false;rb.style.opacity='1';rb.style.pointerEvents='auto';
+  document.getElementById('rec-area').className='rec-area';
+  document.getElementById('rec-st').innerHTML='Nhấn <b>SPACE</b> (hoặc 🎤) để bắt đầu nói';
+  document.getElementById('rec-hint').textContent='Nhấn SPACE lần nữa để chốt câu';
+  document.getElementById('rec-time').style.display='none';
+  document.getElementById('ptt-interim').textContent='';
 }
-function stopRec(proc){if(!S.mr||S.mr.state==='inactive')return;S.mr.stop();S.mr.stream.getTracks().forEach(t=>t.stop());S.isRec=false;clearInterval(S.recTm);if(proc){const rb=document.getElementById('rec-btn');rb.textContent='⏳';rb.disabled=true;document.getElementById('rec-st').textContent='Saving…';}}
-function onRecStop(){
-  const mime=S.mr.mimeType||'audio/webm';const blob=new Blob(S.chunks,{type:mime});const idx=S.idx;
-  S.recs[idx].audioBlob=blob;S.recs[idx].mimeType=mime;
-  const rd=new FileReader();rd.onloadend=()=>{
-    S.recs[idx].audioBase64=rd.result.split(',')[1];S.recs[idx].question=S.qs[idx].question;
-    const rb=document.getElementById('rec-btn');rb.textContent='✓';rb.className='rec-btn dn';rb.disabled=false;
-    document.getElementById('rec-area').className='rec-area done';document.getElementById('rec-st').textContent='Answer saved ✓';document.getElementById('rec-hint').textContent='Re-record or wait for next question';
-    updSubmitBtn();setTimeout(()=>advanceQ(idx),1800);
-  };rd.readAsDataURL(blob);
+
+function startQCountdown(sec){
+  clearInterval(S.qcdTm);S.qcdLeft=sec;
+  const el=document.getElementById('ptt-countdown');
+  const upd=()=>{const m=Math.floor(S.qcdLeft/60),s=S.qcdLeft%60;if(el){el.textContent=m+':'+String(s).padStart(2,'0');el.style.color=S.qcdLeft<=10?'var(--red)':'var(--g600,#888)';}};
+  upd();
+  S.qcdTm=setInterval(()=>{S.qcdLeft--;upd();if(S.qcdLeft<=0){clearInterval(S.qcdTm);if(S.talking)stopTalk();toast('Hết giờ câu này','info');nextQuestion();}},1000);
 }
-function updSubmitBtn(){const done=S.recs.filter(r=>r.audioBase64).length;document.getElementById('submit-wrap').style.display=done>=S.qs.length?'block':'none';}
-async function advanceQ(done){const next=done+1;if(next<S.qs.length){S.idx=next;await loadQ(next);}else{document.getElementById('submit-wrap').style.display='block';toast('All done! Submit when ready.','success',4000);}}
-function confirmEnd(){const done=S.recs.filter(r=>r.audioBase64).length;if(!done){SS('S-home');return;}if(confirm('Submit '+done+' answer(s) for grading?'))submitAll();}
+
+// ── PUSH-TO-TALK ──
+function toggleTalk(){if(S.talking)stopTalk();else startTalk();}
+async function startTalk(){
+  if(S.talking)return;S.talking=true;
+  const rb=document.getElementById('rec-btn');rb.textContent='⏹';rb.className='rec-btn act';
+  document.getElementById('rec-area').className='rec-area recg';
+  document.getElementById('rec-st').innerHTML='🔴 Đang nghe… nói tự nhiên';
+  document.getElementById('rec-hint').textContent='Nhấn SPACE để chốt câu';
+  if(USE_WEBSPEECH)startWebSpeech();else await startRecFallback();
+}
+function stopTalk(){
+  if(!S.talking)return;S.talking=false;
+  if(USE_WEBSPEECH){try{S.rec&&S.rec.stop();}catch(e){}}else stopRecFallback();
+  const rb=document.getElementById('rec-btn');rb.textContent='✓';rb.className='rec-btn dn';
+  document.getElementById('rec-area').className='rec-area done';
+  document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';
+  document.getElementById('rec-hint').textContent='Bấm Next, hoặc SPACE để nói thêm';
+}
+
+// Web Speech API
+function startWebSpeech(){
+  try{
+    const r=new _SR();S.rec=r;r.lang='en-US';r.continuous=true;r.interimResults=true;
+    r.onresult=(e)=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)S.curAnswer=(S.curAnswer+' '+t).trim();else interim+=t;}document.getElementById('ptt-interim').textContent=interim||S.curAnswer;};
+    r.onerror=(e)=>{if(e.error==='not-allowed'||e.error==='service-not-allowed')toast('Micro bị chặn — hãy cho phép','error');};
+    r.onend=()=>{if(S.talking){try{r.start();}catch(e){}}};   // im lặng → tự nghe lại
+    r.start();
+  }catch(e){toast('Lỗi nhận diện giọng nói: '+e.message,'error');S.talking=false;resetTalkUI();}
+}
+
+// MediaRecorder fallback (iOS) → Gemini transcribe
+async function startRecFallback(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':(MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm');
+    S.mr=new MediaRecorder(stream,{mimeType:mime});S.chunks=[];
+    S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};
+    S.mr.onstop=onRecStopFallback;S.mr.stream=stream;S.mr.start(100);
+  }catch(e){toast('Micro bị chặn','error');S.talking=false;resetTalkUI();}
+}
+function stopRecFallback(){if(S.mr&&S.mr.state!=='inactive'){S.mr.stop();S.mr.stream.getTracks().forEach(t=>t.stop());}}
+function onRecStopFallback(){
+  const mime=S.mr.mimeType||'audio/webm';const blob=new Blob(S.chunks,{type:mime});
+  document.getElementById('rec-st').textContent='Đang xử lý giọng nói…';
+  const rd=new FileReader();
+  rd.onloadend=async()=>{
+    const b64=rd.result.split(',')[1];
+    try{S.curAnswer=(S.curAnswer+' '+await transcribeAudio(b64,mime)).trim();document.getElementById('ptt-interim').textContent=S.curAnswer;document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';}
+    catch(e){toast('Lỗi phiên âm: '+e.message,'error',5000);document.getElementById('rec-st').textContent='Phiên âm lỗi — thử nói lại';}
+  };
+  rd.readAsDataURL(blob);
+}
+
+// ── NEXT: chốt câu + chấm NỀN (không chờ) ──
+function nextQuestion(){
+  if(S.talking)stopTalk();
+  clearInterval(S.qcdTm);
+  const idx=S.idx,ans=(S.curAnswer||'').trim();
+  S.recs[idx].studentAnswer=ans;S.recs[idx].question=S.qs[idx].question;
+  if(ans.length>=5){
+    const kw=(S.qs[idx].keywords||[]).join(', ');
+    S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);}).catch(e=>{console.warn('grade Q'+idx,e);});
+  }
+  const next=idx+1;
+  if(next<S.qs.length){S.idx=next;loadQ(next);}else finishSession();
+}
+
+// ── FINISH: chờ chấm nền xong → báo cáo → lưu → render ──
+async function finishSession(){
+  if(S.talking)stopTalk();clearInterval(S.qcdTm);
+  const answered=S.recs.filter(r=>r.studentAnswer&&r.studentAnswer.trim().length>=2);
+  if(!answered.length){if(confirm('Chưa có câu trả lời nào. Thoát?'))SS('S-home');return;}
+  if(!(await geminiPreflight()))return;
+  SS('S-grading');document.getElementById('g-steps').innerHTML='';
+  gStep('Đang hoàn tất chấm điểm…');
+  try{
+    await Promise.all(S.gradeP.filter(Boolean));
+    gStep('Chấm xong ✓',true);
+    gStep('Đang tạo báo cáo IELTS…');
+    const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
+    let report='';
+    try{report=await gemFetch('You are a professional IELTS examiner.',buildIELTSPrompt(tb),2000);}
+    catch(eRpt){report='### ⚠️ Báo cáo chưa tải được\n\n'+eRpt.message+'\n\nXem điểm từng câu bên dưới.';toast('Báo cáo lỗi: '+eRpt.message,'error',5000);}
+    gStep('Báo cáo xong ✓',true);
+    try{saveToGAS(S.mode||'ielts',answered,report,S.t0?Math.round((new Date()-new Date(S.t0))/1000):0,S.retryCount||0);}catch(_){}
+    setTimeout(()=>{
+      renderResults(answered,report,'ielts',null);
+      // Hiển thị số lần luyện + trạng thái keywords
+      const rc=S.retryCount||0;
+      const info=document.getElementById('retry-info');
+      if(info){
+        const kwMsg=rc>=3?'🔒 Keywords đã bị ẩn hoàn toàn từ lần này':'🔑 Keywords còn hiển thị '+(3-rc)+' lần nữa';
+        info.innerHTML=`Lần luyện tập thứ <strong>${rc+1}</strong> &nbsp;·&nbsp; ${kwMsg}`;
+      }
+    },300);
+  }catch(e){gStep('Lỗi: '+e.message);toast('Lỗi: '+e.message,'error',6000);setTimeout(()=>SS('S-session'),3000);}
+}
+
+function confirmEnd(){
+  if(S.talking)stopTalk();clearInterval(S.qcdTm);
+  const done=S.recs.filter(r=>r.studentAnswer&&r.studentAnswer.trim()).length;
+  if(!done){SS('S-home');return;}
+  if(confirm('Kết thúc và xem kết quả '+done+' câu đã trả lời?'))finishSession();
+}
+
+// SPACE = push-to-talk (chỉ khi đang ở màn luyện tập, không trong ô nhập)
+document.addEventListener('keydown',function(e){
+  if(e.code!=='Space')return;
+  const ss=document.getElementById('S-session');
+  if(!ss||ss.offsetParent===null)return;
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||e.target.isContentEditable)return;
+  e.preventDefault();toggleTalk();
+});
 
 // ── TRANSCRIBE AUDIO VIA GEMINI REST ─────────────────────────────────
 async function transcribeAudio(base64, mime){
@@ -1140,7 +1382,7 @@ async function submitAll(){
 }
 
 // ── GRADE ONE QUESTION — returns {scores, overall, errors, suggestion} ──
-async function gradeOneQuestion(question, answer) {
+async function gradeOneQuestion(question, answer, keywords) {
   if (!answer || answer.trim().length < 5) return {};
 
   const RUBRIC = `
@@ -1192,6 +1434,7 @@ TASK: Grade the following IELTS speaking answer per the rubric above.
 
 Question: "${question}"
 Student's answer: "${answer}"
+${keywords ? `Keywords the student should use: "${keywords}"` : ''}
 
 NOTE: This is SPOKEN English transcribed. Ignore punctuation/spelling. Judge spoken fluency, vocabulary, grammar structures, and inferred pronunciation.
 
@@ -1207,6 +1450,7 @@ Return ONLY raw JSON (no markdown, no explanation):
   "errors": [
     {"wrong": "exact phrase copied from student answer", "correct": "corrected version", "reason": "lý do ngắn tiếng Việt"}
   ],
+  "keywordUsage": "nhận xét ngắn về việc SV có dùng keywords không (nếu có keywords)",
   "suggestion": "1-2 câu gợi ý cải thiện cụ thể nhất bằng tiếng Việt"
 }
 
@@ -1827,13 +2071,11 @@ ${tb}
 
 
 // ── SAVE RESULT TO GAS ────────────────────────────────────────────────
-function saveToGAS(mode, results, report, durationSec) {
+function saveToGAS(mode, results, report, durationSec, retryCount) {
   const user = S.user || {};
   const now  = new Date();
   const startTime = S.liveStartTime || S.t0 || new Date(now - (durationSec||0)*1000);
-  // startTime may be an ISO string (S.t0) or a Date object (S.liveStartTime) — normalise both
   const startTimeISO = (startTime instanceof Date) ? startTime.toISOString() : String(startTime);
-  // Build per-Q array
   const qArr = (results||[]).map(r => r.question || '');
   const rArr = (results||[]).map(r => ({
     question:      r.question      || '',
@@ -1851,6 +2093,8 @@ function saveToGAS(mode, results, report, durationSec) {
     class:          user.class || user.Class || '',
     mode:           mode,
     durationMin:    Math.round((durationSec||0)/60),
+    topic:          S.topic||'',
+    retryCount:     retryCount||0,
     questionsJSON:  JSON.stringify(qArr),
     resultsJSON:    JSON.stringify(rArr),
     reportText:     (report||'').substring(0, 4000)
@@ -1896,80 +2140,152 @@ function renderLiveResults(report,startStr,endStr,durStr,qCount){
 }
 
 function renderResults(results,report,mode,liveData){
-  window._lastResults = results; // store for upgradeAnswer lazy calls
-  document.getElementById('res-mode').textContent='IELTS SPEAKING';
-  const oa=results.map(r=>r.overall||0).filter(s=>s>0);
-  const avg=oa.length?Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2:0;
-  document.getElementById('res-sc').textContent=avg||'—';
-  document.getElementById('res-lb').textContent='Overall Band Score';
-  const cks=[['fluency','FC'],['lexical','LR'],['grammar','GR'],['pronunciation','P']];
-  document.getElementById('res-crit').innerHTML=cks.map(([k,a])=>{const sc=results.map(r=>(r.scores&&r.scores[k]&&r.scores[k].score)||0).filter(s=>s>0);const av=sc.length?Math.round(sc.reduce((x,y)=>x+y,0)/sc.length*2)/2:0;return `<div class="crit-box"><div class="crit-score">${av||'—'}</div><div class="crit-name">${a}</div></div>`;}).join('');
+  window._lastResults = results;
+  const topic = S.topic || '';
+  const oa = results.map(r=>parseFloat(r.overall)||0).filter(s=>s>0);
+  const avg = oa.length ? Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2 : 0;
+  const rc  = S.retryCount||0;
+
+  // ── Hero header ──
+  document.getElementById('res-mode').textContent = topic
+    ? `🎙 ${S.mode?.toUpperCase()||'IELTS'} · ${topic}` : 'IELTS SPEAKING';
+  document.getElementById('res-sc').textContent  = avg||'—';
+  document.getElementById('res-lb').textContent  = `Overall Band · Lần ${rc+1}`;
+
+  // ── Criterion averages (4 pills) ──
+  const CKS=[['fluency','Fluency & Coherence'],['lexical','Lexical Resource'],['grammar','Grammatical Range'],['pronunciation','Pronunciation']];
+  const bandC = s => s>=7?'#16a34a':s>=5.5?'#d97706':s>0?'#dc2626':'#888';
+  document.getElementById('res-crit').innerHTML = CKS.map(([k,lbl])=>{
+    const vals=results.map(r=>{const sc=r.scores&&r.scores[k];return sc?(parseFloat(sc.score||0)||0):0;}).filter(v=>v>0);
+    const av=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*2)/2:0;
+    return `<div class="crit-box"><div class="crit-score" style="color:${bandC(av)}">${av||'—'}</div><div class="crit-name">${lbl}</div></div>`;
+  }).join('');
+
   document.getElementById('live-sum').style.display='none';
-  if(report){document.getElementById('rpt-card').style.display='block';document.getElementById('rpt-body').innerHTML=md(report);}
-  const qaList=document.getElementById('qa-list');qaList.innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div>';
-  results.forEach((r,i)=>{
-    const el=document.createElement('div');
-    el.className='qacc';
+  document.getElementById('rpt-card').style.display='none';
 
-    // Score badge color
-    const scoreColor = sc => sc >= 7 ? 'hi' : sc >= 5.5 ? 'mid' : 'lo';
-    const bandVal = r.overall || '—';
+  // ── Score summary table (Q1/Q2/… + overall each) ──
+  const qaList = document.getElementById('qa-list');
+  const tableRows = results.map((r,i)=>{
+    const ov=parseFloat(r.overall)||0;
+    const fl=r.scores?.fluency?.score||'—',lx=r.scores?.lexical?.score||'—',gr=r.scores?.grammar?.score||'—',pr=r.scores?.pronunciation?.score||'—';
+    const col=v=>isNaN(parseFloat(v))?'<td style="text-align:center;color:#bbb">—</td>':`<td style="text-align:center;font-weight:700;color:${bandC(parseFloat(v))}">${v}</td>`;
+    return `<tr>
+      <td style="font-size:12px;color:#666;white-space:nowrap">Q${i+1}</td>
+      <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.question)}">${esc(r.question)}</td>
+      ${col(fl)}${col(lx)}${col(gr)}${col(pr)}
+      <td style="text-align:center"><strong style="font-size:1rem;color:${bandC(ov)}">${ov||'—'}</strong></td>
+    </tr>`;
+  }).join('');
 
-    // Build scores HTML
-    const scoreNames = {fluency:'Fluency & Coherence', lexical:'Lexical Resource', grammar:'Grammar Range', pronunciation:'Pronunciation'};
-    let scoresHtml = '';
-    if (r.scores) {
-      scoresHtml = `<div class="qs-lbl" style="margin-top:13px">📊 Điểm thành phần</div>
-        <div class="score-grid">${Object.entries(r.scores).map(([k,v])=>{
-          const sc = parseFloat(v.score||0);
-          return `<div class="score-row">
-            <div class="score-badge ${scoreColor(sc)}">${sc||'—'}</div>
-            <div class="score-detail">
-              <div class="score-name">${scoreNames[k]||k}</div>
-              <div class="score-cmt">${esc(v.comment||'')}</div>
-            </div>
-          </div>`;
-        }).join('')}</div>`;
-    }
+  // ── Per-question detail (2-col like reference) ──
+  const detailCards = results.map((r,i)=>{
+    const ov = parseFloat(r.overall)||0;
+    // dial SVG
+    const pct = Math.min(ov/9,1);
+    const circ = 2*Math.PI*40; // r=40
+    const dash = circ*pct;
+    const dialColor = bandC(ov);
+    const dial = `<svg width="100" height="60" viewBox="0 0 100 60" style="overflow:visible">
+      <path d="M10,50 A40,40 0 0,1 90,50" fill="none" stroke="#e5e7eb" stroke-width="8" stroke-linecap="round"/>
+      <path d="M10,50 A40,40 0 0,1 90,50" fill="none" stroke="${dialColor}" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${(dash/circ*126).toFixed(1)} 126" transform="rotate(0,50,50)"/>
+      <text x="50" y="46" text-anchor="middle" font-size="18" font-weight="700" fill="${dialColor}">${ov||'—'}</text>
+      <text x="50" y="57" text-anchor="middle" font-size="9" fill="#9ca3af">/9.0</text>
+    </svg>`;
 
-    // Build error-highlighted corrected text
-    const corrHtml = (r.errors !== undefined)
-      ? `<div class="qs-lbl" style="margin-top:13px">📝 Transcript + Lỗi</div>
-         <div class="corr-text">${renderCorrected(r.studentAnswer||'', r.errors||[])}</div>`
-      : (r.studentAnswer
-          ? `<div class="qs-lbl">Your Answer</div><div class="qs-student">${esc(r.studentAnswer)}</div>`
-          : '');
+    // Criterion list (right panel top)
+    const critList = CKS.map(([k,lbl])=>{
+      const sc=r.scores&&r.scores[k];
+      if(!sc) return '';
+      const v=parseFloat(sc.score||0)||0;
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#e5e7eb">${lbl}</div>
+          ${sc.comment?`<div style="font-size:11px;color:#9ca3af;margin-top:2px">${esc(sc.comment)}</div>`:''}
+        </div>
+        <div style="font-size:15px;font-weight:700;color:${bandC(v)};flex-shrink:0;margin-left:12px">${v||'—'}</div>
+      </div>`;
+    }).join('');
+
+    // Transcript with error highlights (left panel)
+    const transcript = r.errors?.length
+      ? `<div class="corr-text" style="font-size:13px;line-height:1.7">${renderCorrected(r.studentAnswer||'',r.errors)}</div>`
+      : `<div style="font-size:13px;line-height:1.7;color:#d1d5db;font-style:italic">"${esc(r.studentAnswer||'—')}"</div>`;
 
     // Suggestion
-    const suggHtml = r.suggestion
-      ? `<div class="qs-lbl" style="margin-top:13px">💡 Gợi ý cải thiện</div>
-         <div class="qs-sugg">${esc(r.suggestion)}</div>`
-      : '';
+    const sugg = r.suggestion ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(251,191,36,.1);border-radius:8px;border-left:3px solid #fbbf24">
+      <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:3px">💡 GỢI Ý CẢI THIỆN</div>
+      <div style="font-size:12px;color:#d1d5db">${esc(r.suggestion)}</div>
+    </div>` : '';
 
-    // Upgrade button (lazy — only calls Gemini on click)
-    const upgradeBtn = `
-      <div id="upg-wrap-${i}">
-        <button class="btn-upgrade" onclick="upgradeAnswer(${i})" id="upg-btn-${i}">
-          ✨ Nâng cấp câu trả lời
-        </button>
-        <div id="upg-box-${i}" style="display:none"></div>
-      </div>`;
+    // Keyword usage
+    const kwFb = r.keywordUsage ? `<div style="margin-top:8px;padding:8px 12px;background:rgba(99,102,241,.1);border-radius:8px;border-left:3px solid #818cf8">
+      <div style="font-size:11px;font-weight:700;color:#818cf8;margin-bottom:2px">🔑 KEYWORDS</div>
+      <div style="font-size:12px;color:#d1d5db">${esc(r.keywordUsage)}</div>
+    </div>` : '';
 
-    el.innerHTML=`
-      <div class="qacc-hdr" onclick="togQA(this)">
-        <div class="qa-n">${i+1}</div>
-        <div class="qa-qp">${esc(r.question)}</div>
-        <div class="qa-bp">Band ${bandVal}</div>
-        <span class="qa-cv">▼</span>
+    // Upgrade btn
+    const upgradeBtn = `<div id="upg-wrap-${i}" style="margin-top:10px">
+      <button class="btn-upgrade" onclick="upgradeAnswer(${i})" id="upg-btn-${i}">✨ Nâng cấp câu trả lời</button>
+      <div id="upg-box-${i}" style="display:none"></div>
+    </div>`;
+
+    return `<div style="background:#111827;border:1px solid rgba(255,255,255,.1);border-radius:14px;margin-bottom:16px;overflow:hidden">
+      <!-- Card header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'grid':'none'">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">${i+1}</div>
+          <div style="font-size:13px;font-weight:600;color:#e5e7eb;max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.question)}</div>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:${bandC(ov)};flex-shrink:0">Band ${ov||'—'}</div>
       </div>
-      <div class="qacc-body ${i===0?'open':''}" id="qab-${i}">
-        ${corrHtml}
-        ${scoresHtml}
-        ${suggHtml}
-        ${upgradeBtn}
-      </div>`;
-    qaList.appendChild(el);
-  });
+      <!-- 2-col body -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0" id="qdet-${i}">
+        <!-- LEFT: transcript + suggestion -->
+        <div style="padding:16px;border-right:1px solid rgba(255,255,255,.07)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:8px">Student's Answer</div>
+          ${transcript}
+          ${sugg}
+          ${kwFb}
+          ${upgradeBtn}
+        </div>
+        <!-- RIGHT: dial + criteria -->
+        <div style="padding:16px">
+          <div style="text-align:center;margin-bottom:10px">${dial}</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:4px">AI Feedback & Scoring</div>
+          ${critList}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  qaList.innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:8px">📊 Score Summary${topic?' · '+esc(topic):''}</div>
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid rgba(255,255,255,.1)">
+        <table style="width:100%;min-width:460px;border-collapse:collapse;background:#111827">
+          <thead><tr style="background:rgba(255,255,255,.05)">
+            <th style="padding:8px 10px;text-align:left;font-size:10px;color:#9ca3af;font-weight:700;text-transform:uppercase">Q</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;color:#9ca3af;font-weight:700;text-transform:uppercase">Question</th>
+            <th style="padding:8px 6px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700">FC</th>
+            <th style="padding:8px 6px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700">LR</th>
+            <th style="padding:8px 6px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700">GR</th>
+            <th style="padding:8px 6px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700">P</th>
+            <th style="padding:8px 10px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700">Band</th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:10px">🎙 Per-Question Feedback</div>
+    ${detailCards}`;
+
+  // Mobile: single-col for small screens
+  const style = document.createElement('style');
+  style.textContent='@media(max-width:600px){[id^="qdet-"]{grid-template-columns:1fr !important}[id^="qdet-"]>div:first-child{border-right:none !important;border-bottom:1px solid rgba(255,255,255,.07)}}';
+  document.head.appendChild(style);
+
   SS('S-results');
 }
 
@@ -1982,10 +2298,36 @@ function md(s){
 }
 
 function again(){
-  S.qs=[];S.recs=[];S.idx=0;S.liveTranscript=[];ttsCache={};ttsId=0;
+  // Reset grading state nhưng giữ nguyên S.qs + tăng retryCount
+  const qs=S.qs||[];
+  const nextRetry=(S.retryCount||0)+1;
   document.getElementById('qa-list').innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div>';
-  document.getElementById('g-steps').innerHTML='';document.getElementById('rpt-card').style.display='none';document.getElementById('live-sum').style.display='none';
-  SS('S-home');
+  document.getElementById('g-steps').innerHTML='';
+  document.getElementById('rpt-card').style.display='none';
+  document.getElementById('live-sum').style.display='none';
+  if(qs.length) launch(S.mode,qs,nextRetry);
+  else SS('S-home');
+}
+
+function finishAndExit(){
+  // Ghi nhận đã hoàn thành, về màn lịch sử
+  toast('Đã lưu kết quả luyện tập ✓','success',2500);
+  setTimeout(()=>{SS('S-history');loadSpeakHistory();},600);
+}
+
+// Retry từ history — load lại đúng bộ câu hỏi cũ, retryCount tiếp theo
+function retryFromHistory(i){
+  const row=(window._histRows||[])[i];if(!row)return;
+  let qs=[];
+  try{
+    const raw=JSON.parse(row.QuestionsJSON||'[]');
+    qs=raw.map(q=>({question:typeof q==='string'?q:(q.question||q),keywords:[],hints:[]}));
+  }catch(e){toast('Không đọc được câu hỏi cũ','error');return;}
+  if(!qs.length){toast('Không có câu hỏi để retry','error');return;}
+  const nextRetry=(parseInt(row.RetryCount||0))+1;
+  S.topic = row.Topic||row.topic||'';  // giữ topic cũ
+  const mode=row.Mode||'custom';
+  launch(mode,qs,nextRetry);
 }
 </script>
 </body>

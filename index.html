@@ -777,17 +777,19 @@ tr:hover td{background:var(--grey-100)}
             <th onclick="_spkSort('StudentName')" style="cursor:pointer">Full Name ↕</th>
             <th onclick="_spkSort('_cls')" style="cursor:pointer">Class ↕</th>
             <th onclick="_spkSort('Mode')" style="cursor:pointer">Mode ↕</th>
+            <th onclick="_spkSort('Topic')" style="cursor:pointer">Topic ↕</th>
             <th>Start</th>
             <th>End</th>
             <th style="text-align:center">Duration</th>
             <th style="text-align:center" title="Số câu hỏi">Q</th>
+            <th style="text-align:center" title="Lần luyện tập">Lần</th>
             <th style="text-align:center">Fluency</th>
             <th style="text-align:center">Vocab</th>
             <th style="text-align:center">Grammar</th>
             <th style="text-align:center">Pron.</th>
             <th onclick="_spkSort('_avgBand')" style="cursor:pointer;text-align:center">Overall ↕</th>
           </tr></thead>
-          <tbody id="speak-results-tbody"><tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          <tbody id="speak-results-tbody"><tr><td colspan="15" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
         </table>
       </div>
 
@@ -3509,7 +3511,7 @@ function renderSpeakDetailed(){
   const cnt=document.getElementById('spk-result-count');
   if(cnt) cnt.textContent = rows.length + ' kết quả';
 
-  if(!rows.length){ tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
 
   const bandColor = b => b>=7?'var(--green)':b>=5.5?'var(--gold)':b>0?'var(--red)':'var(--grey-400)';
   const cell = v => v!=null ? `<span style="font-weight:600;color:${bandColor(v)}">${v}</span>` : '<span style="color:var(--grey-400)">—</span>';
@@ -3519,15 +3521,20 @@ function renderSpeakDetailed(){
     const dur = r.DurationMin ? (r.DurationMin + (String(r.DurationMin).indexOf('m')>=0?'':' min')) : '—';
     const expanded = !!_spkExpanded[i];
     const modeBadge = `<span class="badge badge-grey">${r.Mode||'—'}${r.SimMode?(' · '+r.SimMode):''}</span>`;
+    const retryN = parseInt(r.RetryCount||0);
+    const attempts = retryN + 1;
+    const retryBadge = `<span style="background:${attempts>=10?'#dc2626':attempts>=5?'#d97706':'#6b7280'};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700">${attempts}x</span>`;
     const main = `<tr style="cursor:pointer;${expanded?'background:rgba(124,58,237,.05)':''}" onclick="toggleSpkRow(${i})">
       <td style="font-family:var(--font-mono);font-size:11px"><span style="color:var(--grey-500)">${expanded?'▾':'▸'}</span> ${r._sid||'—'}</td>
       <td><strong>${r.StudentName||'—'}</strong></td>
       <td><span class="badge badge-grey">${r._cls||'—'}</span></td>
       <td>${modeBadge}</td>
+      <td style="font-size:12px;color:var(--grey-700);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.Topic||''}">${r.Topic||'<span style="color:var(--grey-400)">—</span>'}</td>
       <td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtT(r.StartingTime)}</td>
       <td style="font-size:11px;white-space:nowrap;color:var(--grey-600)">${fmtT(r.SubmittingTime)}</td>
       <td style="text-align:center;font-size:12px">${dur}</td>
       <td style="text-align:center">${r._questions.length||'—'}</td>
+      <td style="text-align:center">${retryBadge}</td>
       <td style="text-align:center">${cell(flA)}</td>
       <td style="text-align:center">${cell(vcA)}</td>
       <td style="text-align:center">${cell(grA)}</td>
@@ -3552,7 +3559,7 @@ function renderSpeakDetailed(){
           ${rr.summary?`<div style="font-size:11px;color:var(--grey-500);margin-top:3px">${rr.summary}</div>`:''}
         </div>`;
       }).join('') || '<div style="font-size:12px;color:var(--grey-400);padding:8px">Không có chi tiết câu hỏi.</div>';
-      detail = `<tr><td colspan="13" style="background:#FAFAF8;padding:10px 16px">${qrows}</td></tr>`;
+      detail = `<tr><td colspan="15" style="background:#FAFAF8;padding:10px 16px">${qrows}</td></tr>`;
     }
     return main + detail;
   }).join('');
