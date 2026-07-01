@@ -1335,7 +1335,9 @@ function nextQuestion(){
   if(S.talking)stopTalk();
   clearInterval(S.qcdTm);
   const idx=S.idx,ans=(S.curAnswer||'').trim();
-  S.recs[idx].studentAnswer=ans;S.recs[idx].question=S.qs[idx].question;
+  S.recs[idx].studentAnswer=ans;
+  S.recs[idx].question=S.qs[idx].question;
+  S.recs[idx].keywords=S.qs[idx].keywords||[];
   if(ans.length>=5){
     const kw=(S.qs[idx].keywords||[]).join(', ');
     S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);}).catch(e=>{console.warn('grade Q'+idx,e);});
@@ -2179,9 +2181,13 @@ function saveToGAS(mode, results, report, durationSec, retryCount) {
   const now  = new Date();
   const startTime = S.liveStartTime || S.t0 || new Date(now - (durationSec||0)*1000);
   const startTimeISO = (startTime instanceof Date) ? startTime.toISOString() : String(startTime);
-  const qArr = (results||[]).map(r => r.question || '');
+  const qArr = (results||[]).map(r => ({
+    question: r.question || '',
+    keywords: r.keywords || []
+  }));
   const rArr = (results||[]).map(r => ({
     question:      r.question      || '',
+    keywords:      r.keywords      || [],
     studentAnswer: r.studentAnswer || r.a || '',
     overall:       r.overall       || '',
     scores:        r.scores        || null,
@@ -2401,14 +2407,18 @@ function md(s){
 }
 
 function again(){
-  // Reset grading state nhưng giữ nguyên S.qs + tăng retryCount
   const qs=S.qs||[];
+  const mode=S.mode;
   const nextRetry=(S.retryCount||0)+1;
-  document.getElementById('qa-list').innerHTML='<div class="sec-lbl" style="margin-bottom:10px">🎙 Per-Question Review</div>';
+  // Reset result state, giữ nguyên câu hỏi + keywords
+  S.recs=qs.map(q=>({question:q.question,keywords:q.keywords||[],studentAnswer:''}));
+  S.gradeP=new Array(qs.length).fill(null);
+  S.liveTranscript=[];
+  document.getElementById('qa-list').innerHTML='';
   document.getElementById('g-steps').innerHTML='';
   document.getElementById('rpt-card').style.display='none';
   document.getElementById('live-sum').style.display='none';
-  if(qs.length) launch(S.mode,qs,nextRetry);
+  if(qs.length) launch(mode,qs,nextRetry);
   else SS('S-home');
 }
 
@@ -2418,48 +2428,55 @@ function finishAndExit(){
   setTimeout(()=>{SS('S-history');loadSpeakHistory();},600);
 }
 
-// Retry từ history — load lại đúng bộ câu hỏi cũ, retryCount tiếp theo
+// Retry từ history — restore câu hỏi + keywords, launch thẳng không qua setup
 function retryFromHistory(i){
   const row=(window._histRows||[])[i];if(!row)return;
   let qs=[];
 
-  // Thử 1: QuestionsJSON
+  // Thử 1: QuestionsJSON (có thể có keywords nếu bản mới)
   try{
     const raw=JSON.parse(row.QuestionsJSON||'[]');
-    if(Array.isArray(raw)&&raw.length)
-      qs=raw.map(q=>({question:typeof q==='string'?q:(q.question||String(q)),keywords:[],hints:[]}));
+    if(Array.isArray(raw)&&raw.length){
+      qs=raw.map(q=>({
+        question: typeof q==='string'?q:(q.question||String(q)),
+        keywords: (typeof q==='object'&&Array.isArray(q.keywords))?q.keywords:[],
+        hints:[]
+      }));
+    }
   }catch(e){}
 
-  // Thử 2: lấy câu hỏi từ ResultsJSON (mỗi item có field question)
+  // Thử 2: lấy từ ResultsJSON (có keywords field từ bản mới)
   if(!qs.length){
     try{
       const res=JSON.parse(row.ResultsJSON||'[]');
       if(Array.isArray(res)&&res.length){
-        qs=res.filter(r=>r.question).map(r=>({question:r.question,keywords:[],hints:[]}));
+        qs=res.filter(r=>r.question).map(r=>({
+          question: r.question,
+          keywords: Array.isArray(r.keywords)?r.keywords:[],
+          hints:[]
+        }));
       }
     }catch(e){}
   }
 
   const nextRetry=(parseInt(row.RetryCount||0))+1;
   S.topic=row.Topic||row.topic||'';
+  const mode=row.Mode||'part1';
 
-  // Thử 3: không có câu hỏi nào → mở setup form với topic đã điền sẵn
-  if(!qs.length){
-    const mode=row.Mode||'part1';
-    toast('Could not restore questions — please re-enter them below','info',4000);
-    S.mode=mode;
-    buildSetup(mode);
-    SS('S-setup');
-    // Điền topic sẵn nếu có
-    setTimeout(()=>{
-      const ti=document.getElementById('topic-inp');
-      if(ti&&S.topic) ti.value=S.topic;
-    },100);
+  if(qs.length){
+    // Có câu hỏi → launch thẳng, không qua setup
+    closeDetailModal&&closeDetailModal();
+    launch(mode,qs,nextRetry);
     return;
   }
 
-  const mode=row.Mode||'custom';
-  launch(mode,qs,nextRetry);
+  // Không có câu hỏi (data cũ) → mở setup với topic điền sẵn
+  toast('Please re-enter the questions for this topic','info',4000);
+  buildSetup(mode);SS('S-setup');
+  setTimeout(()=>{
+    const ti=document.getElementById('topic-inp');
+    if(ti&&S.topic)ti.value=S.topic;
+  },100);
 }
 </script>
 
