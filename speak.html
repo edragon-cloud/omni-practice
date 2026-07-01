@@ -765,27 +765,119 @@ async function loadSpeakHistory(){
     if(empty){empty.style.display='block';empty.textContent='Lỗi tải lịch sử: '+e.message;}
   }
 }
+function closeDetailModal(){
+  document.getElementById('detail-modal').style.display='none';
+  document.body.style.overflow='';
+}
+
+function openDetailModal({title, meta, results, qs, topic, rowIdx}){
+  const bc = v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#9ca3af';
+  const esc2 = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const CKS=[['fluency','FC'],['lexical','LR'],['grammar','GR'],['pronunciation','P']];
+  const CKSFull=[['fluency','Fluency & Coherence'],['lexical','Lexical Resource'],['grammar','Grammatical Range'],['pronunciation','Pronunciation']];
+
+  document.getElementById('dm-title').textContent=title||'Session Detail';
+  document.getElementById('dm-meta').textContent=meta||'';
+
+  // Score strip (overall + 4 criteria averages)
+  const oa=results.map(r=>parseFloat(r.overall)||0).filter(v=>v>0);
+  const avg=oa.length?Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2:0;
+  const critAvg=(k)=>{const vs=results.map(r=>{const sc=r.scores&&r.scores[k];return sc?parseFloat(sc.score||0)||0:0;}).filter(v=>v>0);return vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length*2)/2:0;};
+  document.getElementById('dm-scores').innerHTML=[
+    ['Overall',avg,'#3b82f6'],
+    ...CKS.map(([k,a])=>[a,critAvg(k),''])
+  ].map(([lbl,val,col])=>`<div style="flex:1;text-align:center;padding:12px 6px;border-right:1px solid rgba(255,255,255,.07)">
+    <div style="font-size:18px;font-weight:700;color:${col||bc(val)}">${val||'—'}</div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">${lbl}</div>
+  </div>`).join('');
+
+  // Per-question cards
+  document.getElementById('dm-body').innerHTML = results.map((r,qi)=>{
+    const qText = qs[qi] ? (typeof qs[qi]==='string'?qs[qi]:(qs[qi].question||'')) : r.question||'';
+    const ov=parseFloat(r.overall)||0;
+    const pct=Math.min(ov/9,1);
+    const arc=126; // half-circle perimeter approx
+    const dialColor=bc(ov);
+    const dial=`<svg width="90" height="56" viewBox="0 0 100 60" style="overflow:visible">
+      <path d="M10,50 A40,40 0 0,1 90,50" fill="none" stroke="#374151" stroke-width="8" stroke-linecap="round"/>
+      <path d="M10,50 A40,40 0 0,1 90,50" fill="none" stroke="${dialColor}" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${(pct*arc).toFixed(1)} ${arc}"/>
+      <text x="50" y="46" text-anchor="middle" font-size="17" font-weight="700" fill="${dialColor}">${ov||'—'}</text>
+      <text x="50" y="57" text-anchor="middle" font-size="9" fill="#6b7280">/9.0</text>
+    </svg>`;
+
+    const critList=CKSFull.map(([k,lbl])=>{
+      const sc=r.scores&&r.scores[k];if(!sc)return '';
+      const v=parseFloat(sc.score||0)||0;
+      const cmt=typeof sc==='object'?sc.comment||'':sc;
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:#e5e7eb">${lbl}</div>
+          ${cmt?`<div style="font-size:11px;color:#9ca3af;margin-top:1px">${esc2(cmt)}</div>`:''}
+        </div>
+        <div style="font-size:15px;font-weight:700;color:${bc(v)};flex-shrink:0;margin-left:10px">${v||'—'}</div>
+      </div>`;
+    }).join('');
+
+    const transcript=r.errors?.length
+      ?`<div class="corr-text" style="font-size:13px;line-height:1.7">${renderCorrected(r.studentAnswer||'',r.errors)}</div>`
+      :`<div style="font-size:13px;line-height:1.7;color:#d1d5db;font-style:italic">"${esc2(r.studentAnswer||'—')}"</div>`;
+
+    const sugg=r.suggestion?`<div style="margin-top:10px;padding:9px 12px;background:rgba(251,191,36,.1);border-radius:8px;border-left:3px solid #fbbf24">
+      <div style="font-size:10px;font-weight:700;color:#fbbf24;margin-bottom:2px">💡 GỢI Ý</div>
+      <div style="font-size:12px;color:#d1d5db">${esc2(r.suggestion)}</div>
+    </div>`:'';
+
+    const kwFb=r.keywordUsage?`<div style="margin-top:8px;padding:8px 12px;background:rgba(99,102,241,.1);border-radius:8px;border-left:3px solid #818cf8">
+      <div style="font-size:10px;font-weight:700;color:#818cf8;margin-bottom:2px">🔑 KEYWORDS</div>
+      <div style="font-size:12px;color:#d1d5db">${esc2(r.keywordUsage)}</div>
+    </div>`:'';
+
+    return `<div style="background:#1f2937;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:14px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08)">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="width:24px;height:24px;background:#3b82f6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${qi+1}</div>
+          <div style="font-size:13px;font-weight:600;color:#e5e7eb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55vw">${esc2(qText)}</div>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:${dialColor};flex-shrink:0">Band ${ov||'—'}</div>
+      </div>
+      <div class="dm-qcard-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:14px;border-right:1px solid rgba(255,255,255,.07)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;margin-bottom:8px">Student's Answer</div>
+          ${transcript}${sugg}${kwFb}
+        </div>
+        <div style="padding:14px">
+          <div style="text-align:center;margin-bottom:8px">${dial}</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;margin-bottom:4px">Scoring</div>
+          ${critList}
+        </div>
+      </div>
+    </div>`;
+  }).join('')||'<div style="color:#6b7280;text-align:center;padding:24px">Chưa có dữ liệu chi tiết.</div>';
+
+  // Footer buttons
+  const footerBtns = rowIdx!=null
+    ? `<button onclick="closeDetailModal();retryFromHistory(${rowIdx})" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">🔄 Retry Topic này</button>
+       <button onclick="closeDetailModal()" style="background:rgba(255,255,255,.1);color:#d1d5db;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">Đóng</button>`
+    : `<button onclick="closeDetailModal()" style="background:rgba(255,255,255,.1);color:#d1d5db;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">Đóng</button>`;
+  document.getElementById('dm-footer').innerHTML=footerBtns;
+
+  document.getElementById('detail-modal').style.display='block';
+  document.body.style.overflow='hidden';
+}
+
 function showHistDetail(i){
   const row=(window._histRows||[])[i];if(!row)return;
   let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
   let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
-  const detail=document.getElementById('hist-detail');
-  if(!detail)return;
-  const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#999';
-  detail.innerHTML=`<h3 style="margin-bottom:12px">Chi tiết buổi: ${row.Mode||''} — ${new Date(row.StartingTime).toLocaleDateString('vi-VN')}</h3>`
-    +(results.map((r,qi)=>{
-      const sc=r.scores||{};
-      const qText=typeof qs[qi]==='string'?qs[qi]:(qs[qi]?.question||'');
-      return `<div style="border:1px solid #eee;border-radius:10px;padding:14px 16px;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#444">Q${qi+1}. ${qText}</div>
-        <div style="font-size:12px;color:#666;margin-bottom:8px;font-style:italic">"${r.studentAnswer||'—'}"</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px">
-          ${['fluency','lexical','grammar','pronunciation'].map(k=>{const x=sc[k];const s=x&&typeof x==='object'?x.score:x;return `<span>${k}: <strong style="color:${bc(parseFloat(s)||0)}">${s??'—'}</strong>${x?.comment?` — ${x.comment}`:''}</span>`;}).join('')}
-        </div>
-        ${r.suggestion?`<div style="margin-top:6px;font-size:12px;color:#555">💡 ${r.suggestion}</div>`:''}
-      </div>`;
-    }).join('')||'<div style="color:#aaa;font-size:13px">Chưa có chi tiết từng câu.</div>');
-  detail.scrollIntoView({behavior:'smooth',block:'start'});
+  const fmtD=v=>{try{const d=new Date(v);return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}catch(e){return '—';}};
+  openDetailModal({
+    title: (row.Topic?'📌 '+row.Topic+' · ':'')+((row.Mode||'').toUpperCase()),
+    meta: fmtD(row.StartingTime)+' · Lần '+(parseInt(row.RetryCount||0)+1),
+    results, qs,
+    topic: row.Topic||'',
+    rowIdx: i
+  });
 }
 function SS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function toast(m,t,d){t=t||'info';d=d||3400;const el=document.createElement('div');el.className='toast '+t;el.innerHTML=`<span>${{success:'✓',error:'✕',info:'ℹ'}[t]||'ℹ'}</span><span>${m}</span>`;document.getElementById('toast-wrap').appendChild(el);setTimeout(()=>el.remove(),d);}
@@ -2330,5 +2422,36 @@ function retryFromHistory(i){
   launch(mode,qs,nextRetry);
 }
 </script>
+
+<!-- ── DETAIL MODAL ── -->
+<div id="detail-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.72);overflow-y:auto;-webkit-overflow-scrolling:touch" onclick="if(event.target===this)closeDetailModal()">
+  <div style="max-width:820px;margin:24px auto;padding:0 12px 40px">
+    <div style="background:#111827;border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)">
+        <div>
+          <div id="dm-title" style="font-size:15px;font-weight:700;color:#f9fafb"></div>
+          <div id="dm-meta" style="font-size:12px;color:#9ca3af;margin-top:2px"></div>
+        </div>
+        <button onclick="closeDetailModal()" style="border:none;background:rgba(255,255,255,.1);color:#9ca3af;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+      <!-- Score summary strip -->
+      <div id="dm-scores" style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08)"></div>
+      <!-- Per-question cards -->
+      <div id="dm-body" style="padding:16px 20px"></div>
+      <!-- Footer actions -->
+      <div id="dm-footer" style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media(max-width:600px){
+  #detail-modal>div{margin:0;padding:0 0 40px}
+  #detail-modal>div>div{border-radius:0}
+  .dm-qcard-body{grid-template-columns:1fr !important}
+  .dm-qcard-body>div:first-child{border-right:none !important;border-bottom:1px solid rgba(255,255,255,.07)}
+}
+</style>
 </body>
 </html>

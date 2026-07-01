@@ -788,8 +788,9 @@ tr:hover td{background:var(--grey-100)}
             <th style="text-align:center">Grammar</th>
             <th style="text-align:center">Pron.</th>
             <th onclick="_spkSort('_avgBand')" style="cursor:pointer;text-align:center">Overall ↕</th>
+            <th></th>
           </tr></thead>
-          <tbody id="speak-results-tbody"><tr><td colspan="15" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          <tbody id="speak-results-tbody"><tr><td colspan="16" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
         </table>
       </div>
 
@@ -3511,7 +3512,7 @@ function renderSpeakDetailed(){
   const cnt=document.getElementById('spk-result-count');
   if(cnt) cnt.textContent = rows.length + ' kết quả';
 
-  if(!rows.length){ tbody.innerHTML='<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
 
   const bandColor = b => b>=7?'var(--green)':b>=5.5?'var(--gold)':b>0?'var(--red)':'var(--grey-400)';
   const cell = v => v!=null ? `<span style="font-weight:600;color:${bandColor(v)}">${v}</span>` : '<span style="color:var(--grey-400)">—</span>';
@@ -3524,8 +3525,8 @@ function renderSpeakDetailed(){
     const retryN = parseInt(r.RetryCount||0);
     const attempts = retryN + 1;
     const retryBadge = `<span style="background:${attempts>=10?'#dc2626':attempts>=5?'#d97706':'#6b7280'};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700">${attempts}x</span>`;
-    const main = `<tr style="cursor:pointer;${expanded?'background:rgba(124,58,237,.05)':''}" onclick="toggleSpkRow(${i})">
-      <td style="font-family:var(--font-mono);font-size:11px"><span style="color:var(--grey-500)">${expanded?'▾':'▸'}</span> ${r._sid||'—'}</td>
+    const main = `<tr style="${expanded?'background:rgba(124,58,237,.05)':''}">
+      <td style="font-family:var(--font-mono);font-size:11px">${r._sid||'—'}</td>
       <td><strong>${r.StudentName||'—'}</strong></td>
       <td><span class="badge badge-grey">${r._cls||'—'}</span></td>
       <td>${modeBadge}</td>
@@ -3540,28 +3541,11 @@ function renderSpeakDetailed(){
       <td style="text-align:center">${cell(grA)}</td>
       <td style="text-align:center">${cell(prA)}</td>
       <td style="text-align:center"><strong style="color:${bandColor(r._avgBand)}">${r._avgBand||'—'}</strong></td>
+      <td style="white-space:nowrap">
+        <button onclick="openSpkDetailModal(${i})" style="border:none;background:var(--red);color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🔍 Detail</button>
+      </td>
     </tr>`;
-
-    let detail = '';
-    if (expanded) {
-      const qrows = (r._questions||[]).map((q,qi) => {
-        const rr = (r._results||[])[qi] || {};
-        const sc = rr.scores || {};
-        const fl=_spkCrit(sc,FL), vc=_spkCrit(sc,VC), gr=_spkCrit(sc,GR), pr=_spkCrit(sc,PR);
-        const qText = typeof q==='string'? q : (q.question||'');
-        return `<div style="padding:8px 0;border-bottom:1px solid #eee">
-          <div style="font-size:12px;margin-bottom:4px"><strong>Q${qi+1}.</strong> ${qText}</div>
-          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--grey-600)">
-            <span>Fluency: ${cell(fl)}</span><span>Vocab: ${cell(vc)}</span>
-            <span>Grammar: ${cell(gr)}</span><span>Pron: ${cell(pr)}</span>
-            <span>Overall: <strong style="color:${bandColor(parseFloat(rr.overall)||0)}">${rr.overall!=null?rr.overall:'—'}</strong></span>
-          </div>
-          ${rr.summary?`<div style="font-size:11px;color:var(--grey-500);margin-top:3px">${rr.summary}</div>`:''}
-        </div>`;
-      }).join('') || '<div style="font-size:12px;color:var(--grey-400);padding:8px">Không có chi tiết câu hỏi.</div>';
-      detail = `<tr><td colspan="15" style="background:#FAFAF8;padding:10px 16px">${qrows}</td></tr>`;
-    }
-    return main + detail;
+    return main;
   }).join('');
 }
 
@@ -4738,6 +4722,95 @@ function hwProg(done,total,label){
   document.getElementById('hw-pb-fill').style.width=pct+'%';
   document.getElementById('hw-pb-lbl').textContent=label;
   document.getElementById('hw-pb-frac').textContent=done+'/'+total;
+}
+
+// ── SPEAKING DETAIL MODAL (Teacher) ──────────────────────────────────────
+function openSpkDetailModal(i){
+  const r=(_spkRows||[])[i];if(!r)return;
+  const results=r._results||[];
+  const qs=r._questions||[];
+  const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#9ca3af';
+  const esc2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const CKSFull=[['fluency','Fluency & Coherence'],['lexical','Lexical Resource'],['grammar','Grammatical Range'],['pronunciation','Pronunciation']];
+  const oa=results.map(v=>parseFloat(v.overall)||0).filter(v=>v>0);
+  const avg=oa.length?Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2:0;
+  const fmtT=v=>{try{const d=new Date(v);return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}catch(e){return '—';}};
+  const critAvg=k=>{const vs=results.map(rr=>{const sc=rr.scores&&rr.scores[k];return sc?parseFloat(sc.score||0)||0:0;}).filter(v=>v>0);return vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length*2)/2:0;};
+
+  const scoreStrip=[['Overall',avg,'#3b82f6'],['FC',critAvg('fluency'),''],['LR',critAvg('lexical'),''],['GR',critAvg('grammar'),''],['P',critAvg('pronunciation'),'']].map(([lbl,val,col])=>`<div style="flex:1;text-align:center;padding:12px 6px;border-right:1px solid var(--grey-200)">
+    <div style="font-size:18px;font-weight:700;color:${col||bc(val)}">${val||'—'}</div>
+    <div style="font-size:10px;color:var(--grey-500);margin-top:2px">${lbl}</div>
+  </div>`).join('');
+
+  const cards=results.map((rr,qi)=>{
+    const qText=qs[qi]?(typeof qs[qi]==='string'?qs[qi]:(qs[qi].question||'')):rr.question||'';
+    const ov=parseFloat(rr.overall)||0;
+    const critList=CKSFull.map(([k,lbl])=>{
+      const sc=rr.scores&&rr.scores[k];if(!sc)return '';
+      const v=parseFloat(sc.score||0)||0;
+      const cmt=typeof sc==='object'?sc.comment||'':'';
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--grey-100)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--black)">${lbl}</div>
+          ${cmt?`<div style="font-size:11px;color:var(--grey-500);margin-top:1px">${esc2(cmt)}</div>`:''}
+        </div>
+        <div style="font-size:15px;font-weight:700;color:${bc(v)};flex-shrink:0;margin-left:10px">${v||'—'}</div>
+      </div>`;
+    }).join('');
+    const sugg=rr.suggestion?`<div style="margin-top:9px;padding:8px 12px;background:#fffbeb;border-radius:8px;border-left:3px solid #d97706">
+      <div style="font-size:10px;font-weight:700;color:#d97706;margin-bottom:2px">💡 GỢI Ý</div>
+      <div style="font-size:12px;color:#78350f">${esc2(rr.suggestion)}</div>
+    </div>`:'';
+    const kwFb=rr.keywordUsage?`<div style="margin-top:8px;padding:8px 12px;background:#eff6ff;border-radius:8px;border-left:3px solid #3b82f6">
+      <div style="font-size:10px;font-weight:700;color:#2563eb;margin-bottom:2px">🔑 KEYWORDS</div>
+      <div style="font-size:12px;color:#1e40af">${esc2(rr.keywordUsage)}</div>
+    </div>`:'';
+    return `<div style="border:1px solid var(--grey-200);border-radius:12px;margin-bottom:12px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--grey-50,#f9f9f7);border-bottom:1px solid var(--grey-200)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:22px;height:22px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${qi+1}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55vw">${esc2(qText)}</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:${bc(ov)};flex-shrink:0">Band ${ov||'—'}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:13px;border-right:1px solid var(--grey-100)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--grey-500);margin-bottom:7px">Student's Answer</div>
+          <div style="font-size:13px;line-height:1.7;color:var(--grey-700);font-style:italic">"${esc2(rr.studentAnswer||'—')}"</div>
+          ${sugg}${kwFb}
+        </div>
+        <div style="padding:13px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--grey-500);margin-bottom:4px">Scoring</div>
+          ${critList}
+        </div>
+      </div>
+    </div>`;
+  }).join('')||'<div style="color:var(--grey-400);text-align:center;padding:24px">Chưa có dữ liệu chi tiết.</div>';
+
+  // Build modal if not exists
+  let modal=document.getElementById('spk-detail-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='spk-detail-modal';
+    modal.style.cssText='display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);overflow-y:auto;-webkit-overflow-scrolling:touch';
+    modal.onclick=function(e){if(e.target===this)this.style.display='none';document.body.style.overflow='';};
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`<div style="max-width:840px;margin:24px auto;padding:0 12px 40px">
+    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--grey-50,#f9f9f7);border-bottom:1px solid var(--grey-200)">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--black)">${r.StudentName||'—'} · ${r._cls||'—'}${r.Topic?' · 📌 '+esc2(r.Topic):''}</div>
+          <div style="font-size:11px;color:var(--grey-500);margin-top:2px">${(r.Mode||'').toUpperCase()} · ${fmtT(r.StartingTime)} · Lần ${parseInt(r.RetryCount||0)+1}</div>
+        </div>
+        <button onclick="document.getElementById('spk-detail-modal').style.display='none';document.body.style.overflow=''" style="border:none;background:var(--grey-100);color:var(--grey-600);border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer">×</button>
+      </div>
+      <div style="display:flex;border-bottom:1px solid var(--grey-200)">${scoreStrip}</div>
+      <div style="padding:16px 20px">${cards}</div>
+    </div>
+  </div>`;
+  modal.style.display='block';
+  document.body.style.overflow='hidden';
 }
 </script>
 
