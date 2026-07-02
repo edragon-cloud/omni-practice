@@ -1254,10 +1254,15 @@ function toggleWords(){S.wordsVis=!S.wordsVis;const d=document.getElementById('w
 function updProg(){const tot=S.qs.length,idx=S.idx;const pct=tot?Math.round((idx/tot)*100):0;document.getElementById('prog-txt').textContent='Question '+(idx+1)+' of '+tot;document.getElementById('prog-pct').textContent=pct+'%';document.getElementById('prog-fill').style.width=pct+'%';}
 function startPrep(){document.getElementById('prep-wrap').style.display='block';S.prepLeft=60;clearInterval(S.prepTm);updPrepUI();S.prepTm=setInterval(()=>{S.prepLeft--;updPrepUI();if(S.prepLeft<=0){clearInterval(S.prepTm);document.getElementById('prep-wrap').style.display='none';toast('Prep time over!','info');}},1000);}
 function updPrepUI(){const m=Math.floor(S.prepLeft/60),s=S.prepLeft%60;document.getElementById('prep-cd').textContent=m+':'+String(s).padStart(2,'0');document.getElementById('prep-pfill').style.width=(S.prepLeft/60*100)+'%';}
-// ── HYBRID STT: Web Speech (free) khi hỗ trợ; iOS Safari → MediaRecorder + Gemini ──
+// ── STT: Web Speech API (FREE) làm nguồn text chính khi trình duyệt hỗ trợ —
+// ÁP DỤNG CHO CẢ iOS SAFARI (theo khuyến nghị cộng đồng: push-to-talk + singleton
+// instance + continuous=false ổn định hơn nhiều so với continuous=true trên iOS).
+// MediaRecorder LUÔN chạy song song để lưu file audio (nghe lại + upload Drive).
+// Gemini transcribe CHỈ dùng khi Web Speech thực sự không khả dụng/lỗi liên tục.
 const _SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const _isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const USE_WEBSPEECH=!!_SR&&!_isIOS;
+const USE_WEBSPEECH=!!_SR;
+let _wsInstance=null;   // singleton — tạo 1 lần, tái sử dụng (khuyến nghị cho iOS, tránh âm "tinh tinh" mỗi lần new)
 
 function resetTalkUI(){
   const rb=document.getElementById('rec-btn');
@@ -1267,6 +1272,7 @@ function resetTalkUI(){
   document.getElementById('rec-hint').textContent='Nhấn SPACE lần nữa để chốt câu';
   document.getElementById('rec-time').style.display='none';
   document.getElementById('ptt-interim').textContent='';
+  S.lastAudioUrl=null;
 }
 
 function startQCountdown(sec){
@@ -1274,7 +1280,7 @@ function startQCountdown(sec){
   const el=document.getElementById('ptt-countdown');
   const upd=()=>{const m=Math.floor(S.qcdLeft/60),s=S.qcdLeft%60;if(el){el.textContent=m+':'+String(s).padStart(2,'0');el.style.color=S.qcdLeft<=10?'var(--red)':'var(--g600,#888)';}};
   upd();
-  S.qcdTm=setInterval(()=>{S.qcdLeft--;upd();if(S.qcdLeft<=0){clearInterval(S.qcdTm);if(S.talking)stopTalk();toast('Hết giờ câu này','info');nextQuestion();}},1000);
+  S.qcdTm=setInterval(()=>{S.qcdLeft--;upd();if(S.qcdLeft<=0){clearInterval(S.qcdTm);toast('Hết giờ câu này','info');(async()=>{if(S.talking)await stopTalk();nextQuestion();})();}},1000);
 }
 
 // ── PUSH-TO-TALK ──
@@ -1285,59 +1291,214 @@ async function startTalk(){
   document.getElementById('rec-area').className='rec-area recg';
   document.getElementById('rec-st').innerHTML='🔴 Đang nghe… nói tự nhiên';
   document.getElementById('rec-hint').textContent='Nhấn SPACE để chốt câu';
-  if(USE_WEBSPEECH)startWebSpeech();else await startRecFallback();
+  S.webSpeechFailed=false;
+  // Luôn bật MediaRecorder song song để lưu file audio (nghe lại + Drive)
+  await startAudioCapture();
+  if(USE_WEBSPEECH) startWebSpeech();
 }
-function stopTalk(){
+async function stopTalk(){
   if(!S.talking)return;S.talking=false;
-  if(USE_WEBSPEECH){try{S.rec&&S.rec.stop();}catch(e){}}else stopRecFallback();
-  const rb=document.getElementById('rec-btn');rb.textContent='✓';rb.className='rec-btn dn';
+  const rb=document.getElementById('rec-btn');rb.textContent='⏳';rb.className='rec-btn';rb.disabled=true;
+  if(USE_WEBSPEECH&&!S.webSpeechFailed){
+    try{S.rec&&S.rec.stop();}catch(e){}
+    await stopAudioCapture();   // dừng lưu file, KHÔNG transcribe (đã có text từ Web Speech)
+  }else{
+    // Web Speech không khả dụng/thất bại → dùng chính file MediaRecorder để gọi Gemini transcribe
+    await stopAudioCaptureAndTranscribe();
+  }
+  rb.textContent='✓';rb.className='rec-btn dn';rb.disabled=false;
   document.getElementById('rec-area').className='rec-area done';
   document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';
   document.getElementById('rec-hint').textContent='Bấm Next, hoặc SPACE để nói thêm';
 }
 
-// Web Speech API
+// Web Speech API — nguồn text chính (FREE). Chống bug lặp từ bằng:
+// 1) KHÔNG tự ý restart nhiều lần liên tục (giới hạn số lần phục hồi)
+// 2) Dedupe theo resultIndex tuyệt đối trong TOÀN BỘ phiên nói (không reset khi restart)
 function startWebSpeech(){
-  try{
-    const r=new _SR();S.rec=r;r.lang='en-US';r.continuous=true;r.interimResults=true;
-    r.onresult=(e)=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)S.curAnswer=(S.curAnswer+' '+t).trim();else interim+=t;}document.getElementById('ptt-interim').textContent=interim||S.curAnswer;};
-    r.onerror=(e)=>{if(e.error==='not-allowed'||e.error==='service-not-allowed')toast('Micro bị chặn — hãy cho phép','error');};
-    r.onend=()=>{if(S.talking){try{r.start();}catch(e){}}};   // im lặng → tự nghe lại
-    r.start();
-  }catch(e){toast('Lỗi nhận diện giọng nói: '+e.message,'error');S.talking=false;resetTalkUI();}
+  S._wsRestarts=0;
+  S._wsGlobalFinalCount=0;
+  if(_isIOS) _startWebSpeechIOS();
+  else _startWebSpeechInstance();
 }
 
-// MediaRecorder fallback (iOS) → Gemini transcribe
-async function startRecFallback(){
+// ── iOS: singleton instance + continuous=false + restart thủ công mỗi khi kết thúc ──
+// (Theo khuyến nghị cộng đồng dev: continuous=true gây "buffer clogging" và lặp text
+// trên iOS; continuous=false từng đoạn ngắn ổn định hơn nhiều — vẫn giữ trải nghiệm
+// push-to-talk liên tục vì code tự động start() lại ngay khi đoạn trước kết thúc.)
+function _startWebSpeechIOS(){
+  try{
+    if(!_wsInstance){
+      _wsInstance=new _SR();
+      _wsInstance.lang='en-US';
+      _wsInstance.continuous=false;      // đoạn ngắn — ổn định trên iOS
+      _wsInstance.interimResults=true;
+    }
+    const r=_wsInstance;S.rec=r;
+    r.onstart=()=>{S._wsRunning=true;};
+    r.onresult=(e)=>{
+      let interim='';
+      for(let i=0;i<e.results.length;i++){
+        const res=e.results[i];
+        const t=res[0].transcript;
+        if(res.isFinal) S.curAnswer=(S.curAnswer+' '+t).trim();
+        else interim+=t;
+      }
+      document.getElementById('ptt-interim').textContent=interim||S.curAnswer;
+    };
+    r.onerror=(e)=>{
+      S._wsRunning=false;
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        toast('Micro bị chặn — vào Cài đặt > Safari > Micro để bật lại quyền','error',6000);
+        S.webSpeechFailed=true;
+      }
+      // 'no-speech'/'aborted' bình thường — onend sẽ tự restart
+    };
+    r.onend=()=>{
+      S._wsRunning=false;
+      if(!S.talking)return;
+      S._wsRestarts=(S._wsRestarts||0)+1;
+      if(S._wsRestarts>60){   // đoạn ngắn nên cần nhiều restart hơn — giới hạn cao hơn
+        S.webSpeechFailed=true;
+        toast('Mic hơi chập chờn — bạn vui lòng bấm lại mic nhé 🎤','info',4000);
+        return;
+      }
+      _safeStartWS(r,150);
+    };
+    _safeStartWS(r,0);
+  }catch(e){
+    toast('Lỗi nhận diện giọng nói: '+e.message,'error');
+    S.webSpeechFailed=true;
+  }
+}
+// Gọi start() an toàn: kiểm tra cờ _wsRunning để tránh DOMException "already started",
+// và tự thử lại nếu iOS throw do gọi quá nhanh liên tiếp.
+function _safeStartWS(r,delay){
+  const attempt=()=>{
+    if(!S.talking)return;
+    if(S._wsRunning)return;   // đang chạy rồi — không gọi start() nữa
+    try{r.start();}
+    catch(e){ if(S.talking) setTimeout(attempt,150); }
+  };
+  if(delay>0) setTimeout(attempt,delay); else attempt();
+}
+
+// ── Android/Desktop: continuous=true, dedupe theo index tuyệt đối ──
+function _startWebSpeechInstance(){
+  try{
+    const r=new _SR();S.rec=r;r.lang='en-US';r.continuous=true;r.interimResults=true;
+    let sessionFinalIdx=-1;   // index đã chốt TRONG instance recognition hiện tại
+    r.onstart=()=>{S._wsRunning=true;};
+    r.onresult=(e)=>{
+      let interim='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const res=e.results[i];
+        const t=res[0].transcript;
+        if(res.isFinal){
+          if(i>sessionFinalIdx){
+            sessionFinalIdx=i;
+            S._wsGlobalFinalCount++;
+            S.curAnswer=(S.curAnswer+' '+t).trim();
+          }
+        }else{
+          interim+=t;
+        }
+      }
+      document.getElementById('ptt-interim').textContent=interim||S.curAnswer;
+    };
+    r.onerror=(e)=>{
+      S._wsRunning=false;
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        toast('Micro bị chặn — hãy cho phép quyền micro','error');
+        S.webSpeechFailed=true;
+      }
+      // 'no-speech' và 'aborted' là bình thường khi im lặng — không coi là lỗi
+    };
+    r.onend=()=>{
+      S._wsRunning=false;
+      if(!S.talking)return;   // người dùng đã bấm Stop — không restart
+      S._wsRestarts=(S._wsRestarts||0)+1;
+      if(S._wsRestarts>40){   // giới hạn an toàn (~ nhiều phút nói liên tục) — tránh vòng lặp vô hạn
+        S.webSpeechFailed=true;
+        toast('Mic hơi chập chờn — bạn vui lòng bấm lại mic nhé 🎤','info',4000);
+        return;
+      }
+      try{_startWebSpeechInstance();}catch(e){S.webSpeechFailed=true;}
+    };
+    r.start();
+  }catch(e){
+    toast('Lỗi nhận diện giọng nói: '+e.message,'error');
+    S.webSpeechFailed=true;
+  }
+}
+
+// ── AUDIO CAPTURE (MediaRecorder) — LUÔN chạy song song để lưu file nghe lại + Drive ──
+async function startAudioCapture(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':(MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm');
     S.mr=new MediaRecorder(stream,{mimeType:mime});S.chunks=[];
     S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};
-    S.mr.onstop=onRecStopFallback;S.mr.stream=stream;S.mr.start(100);
-  }catch(e){toast('Micro bị chặn','error');S.talking=false;resetTalkUI();}
+    S.mr.stream=stream;S.mr.start(100);
+  }catch(e){
+    console.warn('Audio capture unavailable:',e.message);
+    // Không chặn luyện tập nếu chỉ lỗi lưu file — Web Speech vẫn có thể chạy
+  }
 }
-function stopRecFallback(){if(S.mr&&S.mr.state!=='inactive'){S.mr.stop();S.mr.stream.getTracks().forEach(t=>t.stop());}}
-function onRecStopFallback(){
-  const mime=S.mr.mimeType||'audio/webm';const blob=new Blob(S.chunks,{type:mime});
-  document.getElementById('rec-st').textContent='Đang xử lý giọng nói…';
-  const rd=new FileReader();
-  rd.onloadend=async()=>{
-    const b64=rd.result.split(',')[1];
-    try{S.curAnswer=(S.curAnswer+' '+await transcribeAudio(b64,mime)).trim();document.getElementById('ptt-interim').textContent=S.curAnswer;document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';}
-    catch(e){toast('Lỗi phiên âm: '+e.message,'error',5000);document.getElementById('rec-st').textContent='Phiên âm lỗi — thử nói lại';}
-  };
-  rd.readAsDataURL(blob);
+function _stopMediaRecorder(){
+  return new Promise(resolve=>{
+    if(!S.mr||S.mr.state==='inactive'){resolve(null);return;}
+    S.mr.onstop=()=>{
+      const mime=S.mr.mimeType||'audio/webm';
+      const blob=new Blob(S.chunks,{type:mime});
+      S.mr.stream.getTracks().forEach(t=>t.stop());
+      resolve({blob,mime});
+    };
+    S.mr.stop();
+  });
+}
+// Dừng lưu audio, KHÔNG transcribe (đã có text từ Web Speech) — chỉ giữ blob để nghe lại/lưu Drive sau
+async function stopAudioCapture(){
+  const rec=await _stopMediaRecorder();
+  if(rec){
+    S.lastAudioBlob=rec.blob;S.lastAudioMime=rec.mime;
+    S.lastAudioUrl=URL.createObjectURL(rec.blob);
+    const idx=S.idx;
+    if(S.recs[idx])S.recs[idx]._audioBlob=rec.blob,S.recs[idx]._audioMime=rec.mime;
+  }
+}
+// Dừng lưu audio VÀ dùng chính file đó để gọi Gemini transcribe (fallback khi Web Speech fail)
+async function stopAudioCaptureAndTranscribe(){
+  const rec=await _stopMediaRecorder();
+  if(!rec){toast('Không ghi được audio','error');return;}
+  S.lastAudioBlob=rec.blob;S.lastAudioMime=rec.mime;
+  S.lastAudioUrl=URL.createObjectURL(rec.blob);
+  const idx=S.idx;
+  if(S.recs[idx])S.recs[idx]._audioBlob=rec.blob,S.recs[idx]._audioMime=rec.mime;
+  document.getElementById('rec-st').textContent='Đang phiên âm (Gemini)…';
+  try{
+    const b64=await new Promise((res,rej)=>{
+      const rd=new FileReader();
+      rd.onloadend=()=>res(rd.result.split(',')[1]);
+      rd.onerror=rej;
+      rd.readAsDataURL(rec.blob);
+    });
+    S.curAnswer=(S.curAnswer+' '+await transcribeAudio(b64,rec.mime)).trim();
+    document.getElementById('ptt-interim').textContent=S.curAnswer;
+  }catch(e){
+    toast('Lỗi phiên âm: '+e.message,'error',5000);
+  }
 }
 
-// ── NEXT: chốt câu + chấm NỀN (không chờ) ──
-function nextQuestion(){
-  if(S.talking)stopTalk();
+// ── NEXT: chốt câu (đợi phiên âm xong nếu đang ghi) + chấm NỀN (không chờ) ──
+async function nextQuestion(){
+  if(S.talking)await stopTalk();   // đợi transcribe xong TRƯỚC khi đọc S.curAnswer — tránh mất câu trả lời
   clearInterval(S.qcdTm);
   const idx=S.idx,ans=(S.curAnswer||'').trim();
   S.recs[idx].studentAnswer=ans;
   S.recs[idx].question=S.qs[idx].question;
   S.recs[idx].keywords=S.qs[idx].keywords||[];
+  S.recs[idx].sttMethod=S.webSpeechFailed?'gemini':'webspeech';   // thống kê tỉ lệ fallback token
   if(ans.length>=5){
     const kw=(S.qs[idx].keywords||[]).join(', ');
     S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);}).catch(e=>{console.warn('grade Q'+idx,e);});
@@ -1348,7 +1509,7 @@ function nextQuestion(){
 
 // ── FINISH: chờ chấm nền xong → báo cáo → lưu → render ──
 async function finishSession(){
-  if(S.talking)stopTalk();clearInterval(S.qcdTm);
+  if(S.talking)await stopTalk();clearInterval(S.qcdTm);
   const answered=S.recs.filter(r=>r.studentAnswer&&r.studentAnswer.trim().length>=2);
   if(!answered.length){if(confirm('Chưa có câu trả lời nào. Thoát?'))SS('S-home');return;}
   if(!(await geminiPreflight()))return;
@@ -1356,7 +1517,27 @@ async function finishSession(){
   gStep('Đang hoàn tất chấm điểm…');
   try{
     await Promise.all(S.gradeP.filter(Boolean));
+    // Kiểm tra câu nào chấm thất bại (overall rỗng dù có trả lời) để cảnh báo
+    const failedCount = answered.filter(r=>!r.overall && (!r.scores)).length;
+    if(failedCount>0){
+      toast(failedCount+' câu chưa chấm được (transcript lỗi hoặc quá dài) — thử Re-try','error',5000);
+    }
     gStep('Chấm xong ✓',true);
+    gStep('Đang lưu file ghi âm…');
+    // Upload audio từng câu lên Drive (nền — không chặn nếu lỗi)
+    await Promise.all(answered.map(async r=>{
+      if(!r._audioBlob)return;
+      try{
+        const b64=await new Promise((res,rej)=>{
+          const rd=new FileReader();
+          rd.onloadend=()=>res(rd.result.split(',')[1]);
+          rd.onerror=rej;
+          rd.readAsDataURL(r._audioBlob);
+        });
+        const up=await gasCall('speak.uploadAudio',{audioBase64:b64,mimeType:r._audioMime||'audio/webm'});
+        if(up&&up.success)r.audioUrl=up.url;
+      }catch(e){console.warn('upload audio failed',e);}
+    }));
     gStep('Đang tạo báo cáo IELTS…');
     const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
     let report='';
@@ -1377,8 +1558,8 @@ async function finishSession(){
   }catch(e){gStep('Lỗi: '+e.message);toast('Lỗi: '+e.message,'error',6000);setTimeout(()=>SS('S-session'),3000);}
 }
 
-function confirmEnd(){
-  if(S.talking)stopTalk();clearInterval(S.qcdTm);
+async function confirmEnd(){
+  if(S.talking)await stopTalk();clearInterval(S.qcdTm);
   const done=S.recs.filter(r=>r.studentAnswer&&r.studentAnswer.trim()).length;
   if(!done){SS('S-home');return;}
   if(confirm('Kết thúc và xem kết quả '+done+' câu đã trả lời?'))finishSession();
@@ -1487,8 +1668,42 @@ async function submitAll(){
 }
 
 // ── GRADE ONE QUESTION — returns {scores, overall, errors, suggestion} ──
+// Phòng vệ tuyến 2: nếu transcript vẫn chứa pattern lặp cụm-từ-tăng-dần
+// (vd "I I am I am a I am a student..."), cắt về câu dài nhất/cuối cùng hợp lý.
+// Nhiều đoạn transcript ngắn (do Web Speech restart liên tục trên iOS) được nối bằng
+// dấu cách đơn giản (S.curAnswer + ' ' + đoạn_mới). Hàm này dọn khoảng trắng thừa và
+// đảm bảo câu đọc tự nhiên trước khi gửi Gemini chấm — KHÔNG gửi từng đoạn rời rạc,
+// chỉ gửi 1 lần bản gộp hoàn chỉnh khi SV bấm Stop/Next.
+function normalizeJoinedTranscript(text){
+  return text
+    .replace(/\s+/g,' ')                 // gộp nhiều khoảng trắng liên tiếp thành 1
+    .replace(/\s+([.,!?])/g,'$1')        // xoá khoảng trắng thừa trước dấu câu
+    .trim();
+}
+
+function cleanStutterTranscript(text){
+  const words=text.trim().split(/\s+/);
+  if(words.length<12) return text;   // câu ngắn, không cần xử lý
+  // Đếm tỉ lệ từ trùng lặp trong toàn câu — nếu quá cao là dấu hiệu lỗi restart-loop
+  const freq={};
+  words.forEach(w=>{const k=w.toLowerCase();freq[k]=(freq[k]||0)+1;});
+  const uniqueRatio=Object.keys(freq).length/words.length;
+  if(uniqueRatio>0.55) return text;  // câu bình thường, đa dạng từ vựng — giữ nguyên
+  // Nghi vấn lặp: lấy CÂU CON DÀI NHẤT không lặp từ liên tiếp quá 2 lần
+  let out=[],repeatCount={};
+  for(const w of words){
+    const k=w.toLowerCase();
+    repeatCount[k]=(repeatCount[k]||0)+1;
+    if(repeatCount[k]<=3) out.push(w);  // cho phép lặp tự nhiên tối đa 3 lần (vd "very very good")
+  }
+  return out.join(' ');
+}
+
 async function gradeOneQuestion(question, answer, keywords) {
   if (!answer || answer.trim().length < 5) return {};
+  answer = normalizeJoinedTranscript(answer);  // gộp khoảng trắng thừa từ nhiều đoạn restart nối lại
+  answer = cleanStutterTranscript(answer);     // loại lặp cụm do bug restart Web Speech (nếu còn sót)
+  if (answer.length > 2000) answer = answer.substring(0, 2000);   // chặn prompt quá dài
 
   const RUBRIC = `
 IELTS SPEAKING BAND DESCRIPTORS (Official — use STRICTLY):
@@ -2192,8 +2407,13 @@ function saveToGAS(mode, results, report, durationSec, retryCount) {
     overall:       r.overall       || '',
     scores:        r.scores        || null,
     corrected:     r.corrected     || '',
-    suggestion:    r.suggestion    || ''
+    suggestion:    r.suggestion    || '',
+    audioUrl:      r.audioUrl      || '',
+    sttMethod:     r.sttMethod     || 'webspeech'
   }));
+  // Thống kê tỉ lệ phải fallback sang Gemini transcribe (để theo dõi chi phí token)
+  const fallbackCount = (results||[]).filter(r=>r.sttMethod==='gemini').length;
+  const sttFallbackRate = results.length ? Math.round(fallbackCount/results.length*100) : 0;
   const payload = {
     startingTime:   startTimeISO,
     submittingTime: now.toISOString(),
@@ -2204,6 +2424,7 @@ function saveToGAS(mode, results, report, durationSec, retryCount) {
     durationMin:    Math.round((durationSec||0)/60),
     topic:          S.topic||'',
     retryCount:     retryCount||0,
+    sttFallbackRate: sttFallbackRate,
     questionsJSON:  JSON.stringify(qArr),
     resultsJSON:    JSON.stringify(rArr),
     reportText:     (report||'').substring(0, 4000)
@@ -2322,6 +2543,11 @@ function renderResults(results,report,mode,liveData){
       ? `<div class="corr-text" style="font-size:13px;line-height:1.7">${renderCorrected(r.studentAnswer||'',r.errors)}</div>`
       : `<div style="font-size:13px;line-height:1.7;color:#d1d5db;font-style:italic">"${esc(r.studentAnswer||'—')}"</div>`;
 
+    // Audio playback (nếu còn blob trong session — chưa reload trang)
+    const audioPlayer = r._audioBlob
+      ? `<audio controls style="width:100%;height:32px;margin-bottom:10px" src="${URL.createObjectURL(r._audioBlob)}"></audio>`
+      : (r.audioUrl ? `<audio controls style="width:100%;height:32px;margin-bottom:10px" src="${esc(r.audioUrl)}"></audio>` : '');
+
     // Suggestion
     const sugg = r.suggestion ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(251,191,36,.1);border-radius:8px;border-left:3px solid #fbbf24">
       <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:3px">💡 GỢI Ý CẢI THIỆN</div>
@@ -2354,6 +2580,7 @@ function renderResults(results,report,mode,liveData){
         <!-- LEFT: transcript + suggestion -->
         <div style="padding:16px;border-right:1px solid rgba(255,255,255,.07)">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:8px">Student's Answer</div>
+          ${audioPlayer}
           ${transcript}
           ${sugg}
           ${kwFb}
