@@ -788,9 +788,10 @@ tr:hover td{background:var(--grey-100)}
             <th style="text-align:center">Grammar</th>
             <th style="text-align:center">Pron.</th>
             <th onclick="_spkSort('_avgBand')" style="cursor:pointer;text-align:center">Overall ↕</th>
+            <th style="text-align:center" title="Số file ghi âm có sẵn (lưu trên Drive, tự xóa sau 30 ngày)">🎧 Audio</th>
             <th></th>
           </tr></thead>
-          <tbody id="speak-results-tbody"><tr><td colspan="16" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          <tbody id="speak-results-tbody"><tr><td colspan="17" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
         </table>
       </div>
 
@@ -3512,7 +3513,7 @@ function renderSpeakDetailed(){
   const cnt=document.getElementById('spk-result-count');
   if(cnt) cnt.textContent = rows.length + ' kết quả';
 
-  if(!rows.length){ tbody.innerHTML='<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="17" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
 
   const bandColor = b => b>=7?'var(--green)':b>=5.5?'var(--gold)':b>0?'var(--red)':'var(--grey-400)';
   const cell = v => v!=null ? `<span style="font-weight:600;color:${bandColor(v)}">${v}</span>` : '<span style="color:var(--grey-400)">—</span>';
@@ -3525,6 +3526,10 @@ function renderSpeakDetailed(){
     const retryN = parseInt(r.RetryCount||0);
     const attempts = retryN + 1;
     const retryBadge = `<span style="background:${attempts>=10?'#dc2626':attempts>=5?'#d97706':'#6b7280'};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700">${attempts}x</span>`;
+    const audioCount = (r._results||[]).filter(x=>x.audioUrl).length;
+    const audioBadge = audioCount>0
+      ? `<button onclick="openSpkDetailModal(${i})" style="border:none;background:rgba(59,130,246,.1);color:#2563eb;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px">🎧 ${audioCount}</button>`
+      : '<span style="color:var(--grey-400);font-size:11px">—</span>';
     const main = `<tr style="${expanded?'background:rgba(124,58,237,.05)':''}">
       <td style="font-family:var(--font-mono);font-size:11px">${r._sid||'—'}</td>
       <td><strong>${r.StudentName||'—'}</strong></td>
@@ -3541,6 +3546,7 @@ function renderSpeakDetailed(){
       <td style="text-align:center">${cell(grA)}</td>
       <td style="text-align:center">${cell(prA)}</td>
       <td style="text-align:center"><strong style="color:${bandColor(r._avgBand)}">${r._avgBand||'—'}</strong></td>
+      <td style="text-align:center">${audioBadge}</td>
       <td style="white-space:nowrap">
         <button onclick="openSpkDetailModal(${i})" style="border:none;background:var(--red);color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🔍 Detail</button>
       </td>
@@ -4776,6 +4782,7 @@ function openSpkDetailModal(i){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
         <div style="padding:13px;border-right:1px solid var(--grey-100)">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--grey-500);margin-bottom:7px">Student's Answer</div>
+          ${rr.audioUrl?`<audio controls style="width:100%;height:32px;margin-bottom:9px" src="${esc2(rr.audioUrl)}"></audio>`:''}
           <div style="font-size:13px;line-height:1.7;color:var(--grey-700);font-style:italic">"${esc2(rr.studentAnswer||'—')}"</div>
           ${sugg}${kwFb}
         </div>

@@ -663,26 +663,87 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       <button class="tb-back" onclick="SS('S-home')">← Back</button>
     </div>
   </div>
-  <div class="main" style="max-width:860px">
-    <h2 style="margin-bottom:4px">📋 Speaking History</h2>
-    <p style="font-size:14px;color:var(--g600,#666);margin-bottom:18px">Your practice sessions — click Detail to review AI feedback, or Retry to practice again.</p>
-    <div id="hist-loading" style="text-align:center;padding:40px;color:var(--g600,#888)">Loading…</div>
-    <div id="hist-empty" style="display:none;text-align:center;padding:40px;color:var(--g600,#888)">No practice sessions yet.</div>
-    <div class="table-wrap" style="overflow-x:auto;display:none" id="hist-table-wrap">
-      <table style="min-width:700px;width:100%;font-size:14px">
-        <thead><tr>
-          <th>Date</th><th>Mode</th><th>Topic</th>
-          <th style="text-align:center">Q</th><th style="text-align:center">Attempts</th>
-          <th style="text-align:center">Fluency</th><th style="text-align:center">Vocab</th>
-          <th style="text-align:center">Grammar</th><th style="text-align:center">Pron.</th>
-          <th style="text-align:center">Overall</th><th></th>
-        </tr></thead>
-        <tbody id="hist-tbody"></tbody>
-      </table>
+  <div class="main" style="max-width:1180px;padding-top:28px">
+    <div style="background:#fff;border-radius:20px;box-shadow:0 1px 3px rgba(15,23,42,.06),0 8px 28px rgba(15,23,42,.05);overflow:hidden">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:28px 32px 20px;gap:20px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#e8edff,#dbe4ff);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:26px">📋</div>
+          <div>
+            <div style="font-family:var(--f-serif,Georgia,serif);font-size:1.7rem;font-weight:700;color:#0f172a;letter-spacing:-.01em">Speaking History</div>
+            <div style="font-size:14px;color:#64748b;margin-top:2px">Your practice sessions — click Detail to review AI feedback, or Retry to practice again.</div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;opacity:.9;display:none" id="hist-illustration">
+          <svg width="120" height="80" viewBox="0 0 120 80" fill="none">
+            <rect x="6" y="10" width="46" height="60" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" transform="rotate(-8 29 40)"/>
+            <rect x="40" y="8" width="46" height="60" rx="10" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+            <circle cx="63" cy="30" r="9" fill="#6366f1"/>
+            <rect x="52" y="44" width="22" height="4" rx="2" fill="#c7d2fe"/>
+            <rect x="52" y="52" width="16" height="4" rx="2" fill="#e2e8f0"/>
+            <rect x="70" y="16" width="44" height="56" rx="10" fill="#fdf2f8" stroke="#fbcfe8" stroke-width="1.5" transform="rotate(9 92 44)"/>
+          </svg>
+        </div>
+      </div>
+
+      <div id="hist-loading" style="text-align:center;padding:60px;color:#94a3b8;font-size:15px">Loading…</div>
+      <div id="hist-empty" style="display:none;text-align:center;padding:60px;color:#94a3b8;font-size:15px">No practice sessions yet.</div>
+
+      <!-- Table -->
+      <div class="table-wrap" style="overflow-x:auto;display:none" id="hist-table-wrap">
+        <table style="width:100%;border-collapse:collapse;min-width:920px">
+          <thead>
+            <tr style="border-top:1px solid #eef1f5;border-bottom:1px solid #eef1f5">
+              <th class="hh">Date</th><th class="hh">Mode</th><th class="hh">Topic</th>
+              <th class="hh" style="text-align:center">Q</th><th class="hh" style="text-align:center">Attempts</th>
+              <th class="hh" style="text-align:center">Fluency</th><th class="hh" style="text-align:center">Vocab</th>
+              <th class="hh" style="text-align:center">Grammar</th><th class="hh" style="text-align:center">Pron.</th>
+              <th class="hh" style="text-align:center">Overall</th>
+              <th class="hh" style="text-align:right;padding-right:32px">Action</th>
+            </tr>
+          </thead>
+          <tbody id="hist-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div id="hist-pagination" style="display:none;align-items:center;justify-content:space-between;padding:18px 32px 26px;flex-wrap:wrap;gap:14px">
+        <div style="font-size:13.5px;color:#64748b" id="hist-page-info">Showing 1 to 9 of 9 sessions</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="hist-prev" onclick="histGoPage(-1)" style="width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:10px;cursor:pointer;color:#334155;font-size:15px;display:flex;align-items:center;justify-content:center">‹</button>
+          <span id="hist-page-num" style="min-width:34px;height:34px;border-radius:10px;background:#4f46e5;color:#fff;font-weight:700;font-size:13.5px;display:flex;align-items:center;justify-content:center">1</span>
+          <button id="hist-next" onclick="histGoPage(1)" style="width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:10px;cursor:pointer;color:#334155;font-size:15px;display:flex;align-items:center;justify-content:center">›</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:#64748b">
+          <select id="hist-per-page" onchange="histSetPerPage()" style="border:1px solid #e2e8f0;border-radius:10px;padding:7px 12px;font-size:13.5px;color:#334155;background:#fff;cursor:pointer">
+            <option value="10" selected>10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div id="hist-detail" style="margin-top:24px"></div>
   </div>
 </div>
+
+<style>
+.hh{padding:13px 14px;text-align:left;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
+#hist-tbody tr{border-bottom:1px solid #f1f5f9;transition:background .12s}
+#hist-tbody tr:hover{background:#fafbff}
+#hist-tbody td{padding:16px 14px;font-size:14.5px;color:#1e293b;vertical-align:middle}
+.hist-mode-badge{display:inline-block;background:#eef2ff;color:#4338ca;font-weight:700;font-size:12.5px;padding:4px 12px;border-radius:8px}
+.hist-topic{color:#334155;font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+.hist-attempt-badge{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:26px;padding:0 8px;border-radius:13px;background:#1e293b;color:#fff;font-weight:700;font-size:12.5px}
+.hist-overall-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:30px;border-radius:10px;font-weight:800;font-size:14px}
+.hist-score{font-weight:600;font-size:14px}
+.hist-action-link{font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:none;border:none;padding:0;font-family:var(--f)}
+@media(max-width:640px){
+  .main #hist-illustration{display:none !important}
+  .main div[style*="border-radius:20px"]{border-radius:14px}
+}
+</style>
 
 <script type="module">
 import { GoogleGenAI, Modality } from 'https://esm.sh/@google/genai@latest';
@@ -738,58 +799,102 @@ let ttsCache={}, _ttsId=0;
 function goHub(){location.href='./index.html';}
 
 // ── STUDENT HISTORY ──
+let _histPage=1, _histPerPage=10;
+
 async function loadSpeakHistory(){
   const u=document.getElementById('u-hist');
   if(u&&S.user) u.textContent=S.user.fullName||'';
   const loading=document.getElementById('hist-loading');
   const empty=document.getElementById('hist-empty');
   const wrap=document.getElementById('hist-table-wrap');
-  const tbody=document.getElementById('hist-tbody');
+  const pag=document.getElementById('hist-pagination');
   const detail=document.getElementById('hist-detail');
   if(loading) loading.style.display='block';
   if(empty) empty.style.display='none';
   if(wrap) wrap.style.display='none';
+  if(pag) pag.style.display='none';
   if(detail) detail.innerHTML='';
   try{
     const res=await gasCall('speak.getMyHistory',{});
     if(loading) loading.style.display='none';
     const rows=(res.sessions||[]).slice().reverse();
     if(!rows.length){if(empty)empty.style.display='block';return;}
-    if(wrap) wrap.style.display='block';
-    const fmtD=v=>{try{const d=new Date(v);return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}catch(e){return '—';}};
-    const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#999';
-    const cell=v=>v!=null?`<strong style="color:${bc(v)}">${v}</strong>`:'<span style="color:#bbb">—</span>';
-    const avgCrit=(rs,keys)=>{const vs=[];(rs||[]).forEach(r=>{const sc=r.scores||{};for(const k of keys){const x=sc[k];if(x!=null){const n=typeof x==='object'?x.score:x;if(!isNaN(parseFloat(n))){vs.push(parseFloat(n));break;}}}});return vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length*2)/2:null;};
-    tbody.innerHTML=rows.map((row,i)=>{
-      let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
-      let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
-      const avg=results.length?Math.round(results.reduce((a,x)=>a+(parseFloat(x.overall)||0),0)/results.length*2)/2:null;
-      const attempts=parseInt(row.RetryCount||0)+1;  // 1-based (lần đầu=1, retry1=2, ...)
-      const fl=avgCrit(results,['fluency']),vc=avgCrit(results,['lexical','vocabulary']),gr=avgCrit(results,['grammar']),pr=avgCrit(results,['pronunciation']);
-      return `<tr>
-        <td style="font-size:11px;white-space:nowrap">${fmtD(row.StartingTime)}</td>
-        <td><span style="background:#f0f0ee;border-radius:5px;padding:2px 7px;font-size:11px">${row.Mode||'—'}</span></td>
-        <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${row.Topic||''}">${row.Topic||'<span style="color:#bbb">—</span>'}</td>
-        <td style="text-align:center">${qs.length||results.length||'—'}</td>
-        <td style="text-align:center"><span style="background:${attempts>=10?'#dc2626':attempts>=5?'#d97706':'#6b7280'};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700">${attempts}x</span></td>
-        <td style="text-align:center">${cell(fl)}</td>
-        <td style="text-align:center">${cell(vc)}</td>
-        <td style="text-align:center">${cell(gr)}</td>
-        <td style="text-align:center">${cell(pr)}</td>
-        <td style="text-align:center;font-size:1rem"><strong style="color:${bc(avg||0)}">${avg??'—'}</strong></td>
-        <td style="white-space:nowrap">
-          <button onclick="showHistDetail(${i})" style="border:none;background:none;color:#2563eb;font-size:12px;cursor:pointer;padding:2px 6px">🔍 Detail</button>
-          <button onclick="retryFromHistory(${i})" style="border:none;background:none;color:#dc2626;font-size:12px;cursor:pointer;padding:2px 6px">🔄 Retry</button>
-        </td>
-      </tr>`;
-    }).join('');
-    // Store rows for detail view
     window._histRows=rows;
+    _histPage=1;
+    renderHistPage();
   }catch(e){
     if(loading) loading.style.display='none';
     if(empty){empty.style.display='block';empty.textContent='Lỗi tải lịch sử: '+e.message;}
   }
 }
+
+function histSetPerPage(){
+  _histPerPage=parseInt(document.getElementById('hist-per-page').value)||10;
+  _histPage=1;
+  renderHistPage();
+}
+function histGoPage(delta){
+  const rows=window._histRows||[];
+  const maxPage=Math.max(1,Math.ceil(rows.length/_histPerPage));
+  _histPage=Math.min(maxPage,Math.max(1,_histPage+delta));
+  renderHistPage();
+}
+
+function renderHistPage(){
+  const rows=window._histRows||[];
+  const wrap=document.getElementById('hist-table-wrap');
+  const pag=document.getElementById('hist-pagination');
+  const tbody=document.getElementById('hist-tbody');
+  if(!rows.length)return;
+  wrap.style.display='block';
+  pag.style.display='flex';
+
+  const fmtD=v=>{try{const d=new Date(v);return isNaN(d)?'—':d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});}catch(e){return '—';}};
+  const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#94a3b8';
+  const bcBg=v=>v>=7?'#dcfce7':v>=5.5?'#fef3c7':v>0?'#fee2e2':'#f1f5f9';
+  const cell=v=>v!=null?`<span class="hist-score" style="color:${bc(v)}">${v}</span>`:'<span style="color:#cbd5e1">—</span>';
+  const avgCrit=(rs,keys)=>{const vs=[];(rs||[]).forEach(r=>{const sc=r.scores||{};for(const k of keys){const x=sc[k];if(x!=null){const n=typeof x==='object'?x.score:x;if(!isNaN(parseFloat(n))){vs.push(parseFloat(n));break;}}}});return vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length*2)/2:null;};
+
+  const start=(_histPage-1)*_histPerPage;
+  const pageRows=rows.slice(start,start+_histPerPage);
+
+  tbody.innerHTML=pageRows.map((row,pi)=>{
+    const i=start+pi;   // index thật trong window._histRows (dùng cho Detail/Retry)
+    let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
+    let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
+    const avg=results.length?Math.round(results.reduce((a,x)=>a+(parseFloat(x.overall)||0),0)/results.length*2)/2:null;
+    const attempts=parseInt(row.RetryCount||0)+1;
+    const fl=avgCrit(results,['fluency']),vc=avgCrit(results,['lexical','vocabulary']),gr=avgCrit(results,['grammar']),pr=avgCrit(results,['pronunciation']);
+    return `<tr>
+      <td style="white-space:nowrap;color:#475569">${fmtD(row.StartingTime)}</td>
+      <td><span class="hist-mode-badge">${row.Mode||'—'}</span></td>
+      <td><span class="hist-topic" title="${row.Topic||''}">${row.Topic||'<span style="color:#cbd5e1">—</span>'}</span></td>
+      <td style="text-align:center;color:#64748b">${qs.length||results.length||'—'}</td>
+      <td style="text-align:center"><span class="hist-attempt-badge">${attempts}x</span></td>
+      <td style="text-align:center">${cell(fl)}</td>
+      <td style="text-align:center">${cell(vc)}</td>
+      <td style="text-align:center">${cell(gr)}</td>
+      <td style="text-align:center">${cell(pr)}</td>
+      <td style="text-align:center"><span class="hist-overall-badge" style="background:${bcBg(avg||0)};color:${bc(avg||0)}">${avg??'—'}</span></td>
+      <td style="text-align:right;padding-right:24px;white-space:nowrap">
+        <button class="hist-action-link" onclick="showHistDetail(${i})" style="color:#4f46e5;margin-right:16px">👁 Detail</button>
+        <button class="hist-action-link" onclick="retryFromHistory(${i})" style="color:#dc2626">↻ Retry</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination footer
+  const total=rows.length;
+  const maxPage=Math.max(1,Math.ceil(total/_histPerPage));
+  document.getElementById('hist-page-info').textContent=
+    `Showing ${start+1} to ${Math.min(start+_histPerPage,total)} of ${total} sessions`;
+  document.getElementById('hist-page-num').textContent=_histPage;
+  document.getElementById('hist-prev').disabled=_histPage<=1;
+  document.getElementById('hist-prev').style.opacity=_histPage<=1?'.4':'1';
+  document.getElementById('hist-next').disabled=_histPage>=maxPage;
+  document.getElementById('hist-next').style.opacity=_histPage>=maxPage?'.4':'1';
+}
+
 function closeDetailModal(){
   document.getElementById('detail-modal').style.display='none';
   document.body.style.overflow='';
@@ -1232,7 +1337,11 @@ function launch(mode,qs,retryCount){
   S.gradeP=new Array(qs.length).fill(null);
   S.idx=0;S.t0=new Date().toISOString();
   S.retryCount=(retryCount||0);   // lần luyện thứ (0=lần đầu, 1=retry1, ...)
-  S.qSeconds=(mode==='part2')?120:90;
+  // Thời gian trả lời theo đúng chuẩn IELTS thật:
+  // Part 1 = câu hỏi ngắn, cá nhân (15-20s) · Part 2 = long turn với cue card (2 phút)
+  // Part 3 = thảo luận sâu hơn P1 nhưng vẫn ngắn hơn P2 nhiều (~45s)
+  const QSEC={part1:20, part2:120, part3:45, full:60, custom:60, forecast:60};
+  S.qSeconds=QSEC[mode]||60;
   const lbl={part1:'/ IELTS Part 1',part2:'/ IELTS Part 2',part3:'/ IELTS Part 3',full:'/ Full Simulation',custom:'/ Custom Practice',forecast:'/ Forecast Test'};
   document.getElementById('sess-tb').textContent=lbl[mode]||'/ Speaking';
   updProg();SS('S-session');loadQ(0);
@@ -1518,15 +1627,46 @@ async function gemFetch(sys, usr, mx, _attempt){
           for(let i=ds;i>0;i--){if(el)el.textContent=`⏳ Đang thử lại sau ${i}s…`;await new Promise(res=>setTimeout(res,1000));}
           return gemFetch(sys,usr,mx,_attempt+1);
         }
+        // Gemini hết quota sau các lần retry → âm thầm chuyển sang Groq Llama nếu có key
+        if(S.groqKey){
+          console.warn('[gemFetch] Gemini quota hết — chuyển sang Groq Llama');
+          return await groqChatFetch(sys,usr,mx);
+        }
         errMsg=`Quota hết. Thử lại sau ${ds}s hoặc đổi key.`;
       }else if(r.status===404){errMsg=`Model không tồn tại. Thử model khác.`; if(_attempt<=2) return gemFetch(sys,usr,mx,_attempt+1);}
       else{errMsg=raw.split('\n')[0].substring(0,120)||errMsg;}
     }catch(_){}
+    // Bất kỳ lỗi Gemini nào khác (không chỉ 429) — vẫn thử Groq nếu có key, còn hơn báo lỗi trắng
+    if(S.groqKey){
+      try{ return await groqChatFetch(sys,usr,mx); }catch(_e){}
+    }
     throw new Error(errMsg);
   }
   const j=await r.json();
   const text=j.candidates?.[0]?.content?.parts?.[0]?.text||'';
   if(!text) throw new Error('Gemini trả về kết quả rỗng');
+  return text.trim();
+}
+
+// Fallback chấm điểm/tạo văn bản qua Groq (Llama 3.3 70B) khi Gemini hết quota.
+// Dùng cùng chữ ký (sys, usr, mx) như gemFetch để thay thế trong suốt.
+async function groqChatFetch(sys, usr, mx){
+  if(!S.groqKey) throw new Error('Không có Groq key để dự phòng');
+  const messages=[];
+  if(sys) messages.push({role:'system',content:sys});
+  messages.push({role:'user',content:usr});
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.groqKey},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages,max_tokens:mx||1024,temperature:0.45})
+  });
+  if(!r.ok){
+    const e=await r.json().catch(()=>({}));
+    throw new Error('Groq lỗi: '+(e.error?.message||r.status));
+  }
+  const j=await r.json();
+  const text=j.choices?.[0]?.message?.content||'';
+  if(!text) throw new Error('Groq trả về kết quả rỗng');
   return text.trim();
 }
 
@@ -1588,29 +1728,20 @@ function normalizeJoinedTranscript(text){
     .trim();
 }
 
-function cleanStutterTranscript(text){
-  const words=text.trim().split(/\s+/);
-  if(words.length<12) return text;   // câu ngắn, không cần xử lý
-  // Đếm tỉ lệ từ trùng lặp trong toàn câu — nếu quá cao là dấu hiệu lỗi restart-loop
-  const freq={};
-  words.forEach(w=>{const k=w.toLowerCase();freq[k]=(freq[k]||0)+1;});
-  const uniqueRatio=Object.keys(freq).length/words.length;
-  if(uniqueRatio>0.55) return text;  // câu bình thường, đa dạng từ vựng — giữ nguyên
-  // Nghi vấn lặp: lấy CÂU CON DÀI NHẤT không lặp từ liên tiếp quá 2 lần
-  let out=[],repeatCount={};
-  for(const w of words){
-    const k=w.toLowerCase();
-    repeatCount[k]=(repeatCount[k]||0)+1;
-    if(repeatCount[k]<=3) out.push(w);  // cho phép lặp tự nhiên tối đa 3 lần (vd "very very good")
-  }
-  return out.join(' ');
-}
+// (Đã bỏ cleanStutterTranscript: hàm này chỉ cần thiết khi dùng Web Speech API để chống
+// bug lặp cụm từ khi engine tự restart. Từ khi chuyển hẳn sang Groq Whisper để transcribe,
+// transcript luôn sạch — giữ hàm này lại sẽ CẮT XÉN SAI các câu dài tự nhiên (tiếng Anh nói
+// tự nhiên có nhiều từ chức năng lặp lại như "the", "and", "I", "to" khiến uniqueRatio thấp
+// dù không hề lỗi), gây ra hiện tượng "câu quá dài, không chấm được" mà thực chất là bị cắt.)
 
 async function gradeOneQuestion(question, answer, keywords) {
   if (!answer || answer.trim().length < 5) return {};
-  answer = normalizeJoinedTranscript(answer);  // gộp khoảng trắng thừa từ nhiều đoạn restart nối lại
-  answer = cleanStutterTranscript(answer);     // loại lặp cụm do bug restart Web Speech (nếu còn sót)
-  if (answer.length > 2000) answer = answer.substring(0, 2000);   // chặn prompt quá dài
+  answer = normalizeJoinedTranscript(answer);  // gộp khoảng trắng thừa từ nhiều đoạn nối lại
+  // Giới hạn input answer theo đúng độ dài kỳ vọng của từng Part — tránh cắt xén
+  // câu Part 2 (long turn, SV nói ~2 phút = nhiều từ) trong khi vẫn gọn cho Part 1.
+  const ANSWER_LIMIT = {part1:1200, part2:6000, part3:2500, full:3000, custom:3000, forecast:3000};
+  const limit = ANSWER_LIMIT[S.mode] || 3000;
+  if (answer.length > limit) answer = answer.substring(0, limit);
 
   const RUBRIC = `
 IELTS SPEAKING BAND DESCRIPTORS (Official — use STRICTLY):
@@ -1686,9 +1817,12 @@ RULES for "errors":
 - Max 4 errors. Focus on grammar and vocabulary errors only. Empty array [] if no errors.
 - Do NOT flag pronunciation errors in "errors" (it is spoken text).`;
 
+  // Output token linh động theo Part — Part 2 (câu trả lời dài) cần nhiều token hơn
+  // để phân tích đủ sâu (nhiều lỗi tiềm năng hơn, nhận xét chi tiết hơn).
+  const OUTPUT_LIMIT = {part1:1200, part2:3000, part3:1800, full:2000, custom:2000, forecast:2000};
   const raw = await gemFetch(
     'You are a certified IELTS examiner. Return ONLY valid JSON. No markdown.',
-    prompt, 1200
+    prompt, OUTPUT_LIMIT[S.mode] || 2000
   );
 
   if (typeof raw !== 'string' || !raw) {
