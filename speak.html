@@ -309,15 +309,27 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       <div style="font-size:13px;color:var(--g600)">AI speaking coach — IELTS &amp; CEFR practice</div>
     </div>
 
-    <!-- API KEY -->
+    <!-- API KEY: GEMINI (chấm điểm) -->
     <div class="apikey-wrap">
-      <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🔑 Gemini API Key (Google AI Studio)</div>
+      <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🔑 Gemini API Key (chấm điểm)</div>
       <div style="font-size:11px;color:var(--g600);margin-bottom:8px">Key lưu trên thiết bị của bạn. Miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue);font-weight:600">aistudio.google.com</a></div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <input id="key-inp" type="password" placeholder="AIza…" style="flex:1;min-width:160px" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='var(--g200)'" onkeydown="if(event.key==='Enter')saveKey()">
         <button class="btn btn-gold btn-sm" onclick="saveKey()">Lưu</button>
         <button class="btn btn-grey btn-sm" onclick="toggleKV()">👁</button>
         <span id="key-st" class="key-st key-bad">⚠ Chưa có</span>
+      </div>
+    </div>
+
+    <!-- API KEY: GROQ (transcribe) -->
+    <div class="apikey-wrap" style="margin-top:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🎤 Groq API Key (chuyển giọng nói → chữ)</div>
+      <div style="font-size:11px;color:var(--g600);margin-bottom:8px">Nhanh &amp; chính xác hơn, key riêng nên không lo nghẽn giờ cao điểm. Miễn phí tại <a href="https://console.groq.com/keys" target="_blank" style="color:var(--blue);font-weight:600">console.groq.com/keys</a></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input id="groq-key-inp" type="password" placeholder="gsk_…" style="flex:1;min-width:160px" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='var(--g200)'" onkeydown="if(event.key==='Enter')saveGroqKey()">
+        <button class="btn btn-gold btn-sm" onclick="saveGroqKey()">Lưu</button>
+        <button class="btn btn-grey btn-sm" onclick="toggleGroqKV()">👁</button>
+        <span id="groq-key-st" class="key-st key-bad">⚠ Chưa có</span>
       </div>
     </div>
 
@@ -688,7 +700,7 @@ const GM_LIVE  = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 // ── STATE ─────────────────────────────────────────────────────────────
 const S = {
-  user:null, tok:null, gkey:null,
+  user:null, tok:null, gkey:null, groqKey:null,
   // IELTS record mode
   mode:null, qs:[], recs:[], idx:0, t0:null,
   mr:null, chunks:[], isRec:false, recSec:0, recTm:null,
@@ -719,6 +731,8 @@ let ttsCache={}, _ttsId=0;
   document.querySelectorAll('#u-home,#u-setup,#u-sess,#u-live,#u-grad,#u-res').forEach(e=>e.textContent='👤 '+n);
   const k=localStorage.getItem('fl_key');
   if(k){S.gkey=k;document.getElementById('key-inp').value=k;kSt(true);}
+  const gk=localStorage.getItem('fl_groq_key');
+  if(gk){S.groqKey=gk;document.getElementById('groq-key-inp').value=gk;gqSt(true);}
 })();
 
 function goHub(){location.href='./index.html';}
@@ -892,10 +906,16 @@ function showHistDetail(i){
 }
 function SS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function toast(m,t,d){t=t||'info';d=d||3400;const el=document.createElement('div');el.className='toast '+t;el.innerHTML=`<span>${{success:'✓',error:'✕',info:'ℹ'}[t]||'ℹ'}</span><span>${m}</span>`;document.getElementById('toast-wrap').appendChild(el);setTimeout(()=>el.remove(),d);}
-function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v.startsWith('AIza')){toast('Key phải bắt đầu bằng "AIza"','error');return;}S.gkey=v;localStorage.setItem('fl_key',v);kSt(true);toast('API key đã lưu ✓','success');}
+function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v.startsWith('AIza')){toast('Key phải bắt đầu bằng "AIza"','error');return;}S.gkey=v;localStorage.setItem('fl_key',v);kSt(true);toast('Gemini key đã lưu ✓','success');}
 function toggleKV(){const i=document.getElementById('key-inp');i.type=i.type==='password'?'text':'password';}
 function kSt(ok){const e=document.getElementById('key-st');e.textContent=ok?'✓ Key OK':'⚠ Chưa có';e.className='key-st '+(ok?'key-ok':'key-bad');}
 function needKey(){if(!S.gkey){toast('Vui lòng nhập Gemini API key','error',4000);document.getElementById('key-inp').focus();return false;}return true;}
+
+// ── GROQ KEY (transcribe) ──
+function saveGroqKey(){const v=document.getElementById('groq-key-inp').value.trim();if(!v.startsWith('gsk_')){toast('Groq key phải bắt đầu bằng "gsk_"','error');return;}S.groqKey=v;localStorage.setItem('fl_groq_key',v);gqSt(true);toast('Groq key đã lưu ✓','success');}
+function toggleGroqKV(){const i=document.getElementById('groq-key-inp');i.type=i.type==='password'?'text':'password';}
+function gqSt(ok){const e=document.getElementById('groq-key-st');if(!e)return;e.textContent=ok?'✓ Key OK':'⚠ Chưa có';e.className='key-st '+(ok?'key-ok':'key-bad');}
+function needGroqKey(){if(!S.groqKey){toast('Vui lòng nhập Groq API key để ghi âm','error',4000);document.getElementById('groq-key-inp').focus();return false;}return true;}
 
 // ── PRE-FLIGHT: kiểm tra key + quota TRƯỚC khi cho SV tập nói ──────────
 // Tiny probe call (1 token, model lite) → tốn cực ít quota. Trả {ok} | {ok:false,status}
@@ -1192,13 +1212,15 @@ async function startFromSetup(){
     startLiveSession('ielts-live');   // tự preflight bên trong
     return;
   }
-  if(!(await geminiPreflight())) return;   // check key/quota TRƯỚC khi tập nói
+  if(!(await geminiPreflight())) return;   // check key chấm điểm TRƯỚC khi tập nói
+  if(!needGroqKey()) return;               // check key transcribe (Groq)
   launch(S.mode,qs);
 }
 async function startForecast(){
   const lines=document.getElementById('fc-bank').value.split('\n').map(l=>l.trim()).filter(Boolean);
   if(lines.length<2){toast('Nhập ít nhất 2 câu hỏi','error');return;}
   if(!(await geminiPreflight())) return;
+  if(!needGroqKey()) return;
   const n=parseInt(document.getElementById('fc-count').value)||5;
   const picked=lines.sort(()=>Math.random()-.5).slice(0,n).map(q=>({question:q,keywords:[],partLabel:''}));
   S.mode='forecast';launch('forecast',picked);
@@ -1254,15 +1276,12 @@ function toggleWords(){S.wordsVis=!S.wordsVis;const d=document.getElementById('w
 function updProg(){const tot=S.qs.length,idx=S.idx;const pct=tot?Math.round((idx/tot)*100):0;document.getElementById('prog-txt').textContent='Question '+(idx+1)+' of '+tot;document.getElementById('prog-pct').textContent=pct+'%';document.getElementById('prog-fill').style.width=pct+'%';}
 function startPrep(){document.getElementById('prep-wrap').style.display='block';S.prepLeft=60;clearInterval(S.prepTm);updPrepUI();S.prepTm=setInterval(()=>{S.prepLeft--;updPrepUI();if(S.prepLeft<=0){clearInterval(S.prepTm);document.getElementById('prep-wrap').style.display='none';toast('Prep time over!','info');}},1000);}
 function updPrepUI(){const m=Math.floor(S.prepLeft/60),s=S.prepLeft%60;document.getElementById('prep-cd').textContent=m+':'+String(s).padStart(2,'0');document.getElementById('prep-pfill').style.width=(S.prepLeft/60*100)+'%';}
-// ── STT: Web Speech API (FREE) làm nguồn text chính khi trình duyệt hỗ trợ —
-// ÁP DỤNG CHO CẢ iOS SAFARI (theo khuyến nghị cộng đồng: push-to-talk + singleton
-// instance + continuous=false ổn định hơn nhiều so với continuous=true trên iOS).
-// MediaRecorder LUÔN chạy song song để lưu file audio (nghe lại + upload Drive).
-// Gemini transcribe CHỈ dùng khi Web Speech thực sự không khả dụng/lỗi liên tục.
-const _SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const _isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const USE_WEBSPEECH=!!_SR;
-let _wsInstance=null;   // singleton — tạo 1 lần, tái sử dụng (khuyến nghị cho iOS, tránh âm "tinh tinh" mỗi lần new)
+// ── STT: Thuần Gemini transcribe cho MỌI trình duyệt (đã chứng minh ổn định).
+// Đã thử Web Speech API để tiết kiệm token nhưng gặp nhiều lỗi khó kiểm soát
+// (lặp từ, không nhận diện, khác biệt hành vi giữa iOS/Android/Desktop) — quay lại
+// nền tảng ổn định. Token được tối ưu ở transcribeAudio(): model Lite rẻ nhất,
+// prompt tối giản, giới hạn output, và audio được gom thành 1 file ngắn duy nhất
+// (không streaming) mỗi khi SV bấm dừng nói.
 
 function resetTalkUI(){
   const rb=document.getElementById('rec-btn');
@@ -1286,153 +1305,27 @@ function startQCountdown(sec){
 // ── PUSH-TO-TALK ──
 function toggleTalk(){if(S.talking)stopTalk();else startTalk();}
 async function startTalk(){
-  if(S.talking)return;S.talking=true;
+  if(S.talking)return;
+  if(!needGroqKey())return;
+  S.talking=true;
   const rb=document.getElementById('rec-btn');rb.textContent='⏹';rb.className='rec-btn act';
   document.getElementById('rec-area').className='rec-area recg';
-  document.getElementById('rec-st').innerHTML='🔴 Đang nghe… nói tự nhiên';
+  document.getElementById('rec-st').innerHTML='🔴 Đang ghi âm… nói tự nhiên';
   document.getElementById('rec-hint').textContent='Nhấn SPACE để chốt câu';
-  S.webSpeechFailed=false;
-  // Luôn bật MediaRecorder song song để lưu file audio (nghe lại + Drive)
   await startAudioCapture();
-  if(USE_WEBSPEECH) startWebSpeech();
 }
 async function stopTalk(){
   if(!S.talking)return;S.talking=false;
   const rb=document.getElementById('rec-btn');rb.textContent='⏳';rb.className='rec-btn';rb.disabled=true;
-  if(USE_WEBSPEECH&&!S.webSpeechFailed){
-    try{S.rec&&S.rec.stop();}catch(e){}
-    await stopAudioCapture();   // dừng lưu file, KHÔNG transcribe (đã có text từ Web Speech)
-  }else{
-    // Web Speech không khả dụng/thất bại → dùng chính file MediaRecorder để gọi Gemini transcribe
-    await stopAudioCaptureAndTranscribe();
-  }
+  await stopAudioCaptureAndTranscribe();
   rb.textContent='✓';rb.className='rec-btn dn';rb.disabled=false;
   document.getElementById('rec-area').className='rec-area done';
   document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';
   document.getElementById('rec-hint').textContent='Bấm Next, hoặc SPACE để nói thêm';
 }
 
-// Web Speech API — nguồn text chính (FREE). Chống bug lặp từ bằng:
-// 1) KHÔNG tự ý restart nhiều lần liên tục (giới hạn số lần phục hồi)
-// 2) Dedupe theo resultIndex tuyệt đối trong TOÀN BỘ phiên nói (không reset khi restart)
-function startWebSpeech(){
-  S._wsRestarts=0;
-  S._wsGlobalFinalCount=0;
-  if(_isIOS) _startWebSpeechIOS();
-  else _startWebSpeechInstance();
-}
 
-// ── iOS: singleton instance + continuous=false + restart thủ công mỗi khi kết thúc ──
-// (Theo khuyến nghị cộng đồng dev: continuous=true gây "buffer clogging" và lặp text
-// trên iOS; continuous=false từng đoạn ngắn ổn định hơn nhiều — vẫn giữ trải nghiệm
-// push-to-talk liên tục vì code tự động start() lại ngay khi đoạn trước kết thúc.)
-function _startWebSpeechIOS(){
-  try{
-    if(!_wsInstance){
-      _wsInstance=new _SR();
-      _wsInstance.lang='en-US';
-      _wsInstance.continuous=false;      // đoạn ngắn — ổn định trên iOS
-      _wsInstance.interimResults=true;
-    }
-    const r=_wsInstance;S.rec=r;
-    r.onstart=()=>{S._wsRunning=true;};
-    r.onresult=(e)=>{
-      let interim='';
-      for(let i=0;i<e.results.length;i++){
-        const res=e.results[i];
-        const t=res[0].transcript;
-        if(res.isFinal) S.curAnswer=(S.curAnswer+' '+t).trim();
-        else interim+=t;
-      }
-      document.getElementById('ptt-interim').textContent=interim||S.curAnswer;
-    };
-    r.onerror=(e)=>{
-      S._wsRunning=false;
-      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
-        toast('Micro bị chặn — vào Cài đặt > Safari > Micro để bật lại quyền','error',6000);
-        S.webSpeechFailed=true;
-      }
-      // 'no-speech'/'aborted' bình thường — onend sẽ tự restart
-    };
-    r.onend=()=>{
-      S._wsRunning=false;
-      if(!S.talking)return;
-      S._wsRestarts=(S._wsRestarts||0)+1;
-      if(S._wsRestarts>60){   // đoạn ngắn nên cần nhiều restart hơn — giới hạn cao hơn
-        S.webSpeechFailed=true;
-        toast('Mic hơi chập chờn — bạn vui lòng bấm lại mic nhé 🎤','info',4000);
-        return;
-      }
-      _safeStartWS(r,150);
-    };
-    _safeStartWS(r,0);
-  }catch(e){
-    toast('Lỗi nhận diện giọng nói: '+e.message,'error');
-    S.webSpeechFailed=true;
-  }
-}
-// Gọi start() an toàn: kiểm tra cờ _wsRunning để tránh DOMException "already started",
-// và tự thử lại nếu iOS throw do gọi quá nhanh liên tiếp.
-function _safeStartWS(r,delay){
-  const attempt=()=>{
-    if(!S.talking)return;
-    if(S._wsRunning)return;   // đang chạy rồi — không gọi start() nữa
-    try{r.start();}
-    catch(e){ if(S.talking) setTimeout(attempt,150); }
-  };
-  if(delay>0) setTimeout(attempt,delay); else attempt();
-}
-
-// ── Android/Desktop: continuous=true, dedupe theo index tuyệt đối ──
-function _startWebSpeechInstance(){
-  try{
-    const r=new _SR();S.rec=r;r.lang='en-US';r.continuous=true;r.interimResults=true;
-    let sessionFinalIdx=-1;   // index đã chốt TRONG instance recognition hiện tại
-    r.onstart=()=>{S._wsRunning=true;};
-    r.onresult=(e)=>{
-      let interim='';
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        const res=e.results[i];
-        const t=res[0].transcript;
-        if(res.isFinal){
-          if(i>sessionFinalIdx){
-            sessionFinalIdx=i;
-            S._wsGlobalFinalCount++;
-            S.curAnswer=(S.curAnswer+' '+t).trim();
-          }
-        }else{
-          interim+=t;
-        }
-      }
-      document.getElementById('ptt-interim').textContent=interim||S.curAnswer;
-    };
-    r.onerror=(e)=>{
-      S._wsRunning=false;
-      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
-        toast('Micro bị chặn — hãy cho phép quyền micro','error');
-        S.webSpeechFailed=true;
-      }
-      // 'no-speech' và 'aborted' là bình thường khi im lặng — không coi là lỗi
-    };
-    r.onend=()=>{
-      S._wsRunning=false;
-      if(!S.talking)return;   // người dùng đã bấm Stop — không restart
-      S._wsRestarts=(S._wsRestarts||0)+1;
-      if(S._wsRestarts>40){   // giới hạn an toàn (~ nhiều phút nói liên tục) — tránh vòng lặp vô hạn
-        S.webSpeechFailed=true;
-        toast('Mic hơi chập chờn — bạn vui lòng bấm lại mic nhé 🎤','info',4000);
-        return;
-      }
-      try{_startWebSpeechInstance();}catch(e){S.webSpeechFailed=true;}
-    };
-    r.start();
-  }catch(e){
-    toast('Lỗi nhận diện giọng nói: '+e.message,'error');
-    S.webSpeechFailed=true;
-  }
-}
-
-// ── AUDIO CAPTURE (MediaRecorder) — LUÔN chạy song song để lưu file nghe lại + Drive ──
+// ── AUDIO CAPTURE (MediaRecorder) — nguồn duy nhất, dùng để lưu file + transcribe ──
 async function startAudioCapture(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
@@ -1457,17 +1350,7 @@ function _stopMediaRecorder(){
     S.mr.stop();
   });
 }
-// Dừng lưu audio, KHÔNG transcribe (đã có text từ Web Speech) — chỉ giữ blob để nghe lại/lưu Drive sau
-async function stopAudioCapture(){
-  const rec=await _stopMediaRecorder();
-  if(rec){
-    S.lastAudioBlob=rec.blob;S.lastAudioMime=rec.mime;
-    S.lastAudioUrl=URL.createObjectURL(rec.blob);
-    const idx=S.idx;
-    if(S.recs[idx])S.recs[idx]._audioBlob=rec.blob,S.recs[idx]._audioMime=rec.mime;
-  }
-}
-// Dừng lưu audio VÀ dùng chính file đó để gọi Gemini transcribe (fallback khi Web Speech fail)
+// Dừng ghi âm + gọi Gemini transcribe (model Lite, prompt tối giản — xem transcribeAudio())
 async function stopAudioCaptureAndTranscribe(){
   const rec=await _stopMediaRecorder();
   if(!rec){toast('Không ghi được audio','error');return;}
@@ -1498,7 +1381,7 @@ async function nextQuestion(){
   S.recs[idx].studentAnswer=ans;
   S.recs[idx].question=S.qs[idx].question;
   S.recs[idx].keywords=S.qs[idx].keywords||[];
-  S.recs[idx].sttMethod=S.webSpeechFailed?'gemini':'webspeech';   // thống kê tỉ lệ fallback token
+  S.recs[idx].sttMethod='gemini';
   if(ans.length>=5){
     const kw=(S.qs[idx].keywords||[]).join(', ');
     S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);}).catch(e=>{console.warn('grade Q'+idx,e);});
@@ -1575,18 +1458,42 @@ document.addEventListener('keydown',function(e){
   e.preventDefault();toggleTalk();
 });
 
-// ── TRANSCRIBE AUDIO VIA GEMINI REST ─────────────────────────────────
+// ── TRANSCRIBE AUDIO VIA GROQ WHISPER ────────────────────────────────
+// Chuyển hẳn transcribe sang Groq (Whisper Large v3 Turbo):
+// - Whisper là model CHUYÊN DỤNG cho speech-to-text → chính xác hơn nhiều so với
+//   việc dùng LLM đa năng (Gemini) để "nghe hộ".
+// - Mỗi SV dùng KEY GROQ RIÊNG của mình → rate limit (30 req/phút, 2000 req/ngày)
+//   tính theo từng em, không còn lo nghẽn khi cả lớp luyện cùng lúc.
+// - Gemini được rảnh tay hoàn toàn cho việc chấm điểm (việc nó giỏi nhất).
+// Nhận thẳng Blob (không cần chuyển base64 — multipart/form-data hiệu quả hơn).
 async function transcribeAudio(base64, mime){
-  if(!S.gkey) throw new Error('No API key');
-  const body={contents:[{parts:[
-    {inline_data:{mime_type:mime||'audio/webm',data:base64}},
-    {text:'Transcribe this English speech. Return ONLY the transcript text, no labels.'}
-  ]}]};
-  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+GM_PRIMARY+':generateContent?key='+S.gkey,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Transcribe error '+r.status);}
-  const j=await r.json();
-  return (j.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
+  if(!S.groqKey) throw new Error('Chưa có Groq API key — vui lòng nhập ở trang chủ Fluentalk');
+  // base64 đầu vào (tương thích chữ ký cũ) → chuyển lại thành Blob cho FormData
+  const byteChars = atob(base64);
+  const byteNumbers = new Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  const blob = new Blob([new Uint8Array(byteNumbers)], {type: mime||'audio/webm'});
+  const ext = (mime||'').includes('mp4') ? 'm4a' : 'webm';
+
+  const fd = new FormData();
+  fd.append('file', blob, 'answer.'+ext);
+  fd.append('model', 'whisper-large-v3-turbo');   // nhanh nhất, đủ chính xác cho hội thoại
+  fd.append('language', 'en');
+  fd.append('response_format', 'json');
+  fd.append('temperature', '0');
+
+  const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + S.groqKey },
+    body: fd
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({}));
+    const msg = e.error?.message || ('Groq lỗi ' + r.status);
+    throw new Error(msg);
+  }
+  const j = await r.json();
+  return (j.text || '').trim();
 }
 
 // ── GEMINI FETCH — direct REST, no SDK, with model fallback ──────────
@@ -1784,18 +1691,31 @@ RULES for "errors":
     prompt, 1200
   );
 
-  // Robust JSON extraction
+  if (typeof raw !== 'string' || !raw) {
+    console.warn('gradeOneQuestion: raw response is not a usable string:', typeof raw, raw);
+    return {};
+  }
+
+  // Robust JSON extraction: tìm khối {...} lớn nhất bằng cách đếm ngoặc cân bằng
+  // (chịu lỗi tốt hơn indexOf/lastIndexOf khi có ký tự lạ hoặc nhiều cặp ngoặc)
   const clean = raw.replace(/```json|```/g,'').trim();
-  const si = clean.indexOf('{');
-  const ei = clean.lastIndexOf('}');
-  if (si === -1 || ei === -1) {
-    console.warn('gradeOneQuestion: no JSON in response', raw.substring(0,200));
+  let jsonStr = null;
+  const firstBrace = clean.indexOf('{');
+  if (firstBrace !== -1) {
+    let depth = 0;
+    for (let i = firstBrace; i < clean.length; i++) {
+      if (clean[i] === '{') depth++;
+      else if (clean[i] === '}') { depth--; if (depth === 0) { jsonStr = clean.substring(firstBrace, i+1); break; } }
+    }
+  }
+  if (!jsonStr) {
+    console.warn('gradeOneQuestion: no balanced JSON block found. Raw (first 300 chars):', clean.substring(0,300));
     return {};
   }
   try {
-    return JSON.parse(clean.substring(si, ei+1));
+    return JSON.parse(jsonStr);
   } catch(e) {
-    console.warn('gradeOneQuestion: JSON parse failed', e.message, clean.substring(si, si+300));
+    console.warn('gradeOneQuestion: JSON.parse failed:', e.message, '| jsonStr (first 300):', jsonStr.substring(0,300));
     return {};
   }
 }
@@ -2408,12 +2328,8 @@ function saveToGAS(mode, results, report, durationSec, retryCount) {
     scores:        r.scores        || null,
     corrected:     r.corrected     || '',
     suggestion:    r.suggestion    || '',
-    audioUrl:      r.audioUrl      || '',
-    sttMethod:     r.sttMethod     || 'webspeech'
+    audioUrl:      r.audioUrl      || ''
   }));
-  // Thống kê tỉ lệ phải fallback sang Gemini transcribe (để theo dõi chi phí token)
-  const fallbackCount = (results||[]).filter(r=>r.sttMethod==='gemini').length;
-  const sttFallbackRate = results.length ? Math.round(fallbackCount/results.length*100) : 0;
   const payload = {
     startingTime:   startTimeISO,
     submittingTime: now.toISOString(),
@@ -2424,7 +2340,6 @@ function saveToGAS(mode, results, report, durationSec, retryCount) {
     durationMin:    Math.round((durationSec||0)/60),
     topic:          S.topic||'',
     retryCount:     retryCount||0,
-    sttFallbackRate: sttFallbackRate,
     questionsJSON:  JSON.stringify(qArr),
     resultsJSON:    JSON.stringify(rArr),
     reportText:     (report||'').substring(0, 4000)
