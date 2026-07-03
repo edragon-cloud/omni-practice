@@ -212,7 +212,7 @@ tr:hover td{background:var(--grey-100)}
 .student-topbar{background:var(--white);border-bottom:1px solid var(--grey-200);padding:0 40px;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .topbar-title{font-family:var(--font-display);font-size:1.2rem;color:var(--black)}
 .student-content{padding:36px 40px 48px;max-width:none;width:100%}
-@media(max-width:600px){.student-content{padding:80px 16px 20px !important}.student-topbar{padding:0 14px;height:56px}.app-cards-grid{grid-template-columns:1fr !important;gap:12px}.stats-grid{grid-template-columns:1fr 1fr !important}#tw-prev-badge{position:static !important;max-width:none !important;margin-bottom:12px;text-align:left !important}}
+@media(max-width:600px){.student-content{padding:80px 16px 20px !important}.student-topbar{padding:0 14px;height:56px}.app-cards-grid{grid-template-columns:1fr !important;gap:12px}.stats-grid{grid-template-columns:1fr 1fr !important}#tw-prev-badge{position:static !important;max-width:none !important;margin-bottom:12px;text-align:left !important}#tw-word{font-size:1.5rem !important}#tw-examples,#tw-synonyms{font-size:12.5px !important}}
 .student-section{display:none}
 .student-section.active{display:block;animation:fadeIn .3s ease}
 
@@ -449,7 +449,10 @@ tr:hover td{background:var(--grey-100)}
             <div id="tw-prev-meaning" style="font-size:11px;color:rgba(255,255,255,.6)"></div>
           </div>
           <div style="position:relative;z-index:1">
-            <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:14px">✨ Today's Word</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65)">✨ Today's Word</div>
+              <span id="st-streak-badge" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.14);color:#fde68a;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:16px">🔥 <span id="st-streak">0</span> day streak</span>
+            </div>
             <div id="tw-loading" style="color:rgba(255,255,255,.7);font-size:13px">Loading…</div>
             <div id="tw-content" style="display:none">
               <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px">
@@ -469,16 +472,6 @@ tr:hover td{background:var(--grey-100)}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div class="card mb-4">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-            <div class="card-title" style="margin:0">Recent Activity</div>
-            <span id="st-streak-badge" style="display:none;align-items:center;gap:6px;background:#ecfdf3;color:#15803d;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:20px">🔥 <span id="st-streak">0</span> day streak</span>
-          </div>
-          <div id="recent-activity-list">
-            <div style="text-align:center;padding:24px;color:var(--grey-400);font-size:13px">Loading…</div>
           </div>
         </div>
 
@@ -1337,32 +1330,6 @@ async function loadStudentDashboardStats(){
       var sn = document.getElementById('st-streak');
       if (sn) sn.textContent = res.dailyStreak;
       if (sb) sb.style.display = 'inline-flex';
-    }
-
-    // Recent activity list
-    var list = document.getElementById('recent-activity-list');
-    if (list) {
-      var items = res.recentActivity || [];
-      if (!items.length) {
-        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--grey-400);font-size:13px">No activity yet — start practicing!</div>';
-      } else {
-        var iconMap = {vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️'};
-        var bgMap   = {vocab:'#fff7e6', write:'#fdeef0', listen:'#eef2ff', speak:'#ecfdf3'};
-        list.innerHTML = items.map(function(a){
-          var d = new Date(a.time);
-          var timeStr = isNaN(d) ? '' : timeAgo(d);
-          var scoreHtml = (a.score!=null)
-            ? '<span style="background:#ecfdf3;color:#15803d;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px">' + a.score + (a.app==='write'||a.app==='speak' ? '' : '%') + '</span>'
-            : '';
-          return '<div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--grey-100)">'
-            + '<div style="width:40px;height:40px;border-radius:12px;background:'+(bgMap[a.app]||'#f1f5f9')+';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+(iconMap[a.app]||'📘')+'</div>'
-            + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;color:var(--black)">'+esc(a.label)+'</div>'
-            + '<div style="font-size:12px;color:var(--grey-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.desc)+'</div></div>'
-            + scoreHtml
-            + '<div style="font-size:12px;color:var(--grey-400);white-space:nowrap;min-width:70px;text-align:right">'+timeStr+'</div>'
-            + '</div>';
-        }).join('');
-      }
     }
   }catch(e){ console.warn('loadStudentDashboardStats error:', e); }
 }
