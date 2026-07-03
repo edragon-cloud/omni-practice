@@ -1171,7 +1171,14 @@ function api(action, payload, options) {
     var script = document.createElement('script');
     script.src = API_URL + '?' + params;
     var timer = setTimeout(function() { cleanup(); reject(new Error('Timeout')); }, 30000);
-    window[cb] = function(result) { cleanup(); resolve(result); };
+    window[cb] = function(result) {
+      cleanup();
+      if (result && result.success === false && result.error === 'SESSION_EXPIRED' && !options.skipSessionRedirect) {
+        handleSessionExpired();
+        return;   // không resolve — trang đang chuyển hướng, không cần caller xử lý tiếp
+      }
+      resolve(result);
+    };
     function cleanup() {
       clearTimeout(timer);
       delete window[cb];
@@ -1181,6 +1188,21 @@ function api(action, payload, options) {
     document.head.appendChild(script);
   });
 }
+
+// Session hết hạn (đăng nhập ở thiết bị/tab khác, hoặc token bị thu hồi) — báo cho
+// người dùng rồi tự động đưa về màn đăng nhập, thay vì để UI đứng "Loading..." mãi.
+var _sessionExpiredHandled = false;
+function handleSessionExpired() {
+  if (_sessionExpiredHandled) return;   // tránh gọi nhiều lần nếu nhiều request cùng fail
+  _sessionExpiredHandled = true;
+  sessionStorage.removeItem('ielts_hub_token');
+  sessionStorage.removeItem('ielts_hub_user');
+  App.sessionToken = null;
+  App.user = null;
+  alert('Phiên đăng nhập đã hết hạn (có thể do bạn đã đăng nhập ở thiết bị khác). Vui lòng đăng nhập lại.');
+  location.href = './index.html';
+}
+
 
 // ═══════════════════════════════════════════════════
 // API POST — for large payloads that exceed JSONP URL limit (~8KB)
