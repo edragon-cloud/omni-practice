@@ -195,33 +195,38 @@ tr:hover td{background:var(--grey-100)}
 .nav-badge{margin-left:auto;background:var(--red);color:var(--white);font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px}
 
 /* APP CARDS — dimmed if not activated */
-.app-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:24px}
-.app-card{background:var(--white);border:1.5px solid var(--grey-200);border-radius:var(--radius-lg);padding:24px;text-align:center;cursor:pointer;transition:var(--transition);position:relative;overflow:hidden}
-.app-card:hover:not(.locked){border-color:var(--red);box-shadow:var(--shadow-red);transform:translateY(-2px)}
+.app-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:24px}
+.app-card{background:var(--white);border:1px solid var(--grey-200);border-radius:18px;padding:26px 24px;text-align:left;cursor:pointer;transition:var(--transition);position:relative;overflow:hidden}
+.app-card:hover:not(.locked){border-color:var(--red);box-shadow:0 12px 28px -8px rgba(0,0,0,.12);transform:translateY(-3px)}
 .app-card.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
-.app-card-icon{font-size:36px;margin-bottom:12px}
-.app-card-name{font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--black);margin-bottom:4px}
-.app-card-desc{font-size:12px;color:var(--grey-600)}
-.app-card-badge{position:absolute;top:12px;right:12px}
+.app-card-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px;background:var(--grey-100)}
+.app-card-name{font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--black);margin-bottom:6px}
+.app-card-desc{font-size:13px;color:var(--grey-600);line-height:1.5;margin-bottom:16px;min-height:40px}
+.app-card-badge{position:absolute;top:20px;right:20px}
+.app-card-start{font-size:13px;font-weight:700;color:var(--red);display:inline-flex;align-items:center;gap:5px}
+.app-card:hover:not(.locked) .app-card-start{gap:8px}
 .locked-overlay{position:absolute;top:8px;left:8px;font-size:18px;opacity:.6}
 
 /* STUDENT MAIN */
 .student-main{background:var(--off-white);overflow-y:auto}
-.student-topbar{background:var(--white);border-bottom:1px solid var(--grey-200);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.topbar-title{font-family:var(--font-display);font-size:1.1rem;color:var(--black)}
-.student-content{padding:32px;max-width:1000px}
-@media(max-width:600px){.student-content{padding:80px 16px 20px !important}.student-topbar{padding:0 14px;height:56px}.app-cards-grid{grid-template-columns:1fr !important;gap:12px}.stats-grid{grid-template-columns:1fr 1fr !important}}
+.student-topbar{background:var(--white);border-bottom:1px solid var(--grey-200);padding:0 40px;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-title{font-family:var(--font-display);font-size:1.2rem;color:var(--black)}
+.student-content{padding:36px 40px 48px;max-width:none;width:100%}
+@media(max-width:600px){.student-content{padding:80px 16px 20px !important}.student-topbar{padding:0 14px;height:56px}.app-cards-grid{grid-template-columns:1fr !important;gap:12px}.stats-grid{grid-template-columns:1fr 1fr !important}#tw-prev-badge{position:static !important;max-width:none !important;margin-bottom:12px;text-align:left !important}}
 .student-section{display:none}
 .student-section.active{display:block;animation:fadeIn .3s ease}
 
 /* STATS GRID */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
-.stat-card{background:var(--white);border-radius:var(--radius-lg);padding:20px;border:1px solid var(--grey-200);position:relative;overflow:hidden}
-.stat-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:var(--red-light);border-radius:0 0 0 80px;opacity:.5}
-.stat-card.green::after{background:var(--green-light)}
-.stat-num{font-family:var(--font-display);font-size:2rem;color:var(--black);line-height:1;margin-bottom:6px}
-.stat-label{font-size:13px;color:var(--grey-600)}
-.stat-icon{position:absolute;top:16px;right:16px;font-size:20px;opacity:.4;z-index:1}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:28px}
+.stat-card{background:var(--white);border-radius:18px;padding:22px 24px;border:1px solid var(--grey-200);position:relative;overflow:hidden;display:flex;align-items:center;gap:16px}
+.stat-card::after{content:none}
+.stat-icon-wrap{width:48px;height:48px;border-radius:14px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.stat-card.green .stat-icon-wrap{background:#ecfdf3}
+.stat-card.gold .stat-icon-wrap{background:#fff7e6}
+.stat-card.blue .stat-icon-wrap{background:#eef6ff}
+.stat-num{font-family:var(--font-display);font-size:1.9rem;font-weight:700;color:var(--black);line-height:1.1;margin-bottom:2px}
+.stat-label{font-size:13px;color:var(--grey-600);font-weight:500}
+.stat-icon{display:none}
 
 /* ══════════════════════════════════════
    PAGE: TEACHER DASHBOARD
@@ -429,10 +434,52 @@ tr:hover td{background:var(--grey-100)}
       <!-- HOME SECTION -->
       <div id="section-home" class="student-section active">
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-num" id="st-total">—</div><div class="stat-label">Total Sessions</div></div>
-          <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-num" id="st-done">—</div><div class="stat-label">Completed</div></div>
-          <div class="stat-card"><div class="stat-icon">🧠</div><div class="stat-num" id="st-words">—</div><div class="stat-label">Words Mastered</div></div>
-          <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-num" id="st-band">—</div><div class="stat-label">Avg Band</div></div>
+          <div class="stat-card blue"><div class="stat-icon-wrap">📊</div><div><div class="stat-num" id="st-total">—</div><div class="stat-label">Total Sessions</div></div></div>
+          <div class="stat-card green"><div class="stat-icon-wrap">✅</div><div><div class="stat-num" id="st-done">—</div><div class="stat-label">Completed</div></div></div>
+          <div class="stat-card gold"><div class="stat-icon-wrap">🧠</div><div><div class="stat-num" id="st-words">—</div><div class="stat-label">Words Mastered</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap">🎯</div><div><div class="stat-num" id="st-band">—</div><div class="stat-label">Avg Band</div></div></div>
+        </div>
+
+        <!-- TODAY'S WORD -->
+        <div class="card mb-4" style="background:linear-gradient(135deg,#1e1b4b 0%,#3730a3 55%,#7c3aed 100%);border:none;color:#fff;overflow:hidden;position:relative">
+          <div style="position:absolute;top:-30px;right:-20px;font-size:140px;opacity:.08;line-height:1;pointer-events:none">💡</div>
+          <div id="tw-prev-badge" style="display:none;position:absolute;top:20px;right:24px;z-index:2;text-align:right;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:8px 14px;max-width:180px">
+            <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:3px">Previously</div>
+            <div id="tw-prev-word" style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85)"></div>
+            <div id="tw-prev-meaning" style="font-size:11px;color:rgba(255,255,255,.6)"></div>
+          </div>
+          <div style="position:relative;z-index:1">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:14px">✨ Today's Word</div>
+            <div id="tw-loading" style="color:rgba(255,255,255,.7);font-size:13px">Loading…</div>
+            <div id="tw-content" style="display:none">
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+                <span id="tw-word" style="font-family:var(--font-display);font-size:2rem;font-weight:700"></span>
+                <span id="tw-ipa" style="font-size:14px;color:rgba(255,255,255,.6);font-family:monospace"></span>
+                <span id="tw-level" style="font-size:11px;font-weight:800;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:20px;letter-spacing:.03em"></span>
+              </div>
+              <div id="tw-meaning" style="font-size:14.5px;color:rgba(255,255,255,.92);margin-bottom:14px"></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+                <div>
+                  <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:5px">Synonyms</div>
+                  <div id="tw-synonyms" style="font-size:13.5px;color:rgba(255,255,255,.9)"></div>
+                </div>
+                <div>
+                  <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:5px">Examples</div>
+                  <div id="tw-examples" style="font-size:13px;line-height:1.7;color:rgba(255,255,255,.88);font-style:italic"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="card-title" style="margin:0">Recent Activity</div>
+            <span id="st-streak-badge" style="display:none;align-items:center;gap:6px;background:#ecfdf3;color:#15803d;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:20px">🔥 <span id="st-streak">0</span> day streak</span>
+          </div>
+          <div id="recent-activity-list">
+            <div style="text-align:center;padding:24px;color:var(--grey-400);font-size:13px">Loading…</div>
+          </div>
         </div>
 
         <div class="card mb-4">
@@ -440,31 +487,35 @@ tr:hover td{background:var(--grey-100)}
           <div class="app-cards-grid" id="app-cards-grid">
             <div class="app-card" id="appcard-vocab" data-app="vocab" onclick="openApp('vocab')">
               <div class="locked-overlay hidden" id="lock-vocab">🔒</div>
-              <div class="app-card-icon">📚</div>
-              <div class="app-card-name">VocabMaster</div>
-              <div class="app-card-desc">Vocabulary quizzes & assignments</div>
               <div class="app-card-badge"><span class="badge badge-gold">VOCAB</span></div>
+              <div class="app-card-icon" style="background:#fff7e6">📚</div>
+              <div class="app-card-name">VocabMaster</div>
+              <div class="app-card-desc">Vocabulary quizzes &amp; assignments</div>
+              <div class="app-card-start">Start Practicing →</div>
             </div>
             <div class="app-card" id="appcard-write" data-app="write" onclick="openApp('write')">
               <div class="locked-overlay hidden" id="lock-write">🔒</div>
-              <div class="app-card-icon">✍️</div>
+              <div class="app-card-badge"><span class="badge badge-red">WRITE</span></div>
+              <div class="app-card-icon" style="background:#fdeef0">✍️</div>
               <div class="app-card-name">ArticuWrite</div>
               <div class="app-card-desc">AI-powered IELTS writing feedback</div>
-              <div class="app-card-badge"><span class="badge badge-red">WRITE</span></div>
+              <div class="app-card-start">Start Writing →</div>
             </div>
             <div class="app-card" id="appcard-listen" data-app="listen" onclick="openApp('listen')">
               <div class="locked-overlay hidden" id="lock-listen">🔒</div>
-              <div class="app-card-icon">🎧</div>
-              <div class="app-card-name">LisDictation</div>
-              <div class="app-card-desc">Listening & dictation practice</div>
               <div class="app-card-badge"><span class="badge badge-grey">LISTEN</span></div>
+              <div class="app-card-icon" style="background:#eef2ff">🎧</div>
+              <div class="app-card-name">LisDictation</div>
+              <div class="app-card-desc">Listening &amp; dictation practice</div>
+              <div class="app-card-start">Start Listening →</div>
             </div>
             <div class="app-card" id="appcard-speak" data-app="speak" onclick="openApp('speak')">
               <div class="locked-overlay hidden" id="lock-speak">🔒</div>
-              <div class="app-card-icon">🎙️</div>
-              <div class="app-card-name">Fluentalk</div>
-              <div class="app-card-desc">AI speaking coach & CEFR test</div>
               <div class="app-card-badge"><span class="badge badge-green">SPEAK</span></div>
+              <div class="app-card-icon" style="background:#ecfdf3">🎙️</div>
+              <div class="app-card-name">Fluentalk</div>
+              <div class="app-card-desc">AI speaking coach &amp; CEFR test</div>
+              <div class="app-card-start">Start Speaking →</div>
             </div>
           </div>
           <p style="font-size:12px;color:var(--grey-400);margin-top:16px;text-align:center">🔒 Dimmed apps are not yet activated. Contact your teacher.</p>
@@ -1264,6 +1315,100 @@ function initStudentDashboard() {
       if (nav)  { nav.style.opacity=''; nav.style.pointerEvents=''; }
     }
   });
+
+  loadStudentDashboardStats();
+  loadTodayWord();
+}
+
+async function loadStudentDashboardStats(){
+  try{
+    const res = await api('student.getDashboard', {});
+    if (!res.success) { console.warn('dashboard load failed:', res.error); return; }
+
+    var el;
+    el = document.getElementById('st-total'); if(el) el.textContent = res.totalSessions ?? '—';
+    el = document.getElementById('st-done');  if(el) el.textContent = res.completed ?? '—';
+    el = document.getElementById('st-words'); if(el) el.textContent = res.wordsMastered ?? '—';
+    el = document.getElementById('st-band');  if(el) el.textContent = res.avgBand ? res.avgBand.toFixed(1) : '—';
+
+    // Daily streak badge
+    if (res.dailyStreak > 0) {
+      var sb = document.getElementById('st-streak-badge');
+      var sn = document.getElementById('st-streak');
+      if (sn) sn.textContent = res.dailyStreak;
+      if (sb) sb.style.display = 'inline-flex';
+    }
+
+    // Recent activity list
+    var list = document.getElementById('recent-activity-list');
+    if (list) {
+      var items = res.recentActivity || [];
+      if (!items.length) {
+        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--grey-400);font-size:13px">No activity yet — start practicing!</div>';
+      } else {
+        var iconMap = {vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️'};
+        var bgMap   = {vocab:'#fff7e6', write:'#fdeef0', listen:'#eef2ff', speak:'#ecfdf3'};
+        list.innerHTML = items.map(function(a){
+          var d = new Date(a.time);
+          var timeStr = isNaN(d) ? '' : timeAgo(d);
+          var scoreHtml = (a.score!=null)
+            ? '<span style="background:#ecfdf3;color:#15803d;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px">' + a.score + (a.app==='write'||a.app==='speak' ? '' : '%') + '</span>'
+            : '';
+          return '<div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--grey-100)">'
+            + '<div style="width:40px;height:40px;border-radius:12px;background:'+(bgMap[a.app]||'#f1f5f9')+';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+(iconMap[a.app]||'📘')+'</div>'
+            + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;color:var(--black)">'+esc(a.label)+'</div>'
+            + '<div style="font-size:12px;color:var(--grey-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.desc)+'</div></div>'
+            + scoreHtml
+            + '<div style="font-size:12px;color:var(--grey-400);white-space:nowrap;min-width:70px;text-align:right">'+timeStr+'</div>'
+            + '</div>';
+        }).join('');
+      }
+    }
+  }catch(e){ console.warn('loadStudentDashboardStats error:', e); }
+}
+
+function timeAgo(d){
+  var diffMs = Date.now() - d.getTime();
+  var mins = Math.floor(diffMs/60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins/60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs/24);
+  if (days < 7) return days + 'd ago';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── TODAY'S WORD — đọc từ sheet TodayWords (GV tự quản lý, thêm/sửa/xóa trực tiếp) ──
+async function loadTodayWord(){
+  try{
+    const res = await api('student.getTodayWord', {});
+    if (!res.success || !res.word) { console.warn('loadTodayWord failed:', res.error); return; }
+    const w = res.word;
+
+    document.getElementById('tw-word').textContent = w.word;
+    document.getElementById('tw-ipa').textContent = w.ipa;
+    document.getElementById('tw-level').textContent = w.level;
+    document.getElementById('tw-meaning').textContent = '🇻🇳 ' + w.meaning_vi;
+    document.getElementById('tw-synonyms').innerHTML = (w.synonyms||[]).map(function(s){
+      return '<span style="display:inline-block;background:rgba(255,255,255,.14);padding:3px 10px;border-radius:12px;margin:0 5px 5px 0;font-size:12.5px">'+esc(s)+'</span>';
+    }).join('');
+    document.getElementById('tw-examples').innerHTML = (w.examples||[]).map(function(ex){
+      return '<div style="margin-bottom:6px">"'+esc(ex)+'"</div>';
+    }).join('');
+
+    document.getElementById('tw-loading').style.display = 'none';
+    document.getElementById('tw-content').style.display = 'block';
+
+    // Từ cũ thu nhỏ ở góc (nếu đã từng đổi từ)
+    if (res.previousWord && res.previousWord.word) {
+      document.getElementById('tw-prev-word').textContent = res.previousWord.word;
+      document.getElementById('tw-prev-meaning').textContent = res.previousWord.meaning_vi || '';
+      document.getElementById('tw-prev-badge').style.display = 'block';
+    }
+  }catch(e){ console.warn('loadTodayWord error:', e); }
 }
 
 function toggleStuNav(open){
