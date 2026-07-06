@@ -312,7 +312,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
     <!-- API KEY: GEMINI (chấm điểm) -->
     <div class="apikey-wrap">
       <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🔑 Gemini API Key (chấm điểm)</div>
-      <div style="font-size:11px;color:var(--g600);margin-bottom:8px">Lấy key tại <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue);font-weight:600">aistudio.google.com</a></div>
+      <div style="font-size:11px;color:var(--g600);margin-bottom:8px">Key lưu trên thiết bị của bạn. Miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue);font-weight:600">aistudio.google.com</a></div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <input id="key-inp" type="password" placeholder="AIza…" style="flex:1;min-width:160px" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='var(--g200)'" onkeydown="if(event.key==='Enter')saveKey()">
         <button class="btn btn-gold btn-sm" onclick="saveKey()">Lưu</button>
@@ -323,8 +323,8 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
 
     <!-- API KEY: GROQ (transcribe) -->
     <div class="apikey-wrap" style="margin-top:10px">
-      <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🎤 Groq API Key </div>
-      <div style="font-size:11px;color:var(--g600);margin-bottom:8px"> Lấy key tại <a href="https://console.groq.com/keys" target="_blank" style="color:var(--blue);font-weight:600">console.groq.com/keys</a></div>
+      <div style="font-size:11px;font-weight:700;color:var(--g800);margin-bottom:3px">🎤 Groq API Key (chuyển giọng nói → chữ)</div>
+      <div style="font-size:11px;color:var(--g600);margin-bottom:8px">Nhanh &amp; chính xác hơn, key riêng nên không lo nghẽn giờ cao điểm. Miễn phí tại <a href="https://console.groq.com/keys" target="_blank" style="color:var(--blue);font-weight:600">console.groq.com/keys</a></div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <input id="groq-key-inp" type="password" placeholder="gsk_…" style="flex:1;min-width:160px" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='var(--g200)'" onkeydown="if(event.key==='Enter')saveGroqKey()">
         <button class="btn btn-gold btn-sm" onclick="saveGroqKey()">Lưu</button>
@@ -1011,7 +1011,7 @@ function showHistDetail(i){
 }
 function SS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function toast(m,t,d){t=t||'info';d=d||3400;const el=document.createElement('div');el.className='toast '+t;el.innerHTML=`<span>${{success:'✓',error:'✕',info:'ℹ'}[t]||'ℹ'}</span><span>${m}</span>`;document.getElementById('toast-wrap').appendChild(el);setTimeout(()=>el.remove(),d);}
-function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v.startsWith('AIza')){toast('Key phải bắt đầu bằng "AIza"','error');return;}S.gkey=v;localStorage.setItem('fl_key',v);kSt(true);toast('Gemini key đã lưu ✓','success');}
+function saveKey(){const v=document.getElementById('key-inp').value.trim();if(!v){toast('Vui lòng nhập Gemini API key','error');return;}S.gkey=v;localStorage.setItem('fl_key',v);kSt(true);toast('Gemini key đã lưu ✓','success');}
 function toggleKV(){const i=document.getElementById('key-inp');i.type=i.type==='password'?'text':'password';}
 function kSt(ok){const e=document.getElementById('key-st');e.textContent=ok?'✓ Key OK':'⚠ Chưa có';e.className='key-st '+(ok?'key-ok':'key-bad');}
 function needKey(){if(!S.gkey){toast('Vui lòng nhập Gemini API key','error',4000);document.getElementById('key-inp').focus();return false;}return true;}
@@ -1051,7 +1051,7 @@ function gkeyCancel(){
 async function gkeySubmit(){
   const v=document.getElementById('gkey-input').value.trim();
   const st=document.getElementById('gkey-status');
-  if(!v.startsWith('AIza')){ st.style.color='#DC2626'; st.textContent='Key phải bắt đầu bằng "AIza".'; return; }
+  if(!v){ st.style.color='#DC2626'; st.textContent='Vui lòng nhập key.'; return; }
   st.style.color='var(--g600,#666)'; st.textContent='⏳ Đang kiểm tra key…';
   const btn=document.getElementById('gkey-save'); btn.disabled=true;
   const res=await geminiTestKey(v);
