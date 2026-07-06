@@ -551,6 +551,9 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 #gapfill-script .gap-fb{font-size:.72rem;margin:0 1px 0 2px;font-weight:700}
 #gapfill-script .gap-input.correct + .gap-fb{color:#1a7a4a}
 #gapfill-script .gap-input.wrong + .gap-fb{color:#DB0007}
+.gapfill-hint{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.9rem;font-weight:700;text-align:center}
+.gapfill-hint-ok{background:#e9f7ef;color:#1a7a4a;border:1.5px solid #1a7a4a}
+.gapfill-hint-bad{background:#fdecec;color:#DB0007;border:1.5px solid #DB0007}
 </style>
 <div id="screen-gapfill" class="screen">
   <div class="topbar">
@@ -560,17 +563,18 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       <span class="progress-pill" id="gapfill-count">0 blanks</span>
       <span class="progress-pill" id="gapfill-score">—</span>
       <button class="btn btn-secondary btn-sm" onclick="backToVocab()">← Back to Script</button>
-      <button class="btn btn-teal btn-sm" id="btn-gap-check" onclick="checkSegment()">Kiểm tra đoạn</button>
+      <button class="btn btn-teal btn-sm" id="btn-gap-check" onclick="checkSegment()">Kiểm tra câu này</button>
       <button class="btn btn-primary btn-sm" id="btn-gap-proceed" onclick="goToComprehension()" disabled style="opacity:.4;cursor:not-allowed">🔒 Continue</button>
     </div>
   </div>
   <div style="max-width:1000px;margin:0 auto;padding:18px">
     <div style="background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:14px 20px;margin-bottom:14px;font-size:.85rem;color:#555;line-height:1.6">
-      🎧 Nghe và điền theo <strong>từng đoạn</strong>. Điền hết các ô của đoạn rồi bấm <strong>Kiểm tra đoạn</strong> — hiện số đúng/sai. Đúng hết mới sang đoạn sau; <span style="color:#DB0007;font-weight:700">sai dù 1 ô thì phải làm lại cả đoạn</span>. Xong tất cả các đoạn mới mở khóa Quiz.
+      🎧 Nghe và điền theo <strong>từng 2 câu một</strong>. Điền hết các ô rồi nhấn <strong>Enter</strong> ở ô cuối — hệ thống chấm ngay, đánh dấu <strong style="color:#1a7a4a">✓ đúng</strong> / <strong style="color:#DB0007">✗ sai</strong> trên từng ô. Sai ô nào thì nhấn <strong>Enter</strong> để làm lại đúng 2 câu đó (không mất tiến độ các câu trước); đúng hết thì nhấn <strong>Enter</strong> để tự động sang 2 câu tiếp theo. Xong tất cả mới mở khóa Quiz.
       <div style="margin-top:10px"><audio id="gap-audio-el" controls style="width:100%;height:34px" preload="none"></audio></div>
     </div>
     <div id="gapfill-loading" style="text-align:center;padding:48px;color:#888">⏳ Generating gaps…</div>
     <div id="gapfill-script" class="script-text" style="display:none;white-space:pre-wrap;line-height:2.6;font-size:1rem"></div>
+    <div id="gapfill-hint" class="gapfill-hint" style="display:none"></div>
   </div>
 </div>
 
@@ -1231,6 +1235,8 @@ function startSession(){
   App.submitted=false;App.reviewData=[];App.attemptData=new Array(App.sentences.length);
   App.pendingNextIdx=-1;
   App._gapFirstSaved=false;App._gapPassed=false;App._gapOrder=[];
+  App._gapAwaitingRetry=false;App._gapAwaitingNext=false;
+  if(App._gapEnterHandler){document.removeEventListener('keydown',App._gapEnterHandler);App._gapEnterHandler=null;}
   App._compReady=false;App._compQuestions=null;App._compPassed=false;
   App._compPool=null;App._compPoolIdx=0;App._compPoolPromise=null;
   setAudioSrc();
@@ -1295,6 +1301,14 @@ var POS_ADJ = {};
 var POS_ADV = {};
 ('very really just so too quite rather almost always never often sometimes usually now then here there well also even still yet already soon today tomorrow yesterday together perhaps maybe however therefore thus indeed simply mainly finally recently currently shortly').split(' ').forEach(function(w){ POS_ADV[w]=1; });
 
+// Tính từ A2/B1 cơ bản — KHÔNG dùng làm khoảng trống (quá dễ, không kiểm tra được năng
+// lực từ vựng thực sự). Vẫn nhận diện là 'adj' để không lọt vào noun/verb sai, nhưng bị
+// đánh dấu isBasic=true và loại khỏi candidate pool trong buildGapsForScript().
+var POS_ADJ_BASIC = {};
+('good new first last long great little own other old right big high different small large next early young important few bad same able free sure low late hard special whole clear full main only real best better worst happy easy nice hot cold warm cool fast slow quick safe').split(' ').forEach(function(w){ POS_ADJ_BASIC[w]=1; });
+var POS_ADJ = {};
+('good new first last long great little own other old right big high different small large next early young important few public bad same able free sure low late hard special whole clear full main recent only major personal current general various possible likely available local social economic similar real best better worst wonderful comfortable dark red green blue light unique fantastic huge happy easy difficult heavy quiet loud famous popular beautiful strong weak cold hot warm cool deep wide narrow fast slow quick safe dangerous careful useful helpful friendly nice lovely interesting boring tasty delicious jet black').split(' ').forEach(function(w){ POS_ADJ[w]=1; });
+
 function classifyPOS(word){
   var w = word.toLowerCase();
   if (POS_PREP[w]) return 'prep';
@@ -1310,9 +1324,15 @@ function classifyPOS(word){
   return 'noun';
 }
 
+// Tính từ A2/B1 quá cơ bản (good/big/happy/easy...) không nên làm khoảng trống — không
+// kiểm tra được năng lực từ vựng. Tính từ có hậu tố phức tạp (-ous/-ive/-ible/-ical...)
+// vẫn được giữ vì đó là từ vựng ở trình độ cao hơn.
+function isBasicAdj(word){ return !!POS_ADJ_BASIC[word.toLowerCase()]; }
+
 function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// Build gaps: per-sentence density (1–3) + POS mix (10% prep / 40% noun / 20% verb / 25% adj),
+// Build gaps: per-sentence density (1–3) + POS mix (55% noun / 15% adj / 20% verb / 10% prep,
+// tính từ A2/B1 cơ bản bị loại khỏi pool), không chọn 2 khoảng trống liền kề nhau,
 // grouped into ≤5 segments of ~10–15 sentences. Fully local, instant (runs during Study).
 function buildGapsForScript(){
   var sentences = App.sentences || [];
@@ -1326,27 +1346,40 @@ function buildGapsForScript(){
     var parts=String(sent).split(/(\b[A-Za-z][A-Za-z'\u2019-]*\b)/g);
     var words=[];
     for(var pi=0;pi<parts.length;pi++){ var p=parts[pi];
-      if(/^[A-Za-z][A-Za-z'\u2019-]*$/.test(p)){ var lw=p.toLowerCase(); seen[lw]=(seen[lw]||0)+1; words.push({text:p,key:lw+'#'+seen[lw],pi:pi}); } }
+      if(/^[A-Za-z][A-Za-z'\u2019-]*$/.test(p)){ var lw=p.toLowerCase(); seen[lw]=(seen[lw]||0)+1; words.push({text:p,key:lw+'#'+seen[lw],pi:pi,wordIdx:words.length}); } }
     var wc=words.length;
     function elig(w){
       var lw=w.text.toLowerCase();
       if(/\d/.test(w.text)) return false;
       if(!prep[lw] && (stop[lw] || lw.length<3)) return false;
+      if(isBasicAdj(lw)) return false;   // tính từ A2/B1 quá dễ — không dùng làm khoảng trống
       if(/^[A-Z]/.test(w.text)){
         var pp=''; for(var j=w.pi-1;j>=0;j--){ if(String(parts[j]).trim()){ pp=parts[j]; break; } }
         var ss=(pp===''); if(!ss && !/[.!?]["')\]]?\s*$/.test(pp)) return false;
       }
       return true;
     }
-    var cands=words.filter(elig).map(function(w){ return {key:w.key, pos:classifyPOS(w.text)}; });
+    // wordIdx = vị trí của từ này trong dãy CÁC TỪ của câu (bỏ qua dấu câu/khoảng trắng) —
+    // dùng để kiểm tra 2 từ có liền kề nhau trong câu hay không (wordIdx cách nhau đúng 1).
+    var cands=words.filter(elig).map(function(w){ return {key:w.key, pos:classifyPOS(w.text), wordIdx:w.wordIdx}; });
     var budget = wc>20?3:(wc>=10?2:1);
-    perSentence.push({ si:si, budget:Math.min(budget, cands.length), cands:cands });
+    perSentence.push({ si:si, budget:Math.min(budget, cands.length), cands:cands, chosenWordIdx:[] });
   });
 
   var G = perSentence.reduce(function(a,s){ return a+s.budget; },0);
-  var targets = { noun:Math.round(G*0.40), adj:Math.round(G*0.25), verb:Math.round(G*0.20), prep:Math.round(G*0.10) };
+  // Ưu tiên danh từ mạnh hơn, hạn chế tính từ (phần còn lại sau khi lọc basic đã là tính từ
+  // nâng cao, nhưng vẫn muốn density thấp để không lấn át noun).
+  var targets = { noun:Math.round(G*0.55), adj:Math.round(G*0.15), verb:Math.round(G*0.20), prep:Math.round(G*0.10) };
   var selected=new Set(), usedPS={};
   function used(si){ return usedPS[si]||0; }
+  // Không cho phép chọn 1 candidate nếu wordIdx của nó liền kề (cách 1) với 1 từ ĐÃ được
+  // chọn trong CÙNG câu — tránh 2 khoảng trống đứng sát nhau trong câu.
+  function isAdjacentToChosen(s, cand){
+    for(var i=0;i<s.chosenWordIdx.length;i++){
+      if(Math.abs(s.chosenWordIdx[i]-cand.wordIdx)<=1) return true;
+    }
+    return false;
+  }
   function selectPos(pos, quota){
     var picked=0, changed=true;
     while(picked<quota && changed){
@@ -1356,28 +1389,30 @@ function buildGapsForScript(){
         if(used(s.si)>=s.budget) continue;
         for(var c=0;c<s.cands.length;c++){
           var cand=s.cands[c];
-          if(cand.pos===pos && !selected.has(cand.key)){
-            selected.add(cand.key); usedPS[s.si]=used(s.si)+1; picked++; changed=true; break;
+          if(cand.pos===pos && !selected.has(cand.key) && !isAdjacentToChosen(s,cand)){
+            selected.add(cand.key); usedPS[s.si]=used(s.si)+1; s.chosenWordIdx.push(cand.wordIdx); picked++; changed=true; break;
           }
         }
       }
     }
   }
-  selectPos('noun',targets.noun); selectPos('adj',targets.adj); selectPos('verb',targets.verb); selectPos('prep',targets.prep);
-  // fill any remaining per-sentence budget with whatever eligible word is left (keeps density)
+  selectPos('noun',targets.noun); selectPos('verb',targets.verb); selectPos('adj',targets.adj); selectPos('prep',targets.prep);
+  // fill any remaining per-sentence budget with whatever eligible word is left (keeps density),
+  // vẫn tôn trọng ràng buộc không-liền-kề
   var more=true;
   while(more){ more=false;
     for(var k=0;k<perSentence.length;k++){ var s=perSentence[k];
       if(used(s.si)>=s.budget) continue;
       for(var c=0;c<s.cands.length;c++){ var cand=s.cands[c];
-        if(!selected.has(cand.key)){ selected.add(cand.key); usedPS[s.si]=used(s.si)+1; more=true; break; } }
+        if(!selected.has(cand.key) && !isAdjacentToChosen(s,cand)){ selected.add(cand.key); usedPS[s.si]=used(s.si)+1; s.chosenWordIdx.push(cand.wordIdx); more=true; break; } }
     }
   }
 
-  // segments: chunk sentences into ≤5 groups of ~10–15
+  // segments: mỗi segment = 2 CÂU (không phải nhóm 10-15 câu như trước) — để khi sai,
+  // sinh viên chỉ phải làm lại 2 câu vừa rồi, không phải cả đoạn dài gây ức chế.
   var total=sentences.length;
-  var segCount=Math.min(5, Math.max(1, Math.ceil(total/15)));
-  var perSeg=Math.max(1, Math.ceil(total/segCount));
+  var perSeg=2;
+  var segCount=Math.max(1, Math.ceil(total/perSeg));
   var keySi={};
   perSentence.forEach(function(s){ s.cands.forEach(function(c){ keySi[c.key]=s.si; }); });
 
@@ -1464,6 +1499,8 @@ async function goToGapFill(){
   prebuildComprehension();   // generate the quiz pool in the background while they fill gaps
 }
 
+function sentenceCountForLabel(){ return (App.sentences||[]).length; }
+
 function renderGapFill(){
   // skip any empty leading segments
   while (App._gapCurSeg < (App._gapSegCount-1) &&
@@ -1492,7 +1529,7 @@ function renderGapFill(){
   App._gapTotal = App._gapOrder.length;
   var segCount = App._gapSegCount || 1;
   var segBlanks = App._gapOrder.filter(function(g){ return g.seg===cur; }).length;
-  document.getElementById('gapfill-count').textContent = 'Đoạn ' + (cur+1) + '/' + segCount + ' · ' + segBlanks + ' ô';
+  document.getElementById('gapfill-count').textContent = 'Câu ' + (cur*2+1) + '–' + Math.min((cur+1)*2, sentenceCountForLabel()) + ' / ' + segCount + ' cặp · ' + segBlanks + ' ô';
   var proceed = document.getElementById('btn-gap-proceed');
   var checkBtn = document.getElementById('btn-gap-check');
   if (App._gapTotal === 0 || App._gapPassed) {
@@ -1509,9 +1546,11 @@ function renderGapFill(){
 }
 
 // Enter → jump to next empty blank in this segment; when all filled → check the segment.
+// Nếu segment vừa bị chấm SAI (đang chờ Retry), Enter sẽ làm lại đúng segment đó.
 function gapKeyNav(e, idx){
   if (e.key !== 'Enter') return;
   e.preventDefault();
+  if (App._gapAwaitingRetry) { retrySegment(); return; }
   var box = document.getElementById('gapfill-script');
   var inputs = Array.prototype.slice.call(box.querySelectorAll('.gap-input:not([disabled])'));
   var pos = -1; for (var i=0;i<inputs.length;i++){ if (parseInt(inputs[i].dataset.gi)===idx){ pos=i; break; } }
@@ -1529,7 +1568,7 @@ function checkSegment(){
   if (!inputs.length) { advanceSegment(); return; }
   var allFilled = inputs.every(function(x){ return x.value.trim()!==''; });
   if (!allFilled) {
-    toast('Hãy điền hết các ô trong đoạn trước khi kiểm tra.', 'info');
+    toast('Hãy điền hết các ô trong câu trước khi kiểm tra.', 'info');
     for (var i=0;i<inputs.length;i++){ if (!inputs[i].value.trim()){ inputs[i].focus(); break; } }
     return;
   }
@@ -1544,17 +1583,71 @@ function checkSegment(){
   var total = inputs.length, wrong = total - correct;
   document.getElementById('gapfill-score').innerHTML =
     'Đúng <strong style="color:#1a7a4a">' + correct + '</strong> / Sai <strong style="color:#DB0007">' + wrong + '</strong>';
+
+  // Luôn khóa input + hiện dấu ✓/✗ ngay trên từng ô — sinh viên biết chính xác ô nào sai
+  // mà KHÔNG bị lộ đáp án đúng (chỉ báo sai, không hiện chữ đúng là gì).
+  inputs.forEach(function(inp){
+    var gi = parseInt(inp.dataset.gi);
+    var g = App._gapOrder[gi];
+    var ok = normalize(inp.value) === normalize(g.answer);
+    inp.disabled = true;
+    inp.classList.add(ok ? 'correct' : 'wrong');
+    var fb = document.createElement('span');
+    fb.className = 'gap-fb';
+    fb.textContent = ok ? '✓' : '✗';
+    inp.insertAdjacentElement('afterend', fb);
+  });
+
   if (wrong === 0) {
-    toast('Đoạn ' + (cur+1) + ' đúng hết! 🎉', 'success');
-    advanceSegment();
+    toast('Đúng hết! 🎉 Nhấn Enter để qua câu tiếp theo.', 'success');
+    App._gapAwaitingRetry = false;
+    App._gapAwaitingNext = true;
+    document.getElementById('gapfill-hint').textContent = '✅ Chính xác! Nhấn Enter để tiếp tục →';
+    document.getElementById('gapfill-hint').style.display = 'block';
+    document.getElementById('gapfill-hint').className = 'gapfill-hint gapfill-hint-ok';
+    // Enter tiếp theo (từ bất kỳ đâu trong box) sẽ tự động sang segment kế — gắn 1 listener tạm
+    _armSegmentEnterKey(advanceSegment);
   } else {
-    toast('Sai ' + wrong + ' ô — làm lại cả đoạn này.', 'info');
-    inputs.forEach(function(inp){ inp.value=''; inp.classList.remove('correct','wrong'); }); // retry whole segment, no answers shown
-    if (inputs[0]) inputs[0].focus();
+    toast('Sai ' + wrong + ' ô — nhấn Enter để làm lại câu này.', 'info');
+    App._gapAwaitingRetry = true;
+    App._gapAwaitingNext = false;
+    document.getElementById('gapfill-hint').textContent = '❌ Còn ' + wrong + ' ô sai (đánh dấu ✗) — nhấn Enter để Retry';
+    document.getElementById('gapfill-hint').style.display = 'block';
+    document.getElementById('gapfill-hint').className = 'gapfill-hint gapfill-hint-bad';
+    _armSegmentEnterKey(retrySegment);
   }
 }
 
+// Gắn 1 listener Enter tạm thời trên toàn document — cho phép sinh viên nhấn Enter ở bất
+// kỳ đâu (không cần bấm đúng vào 1 input cụ thể) để Retry hoặc sang câu tiếp theo, vì lúc
+// này mọi input trong segment đã bị disable (không nhận onkeydown nữa).
+function _armSegmentEnterKey(action){
+  if (App._gapEnterHandler) document.removeEventListener('keydown', App._gapEnterHandler);
+  App._gapEnterHandler = function(e){
+    if (e.key !== 'Enter') return;
+    var gf = document.getElementById('screen-gapfill');
+    if (!gf || !gf.classList.contains('active')) return;
+    e.preventDefault();
+    document.removeEventListener('keydown', App._gapEnterHandler);
+    App._gapEnterHandler = null;
+    action();
+  };
+  document.addEventListener('keydown', App._gapEnterHandler);
+}
+
+// Làm lại ĐÚNG segment (2 câu) vừa chấm sai — xóa input, bỏ ✓/✗, không đụng các segment
+// trước đó đã pass. Không hiện đáp án đúng, chỉ cho làm lại từ đầu.
+function retrySegment(){
+  App._gapAwaitingRetry = false;
+  var hint = document.getElementById('gapfill-hint');
+  if (hint) hint.style.display = 'none';
+  renderGapFill();   // render lại đúng segment hiện tại (App._gapCurSeg không đổi) — input trống, sẵn sàng gõ lại
+}
+
 function advanceSegment(){
+  App._gapAwaitingNext = false;
+  var hint = document.getElementById('gapfill-hint');
+  if (hint) hint.style.display = 'none';
   var cur = App._gapCurSeg||0;
   if (cur+1 < (App._gapSegCount||1)) {
     App._gapCurSeg = cur+1;
@@ -1683,7 +1776,7 @@ function redoGapFill(){
 }
 
 // ===== GO TO DICTATION =====
-function backToVocab(){audioPause();App.pendingNextIdx=-1;showScreen('screen-vocab');}
+function backToVocab(){audioPause();App.pendingNextIdx=-1;if(App._gapEnterHandler){document.removeEventListener('keydown',App._gapEnterHandler);App._gapEnterHandler=null;}showScreen('screen-vocab');}
 function goToDictation(){
   if(App.cdTimer){clearInterval(App.cdTimer);App.cdTimer=null;}
   audioPause();
