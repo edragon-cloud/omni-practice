@@ -82,7 +82,9 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 /* ===== SETUP ===== */
 #screen-setup{overflow-y:auto}
-.setup-wrap{max-width:780px;margin:0 auto;padding:24px 18px 60px}
+.setup-wrap{max-width:1400px;margin:0 auto;padding:24px 28px 60px}
+.setup-grid{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
+@media(max-width:960px){.setup-grid{grid-template-columns:1fr}}
 .setup-hero{background:linear-gradient(90deg,var(--black) 0%,var(--navy2) 50%,var(--red-dark) 100%);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;position:relative;overflow:hidden;border-bottom:2px solid var(--gold)}
 .setup-hero::before{content:'';position:absolute;top:-40%;right:-10%;width:250px;height:250px;background:radial-gradient(circle,rgba(200,16,46,.2),transparent 70%);pointer-events:none}
 .setup-hero h1{font-family:var(--font-display);font-size:1.5rem;color:#fff;position:relative;z-index:1}
@@ -287,133 +289,152 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 
     <!-- NEW SESSION -->
     <div id="tab-content-new">
-      <!-- Audio -->
-      <div class="card">
-        <div class="card-title">📂 Audio File</div>
-        <div class="audio-drop" id="audio-drop" onclick="document.getElementById('audio-file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
-          <div class="audio-drop-icon" id="audio-drop-icon">🎵</div>
-          <div class="audio-drop-text" id="audio-drop-text">Click or drag & drop audio file here</div>
-          <div class="audio-drop-hint">MP3, WAV, OGG, M4A — or paste a Google Drive File ID below</div>
-        </div>
-        <input type="file" id="audio-file-input" accept="audio/*" style="display:none" onchange="handleAudioFile(event)">
-        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-          <input type="text" class="form-input" id="drive-file-id" placeholder="Or paste Google Drive File ID (e.g. 1aBcDeFgHi...)" style="font-size:12px;font-family:var(--font-mono)">
-          <button class="btn btn-secondary btn-sm" onclick="loadDriveAudio()" style="white-space:nowrap">Load</button>
-        </div>
-      </div>
-
-      <!-- Script -->
-      <div class="card">
-        <div class="card-title">
-          <span>📝 Listening Script</span>
-          <span style="font-size:11px;color:var(--grey-400);font-weight:400">paste full text, AI will split into sentences</span>
-        </div>
-        <textarea id="raw-script-input" class="form-textarea" rows="5"
-          style="font-size:13px;resize:vertical;min-height:100px;line-height:1.65"
-          placeholder="Paste the full listening script here…"
-          oninput="onScriptInput()"></textarea>
-        <!-- Word count indicator -->
-        <div id="script-word-bar" style="display:none;margin-top:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span id="script-word-label" style="font-size:12px;font-weight:700"></span>
-            <span id="script-word-count" style="font-size:12px;font-family:var(--font-mono);font-weight:700"></span>
-          </div>
-          <div style="height:5px;background:var(--grey-200);border-radius:100px;overflow:hidden">
-            <div id="script-word-bar-fill" style="height:100%;border-radius:100px;transition:width .3s,background .3s"></div>
-          </div>
-          <div id="script-word-warn" style="display:none;margin-top:6px;padding:8px 11px;border-radius:8px;font-size:12px;line-height:1.5"></div>
-        </div>
-        <div id="err-script" style="font-size:.76rem;color:var(--red);display:none;margin-top:4px">⚠ Please paste the listening script.</div>
-        <!-- Gemini Key widget -->
-        <div id="lis-key-widget" style="display:none;align-items:center;gap:8px;margin-top:10px;background:#f5f5f0;border:1.5px solid #e0e0d8;border-radius:8px;padding:9px 13px">
-          <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
-          <input type="password" id="lis-gemini-key"
-            style="flex:1;padding:6px 10px;border:1.5px solid #d0d0c8;border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;background:#fff"
-            placeholder="AIza... hoặc AQ... (free key từ aistudio.google.com)"
-            oninput="onLisKeyInput(this.value)"
-            onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
-          <span id="lis-key-status" style="font-size:.68rem;font-weight:700;white-space:nowrap;color:#888">no key</span>
-          <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.68rem;color:#1a3a8c;font-weight:700;white-space:nowrap">Get free key →</a>
-        </div>
-        <button class="ai-split-btn" id="btn-ai-split" onclick="aiSplitScript()" style="display:none">
-          🤖 AI Split into Sentences
-        </button>
-        <div class="split-preview-box" id="split-preview-box">
-          <div class="split-preview-header">
-            ✅ Preview — <span id="split-count">0</span> sentences detected
-            <button onclick="resetSplitPreview()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:.72rem">✕ Re-paste</button>
-          </div>
-          <div class="split-preview-list" id="split-preview-list"></div>
-          <div style="padding:10px 14px 4px">
-            <button onclick="addSplitSentence()" style="width:100%;padding:8px;border:2px dashed rgba(255,255,255,.35);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">＋ Add another sentence</button>
-          </div>
-          <div class="split-confirm-row">
-            <button class="btn btn-primary btn-sm" onclick="confirmSplit()">✅ Use these sentences</button>
-            <button class="btn btn-secondary btn-sm" onclick="resetSplitPreview()">↺ Re-paste script</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Session Settings -->
-      <div class="card">
-        <div class="card-title">⚙️ Session Settings</div>
-        <!-- Book / Test / Part -->
-        <div class="form-group">
-          <label class="form-label">📚 Book &nbsp;·&nbsp; 🔢 Test &nbsp;·&nbsp; 🎯 Part</label>
-          <div class="form-row-3">
-            <!-- Book dropdown + custom add -->
-            <div style="display:flex;gap:4px;align-items:center">
-              <select class="form-select" id="book-input" onchange="onBTPChange()" style="flex:1;min-width:0">
-                <option value="">— Chọn sách —</option>
-                <option>Cam11</option><option>Cam12</option><option>Cam13</option>
-                <option>Cam14</option><option>Cam15</option><option>Cam16</option>
-                <option>Cam17</option><option>Cam18</option><option>Cam19</option>
-                <option value="__custom__">+ Thêm sách…</option>
-              </select>
+      <div class="setup-grid">
+        <!-- LEFT COLUMN: Audio + Script -->
+        <div>
+          <!-- Audio -->
+          <div class="card">
+            <div class="card-title">📂 Audio File</div>
+            <div class="audio-drop" id="audio-drop" onclick="document.getElementById('audio-file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+              <div class="audio-drop-icon" id="audio-drop-icon">🎵</div>
+              <div class="audio-drop-text" id="audio-drop-text">Click or drag & drop audio file here</div>
+              <div class="audio-drop-hint">MP3, WAV, OGG, M4A — or paste a Google Drive File ID below</div>
             </div>
-            <!-- Test 1–20 -->
-            <select class="form-select" id="test-input" onchange="onBTPChange()" style="text-align:center">
-              <option value="">Test</option>
-              <option>1</option><option>2</option><option>3</option><option>4</option>
-              <option>5</option><option>6</option><option>7</option><option>8</option>
-              <option>9</option><option>10</option><option>11</option><option>12</option>
-              <option>13</option><option>14</option><option>15</option><option>16</option>
-              <option>17</option><option>18</option><option>19</option><option>20</option>
-            </select>
-            <!-- Part 1–4 -->
-            <select class="form-select" id="part-input" onchange="onBTPChange()" style="text-align:center">
-              <option value="">Part</option>
-              <option>1</option><option>2</option><option>3</option><option>4</option>
-            </select>
-          </div>
-          <!-- Custom book input (hidden by default) -->
-          <div id="custom-book-wrap" style="display:none;margin-top:6px;display:none">
-            <div style="display:flex;gap:6px;align-items:center">
-              <input type="text" class="form-input" id="custom-book-input"
-                placeholder="Nhập tên sách (vd: Road to IELTS)"
-                oninput="onBTPChange()" autocomplete="off"
-                style="font-size:13px;flex:1">
-              <button class="btn btn-sm btn-teal" onclick="saveCustomBook()" style="white-space:nowrap;padding:6px 12px">Lưu</button>
+            <input type="file" id="audio-file-input" accept="audio/*" style="display:none" onchange="handleAudioFile(event)">
+            <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+              <input type="text" class="form-input" id="drive-file-id" placeholder="Or paste Google Drive File ID (e.g. 1aBcDeFgHi...)" style="font-size:12px;font-family:var(--font-mono)">
+              <button class="btn btn-secondary btn-sm" onclick="loadDriveAudio()" style="white-space:nowrap">Load</button>
             </div>
           </div>
-          <div class="btp-preview" style="margin-top:6px">Bài: <strong id="btp-preview">—</strong></div>
+
+          <!-- Script -->
+          <div class="card">
+            <div class="card-title">
+              <span>📝 Listening Script</span>
+              <span style="font-size:11px;color:var(--grey-400);font-weight:400">paste full text, AI will split into sentences</span>
+            </div>
+            <textarea id="raw-script-input" class="form-textarea" rows="9"
+              style="font-size:13px;resize:vertical;min-height:180px;line-height:1.65"
+              placeholder="Paste the full listening script here…"
+              oninput="onScriptInput()"></textarea>
+            <!-- Word count indicator -->
+            <div id="script-word-bar" style="display:none;margin-top:6px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <span id="script-word-label" style="font-size:12px;font-weight:700"></span>
+                <span id="script-word-count" style="font-size:12px;font-family:var(--font-mono);font-weight:700"></span>
+              </div>
+              <div style="height:5px;background:var(--grey-200);border-radius:100px;overflow:hidden">
+                <div id="script-word-bar-fill" style="height:100%;border-radius:100px;transition:width .3s,background .3s"></div>
+              </div>
+              <div id="script-word-warn" style="display:none;margin-top:6px;padding:8px 11px;border-radius:8px;font-size:12px;line-height:1.5"></div>
+            </div>
+            <div id="err-script" style="font-size:.76rem;color:var(--red);display:none;margin-top:4px">⚠ Please paste the listening script.</div>
+            <!-- Gemini Key widget -->
+            <div id="lis-key-widget" style="display:none;align-items:center;gap:8px;margin-top:10px;background:#f5f5f0;border:1.5px solid #e0e0d8;border-radius:8px;padding:9px 13px">
+              <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
+              <input type="password" id="lis-gemini-key"
+                style="flex:1;padding:6px 10px;border:1.5px solid #d0d0c8;border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;background:#fff"
+                placeholder="AIza... hoặc AQ... (free key từ aistudio.google.com)"
+                oninput="onLisKeyInput(this.value)"
+                onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
+              <span id="lis-key-status" style="font-size:.68rem;font-weight:700;white-space:nowrap;color:#888">no key</span>
+              <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.68rem;color:#1a3a8c;font-weight:700;white-space:nowrap">Get free key →</a>
+            </div>
+            <button class="ai-split-btn" id="btn-ai-split" onclick="aiSplitScript()" style="display:none">
+              🤖 AI Split into Sentences
+            </button>
+            <div class="split-preview-box" id="split-preview-box">
+              <div class="split-preview-header">
+                ✅ Preview — <span id="split-count">0</span> sentences detected
+                <button onclick="resetSplitPreview()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:.72rem">✕ Re-paste</button>
+              </div>
+              <div class="split-preview-list" id="split-preview-list"></div>
+              <div style="padding:10px 14px 4px">
+                <button onclick="addSplitSentence()" style="width:100%;padding:8px;border:2px dashed rgba(255,255,255,.35);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">＋ Add another sentence</button>
+              </div>
+              <div class="split-confirm-row">
+                <button class="btn btn-primary btn-sm" onclick="confirmSplit()">✅ Use these sentences</button>
+                <button class="btn btn-secondary btn-sm" onclick="resetSplitPreview()">↺ Re-paste script</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="form-row-2">
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label">Max Replays per Sentence</label>
-            <select class="form-select" id="max-replays">
-              <option value="1">1 replay</option>
-              <option value="2" selected>2 replays</option>
-              <option value="3">3 replays</option>
-              <option value="999">Unlimited</option>
-            </select>
+
+        <!-- RIGHT COLUMN: Settings + History summary + Start -->
+        <div>
+          <!-- Session Settings -->
+          <div class="card">
+            <div class="card-title">⚙️ Session Settings</div>
+            <!-- Book / Test / Part -->
+            <div class="form-group">
+              <label class="form-label">📚 Book &nbsp;·&nbsp; 🔢 Test &nbsp;·&nbsp; 🎯 Part</label>
+              <div class="form-row-3">
+                <!-- Book dropdown + custom add -->
+                <div style="display:flex;gap:4px;align-items:center">
+                  <select class="form-select" id="book-input" onchange="onBTPChange()" style="flex:1;min-width:0">
+                    <option value="">— Chọn sách —</option>
+                    <option>Cam11</option><option>Cam12</option><option>Cam13</option>
+                    <option>Cam14</option><option>Cam15</option><option>Cam16</option>
+                    <option>Cam17</option><option>Cam18</option><option>Cam19</option>
+                    <option value="__custom__">+ Thêm sách…</option>
+                  </select>
+                </div>
+                <!-- Test 1–20 -->
+                <select class="form-select" id="test-input" onchange="onBTPChange()" style="text-align:center">
+                  <option value="">Test</option>
+                  <option>1</option><option>2</option><option>3</option><option>4</option>
+                  <option>5</option><option>6</option><option>7</option><option>8</option>
+                  <option>9</option><option>10</option><option>11</option><option>12</option>
+                  <option>13</option><option>14</option><option>15</option><option>16</option>
+                  <option>17</option><option>18</option><option>19</option><option>20</option>
+                </select>
+                <!-- Part 1–4 -->
+                <select class="form-select" id="part-input" onchange="onBTPChange()" style="text-align:center">
+                  <option value="">Part</option>
+                  <option>1</option><option>2</option><option>3</option><option>4</option>
+                </select>
+              </div>
+              <!-- Custom book input (hidden by default) -->
+              <div id="custom-book-wrap" style="display:none;margin-top:6px;display:none">
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input type="text" class="form-input" id="custom-book-input"
+                    placeholder="Nhập tên sách (vd: Road to IELTS)"
+                    oninput="onBTPChange()" autocomplete="off"
+                    style="font-size:13px;flex:1">
+                  <button class="btn btn-sm btn-teal" onclick="saveCustomBook()" style="white-space:nowrap;padding:6px 12px">Lưu</button>
+                </div>
+              </div>
+              <div class="btp-preview" style="margin-top:6px">Bài: <strong id="btp-preview">—</strong></div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Max Replays per Sentence</label>
+                <select class="form-select" id="max-replays">
+                  <option value="1">1 replay</option>
+                  <option value="2" selected>2 replays</option>
+                  <option value="3">3 replays</option>
+                  <option value="999">Unlimited</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-full" onclick="startSession()" style="padding:14px;font-size:15px;border-radius:var(--radius-lg);margin-bottom:16px">
+            🚀 Start Practice Session
+          </button>
+
+          <!-- My History quick summary (thay cho Quick Tips + Your Progress) -->
+          <div class="card" style="cursor:pointer" onclick="switchTab('history')">
+            <div class="card-title" style="margin-bottom:10px">
+              <span>📊 My History</span>
+              <span style="font-size:11px;color:var(--red);font-weight:700">Xem tất cả →</span>
+            </div>
+            <div id="setup-history-summary" style="display:flex;gap:10px;flex-wrap:wrap">
+              <div style="text-align:center;padding:16px;color:var(--grey-400);font-size:12px;width:100%">Đang tải…</div>
+            </div>
           </div>
         </div>
       </div>
-
-      <button class="btn btn-primary btn-full" onclick="startSession()" style="padding:14px;font-size:15px;border-radius:var(--radius-lg)">
-        🚀 Start Practice Session
-      </button>
     </div>
 
     <!-- HISTORY TAB -->
@@ -423,7 +444,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 </div><!-- end screen-setup -->
 
 <!-- History full-width panel (outside setup-wrap) -->
-<div id="history-panel" style="display:none;padding:24px 28px 60px;max-width:1100px;margin:0 auto">
+<div id="history-panel" style="display:none;padding:24px 28px 60px;max-width:1400px;margin:0 auto">
   <!-- Summary bar -->
   <div id="history-summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
 
@@ -2508,17 +2529,48 @@ async function loadHistory(){
   try{
     var fullName=App.user&&(App.user.fullName||App.user.FullName)||'';
     var res=await api('lis.getHistory',{fullName:fullName});
-    if(!res||!res.sessions||!res.sessions.length){
+    if(!res||res.success===false){
+      console.error('lis.getHistory failed:',res&&res.error);
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red)">Lỗi tải dữ liệu'+(res&&res.error?': '+escHtml(res.error):'')+'</td></tr>';
+      renderSetupHistorySummary([]);
+      return;
+    }
+    if(!res.sessions||!res.sessions.length){
       tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--grey-400)">Chưa có bài nào.</td></tr>';
+      renderSetupHistorySummary([]);
       return;
     }
     _histRows=res.sessions.slice().reverse(); // newest first by default
     _histSortCol='start'; _histSortAsc=false;
     var el=document.getElementById('hsi-start'); if(el) el.textContent='▼';
     renderHistoryTable();
+    renderSetupHistorySummary(_histRows);
   }catch(e){
-    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red)">Lỗi tải dữ liệu.</td></tr>';
+    console.error('loadHistory exception:',e);
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red)">Lỗi tải dữ liệu: '+escHtml(e.message||'')+'</td></tr>';
+    renderSetupHistorySummary([]);
   }
+}
+
+// Mini-summary hiện trong sidebar màn Setup (thay cho "Quick Tips" + "Your Progress"
+// tĩnh trước đây) — tận dụng data đã fetch bởi loadHistory(), không gọi API riêng.
+function renderSetupHistorySummary(rows){
+  var box=document.getElementById('setup-history-summary'); if(!box) return;
+  if(!rows||!rows.length){
+    box.innerHTML='<div style="text-align:center;padding:16px;color:var(--grey-400);font-size:12px;width:100%">Chưa có buổi luyện nào. Hoàn thành buổi đầu tiên để xem thống kê ở đây!</div>';
+    return;
+  }
+  var total=rows.length;
+  var avgAcc=Math.round(rows.reduce(function(s,r){return s+(parseInt(String(r.accuracy||'0').replace('%',''))||0);},0)/total);
+  var totalMs=rows.reduce(function(s,r){
+    var a=_histParseDate(r.startingTime),b=_histParseDate(r.submittingTime);
+    return s+((a&&b)?(b-a):0);
+  },0);
+  var hours=(totalMs/3600000).toFixed(1);
+  function mini(val,lbl,col){return '<div style="flex:1;min-width:80px;text-align:center;background:var(--grey-100);border-radius:10px;padding:10px 8px">'
+    +'<div style="font-size:18px;font-weight:800;color:'+(col||'var(--navy)')+'">'+val+'</div>'
+    +'<div style="font-size:10px;color:var(--grey-500);margin-top:2px">'+lbl+'</div></div>';}
+  box.innerHTML=mini(total,'Sessions')+mini(avgAcc+'%','Accuracy','#065F46')+mini(hours+'h','Practiced','var(--red)');
 }
 
 // ===== ZOOM =====
