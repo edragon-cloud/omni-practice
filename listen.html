@@ -158,6 +158,8 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .sentence-block.active-block{border-left-color:var(--gold);box-shadow:0 4px 18px rgba(197,160,40,.2);background:#fffef8}
 .sentence-block.completed{border-left-color:var(--green);background:#f8fffc}
 .sb-label{font-size:.68rem;font-weight:700;color:#9aaac8;letter-spacing:.6px;margin-bottom:7px;text-transform:uppercase}
+.sb-wordcount-badge{display:inline-flex;align-items:center;gap:3px;background:#eef1f8;color:#5c6480;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:10px;text-transform:none;letter-spacing:0;margin-left:8px;vertical-align:middle;transition:background .2s,color .2s}
+.sb-wordcount-badge.wc-match{background:#16a34a;color:#fff}
 .sb-result{min-height:22px;line-height:2.1;word-spacing:3px;margin-bottom:7px}
 .sb-result .w-correct{color:var(--green);font-weight:700}
 .sb-result .w-wrong{color:var(--red);text-decoration:line-through;font-weight:700}
@@ -398,18 +400,6 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
         </div>
         <div class="form-row-2">
           <div class="form-group" style="margin-bottom:0">
-            <label class="form-label">Study Time Before Dictation</label>
-            <select class="form-select" id="study-time-override">
-              <option value="auto" selected>Auto by Part (recommended)</option>
-              <option value="120">2 min (Part 0 / blank)</option>
-              <option value="360">6 min (Part 1)</option>
-              <option value="480">8 min (Part 2)</option>
-              <option value="720">12 min (Part 3 & 4)</option>
-              <option value="0">No study time (skip)</option>
-            </select>
-            <div style="font-size:10px;color:var(--grey-400);margin-top:3px">P1=6min · P2=8min · P3/4=12min · P0/blank=2min</div>
-          </div>
-          <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Max Replays per Sentence</label>
             <select class="form-select" id="max-replays">
               <option value="1">1 replay</option>
@@ -494,8 +484,8 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       </div>
       <span class="topbar-user" id="vocab-user"></span>
       <span class="progress-pill" id="vocab-pill">0 / 0 sentences</span>
-      <button class="btn btn-primary btn-sm" id="btn-go-dictation" onclick="goToGapFill()" disabled style="opacity:.4;cursor:not-allowed">
-        🔒 Start Dictation
+      <button class="btn btn-primary btn-sm" id="btn-go-dictation" onclick="goToGapFill()">
+        Continue → Gap-Fill
       </button>
     </div>
   </div>
@@ -1152,8 +1142,6 @@ function getStudySeconds(partStr,override){
 function startCountdown(secs){
   App.cdTotal=secs; App.cdLeft=secs;
   var wrap=document.getElementById('header-timer'); if(wrap) wrap.style.display='flex';
-  var dictBtn=document.getElementById('btn-go-dictation');
-  if(dictBtn){dictBtn.disabled=true;dictBtn.style.opacity='.4';dictBtn.style.cursor='not-allowed';dictBtn.textContent='🔒 Start Dictation';}
   renderTimer(App.cdLeft);
   if(App.cdTimer) clearInterval(App.cdTimer);
   App.cdTimer=setInterval(function(){
@@ -1180,13 +1168,12 @@ function unlockDictation(){
   renderTimer(0);
   var dictBtn=document.getElementById('btn-go-dictation');
   if(dictBtn){
-    dictBtn.disabled=false; dictBtn.style.opacity='1'; dictBtn.style.cursor='pointer'; dictBtn.textContent='Continue \u2192 Gap-Fill';
     var i=0,pulse=setInterval(function(){
       dictBtn.style.transform=i%2===0?'scale(1.07)':'scale(1)';
       if(++i>5){clearInterval(pulse);dictBtn.style.transform='';}
     },180);
   }
-  toast('Study time up! You can now start dictation.','success',3000);
+  toast('Hết 5 phút học — bạn có thể vào làm bài hoặc học thêm tuỳ ý.','success',3500);
 }
 
 // ===== START SESSION =====
@@ -1242,16 +1229,10 @@ function startSession(){
   if(va){va.addEventListener('play',function(){setAudioStatus('playing');});va.addEventListener('pause',function(){setAudioStatus('paused');});}
   document.getElementById('full-script-display').textContent=App.sentences.join('\n');
   document.getElementById('vocab-pill').textContent=App.sentences.length+' sentences';
-  var override=document.getElementById('study-time-override').value;
-  var partNum=(document.getElementById('part-input')||{value:''}).value;
-  var studySecs=getStudySeconds(partNum,override);
+  var studySecs=300;   // cố định 5 phút học trước khi làm bài, mọi Part
   showScreen('screen-vocab');
-  if(studySecs>0){
-    startCountdown(studySecs);
-    setTimeout(function(){var va2=document.getElementById('vocab-audio-el');if(va2) va2.play().catch(function(){});},500);
-  }else{
-    unlockDictation();
-  }
+  startCountdown(studySecs);
+  setTimeout(function(){var va2=document.getElementById('vocab-audio-el');if(va2) va2.play().catch(function(){});},500);
 }
 
 // ===== TRANSLATE =====
@@ -1756,14 +1737,16 @@ function appendSentenceBlock(idx){
     '<div class="hint-item"><span class="kbd">↑</span><span>Edit last</span></div>'+
     '<div class="hint-item"><span class="kbd">Ctrl+Alt+R</span><span>Reset</span></div>'+
     '</div>':'';
+  var totalWordsInSentence = tokenize(App.sentences[idx]).length;
   block.innerHTML=
-    '<div class="sb-label">SENTENCE '+(idx+1)+' / '+App.sentences.length+'</div>'+
+    '<div class="sb-label">SENTENCE '+(idx+1)+' / '+App.sentences.length+
+    ' <span class="sb-wordcount-badge" id="wc-badge-'+idx+'" title="Số từ bạn đã gõ / tổng số từ trong câu">✏️ <span id="wc-typed-'+idx+'">0</span> / '+totalWordsInSentence+' words</span></div>'+
     '<div class="sb-result" id="result-'+idx+'" style="font-size:'+fsz+'"></div>'+
     '<textarea class="sb-input" id="input-'+idx+'" rows="1"'+
     ' placeholder="🎧 Listen carefully, then type what you hear…"'+
-    ' autocomplete="off" spellcheck="false" style="font-size:'+fsz+'"'+
+    ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="true" style="font-size:'+fsz+'"'+
     ' onkeydown="handleInputKey(event,'+idx+')"'+
-    ' oninput="autoGrow(this)"'+
+    ' oninput="autoGrow(this);updateWordCountBadge('+idx+')"'+
     ' onpaste="return blockPaste(event)"'+
     ' ondrop="return false" oncontextmenu="return false"></textarea>'+
     '<div class="sb-controls">'+
@@ -1781,6 +1764,16 @@ function appendSentenceBlock(idx){
     hintHtml;
   container.appendChild(block);
   setTimeout(function(){block.scrollIntoView({behavior:'smooth',block:'center'});},80);
+}
+function updateWordCountBadge(idx){
+  var inputEl=document.getElementById('input-'+idx);
+  var typedEl=document.getElementById('wc-typed-'+idx);
+  if(!inputEl||!typedEl) return;
+  var typedCount=tokenize(inputEl.value).length;
+  typedEl.textContent=typedCount;
+  var totalWords=tokenize(App.sentences[idx]).length;
+  var badge=document.getElementById('wc-badge-'+idx);
+  if(badge) badge.classList.toggle('wc-match', typedCount===totalWords && typedCount>0);
 }
 function autoGrow(el){
   el.style.height='auto';
@@ -1911,6 +1904,7 @@ function resetSentence(idx){
     }
   }
   inputEl.disabled=false; inputEl.value=''; autoGrow(inputEl); if(btn) btn.disabled=false;
+  updateWordCountBadge(idx);
   ['edit-btn-','reveal-btn-'].forEach(function(p){var e=document.getElementById(p+idx);if(e) e.style.display='none';});
   var rev=document.getElementById('reveal-'+idx); if(rev) rev.style.display='none';
   document.getElementById('result-'+idx).innerHTML=''; document.getElementById('acc-'+idx).textContent='';
@@ -1931,6 +1925,7 @@ function editSentence(idx){
   updateScore();
   document.getElementById('result-'+idx).innerHTML=''; document.getElementById('acc-'+idx).textContent='';
   inputEl.disabled=false; inputEl.value=savedText; btn.disabled=false;
+  updateWordCountBadge(idx);
   if(editBtn) editBtn.style.display='none';
   var revBtn=document.getElementById('reveal-btn-'+idx); if(revBtn) revBtn.style.display='none';
   var revPanel=document.getElementById('reveal-'+idx); if(revPanel) revPanel.style.display='none';
