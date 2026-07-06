@@ -63,7 +63,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .form-row-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
 .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-group{margin-bottom:16px}
-@media(max-width:600px){.form-row-3{grid-template-columns:1fr}.form-row-2{grid-template-columns:1fr}}
+@media(max-width:600px){.form-row-3{grid-template-columns:1fr}.form-row-2{grid-template-columns:1fr}#raw-script-input{min-height:220px !important}}
 /* BTP PREVIEW */
 .btp-preview{font-size:12px;color:var(--grey-600);margin-top:6px;text-align:center}
 .btp-preview strong{color:var(--red);font-family:var(--font-mono);font-size:13px;letter-spacing:.5px}
@@ -82,7 +82,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 /* ===== SETUP ===== */
 #screen-setup{overflow-y:auto}
-.setup-wrap{max-width:1400px;margin:0 auto;padding:24px 28px 60px}
+.setup-wrap{width:100%;margin:0;padding:24px 40px 60px}
 .setup-grid{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
 @media(max-width:960px){.setup-grid{grid-template-columns:1fr}}
 .setup-hero{background:linear-gradient(90deg,var(--black) 0%,var(--navy2) 50%,var(--red-dark) 100%);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;position:relative;overflow:hidden;border-bottom:2px solid var(--gold)}
@@ -314,7 +314,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
               <span style="font-size:11px;color:var(--grey-400);font-weight:400">paste full text, AI will split into sentences</span>
             </div>
             <textarea id="raw-script-input" class="form-textarea" rows="9"
-              style="font-size:13px;resize:vertical;min-height:180px;line-height:1.65"
+              style="font-size:14px;resize:vertical;min-height:420px;line-height:1.7"
               placeholder="Paste the full listening script here…"
               oninput="onScriptInput()"></textarea>
             <!-- Word count indicator -->
@@ -437,50 +437,47 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       </div>
     </div>
 
-    <!-- HISTORY TAB -->
-    <div id="tab-content-history" style="display:none">
+    <!-- HISTORY TAB (giờ nằm ngay trong setup-wrap, thay chỗ tab-content-new khi được chọn — 
+         thay vì trước đây nằm ở cuối trang, gây khoảng trắng lớn phía trên) -->
+    <div id="history-panel" style="display:none;padding:0;max-width:none;margin:0">
+      <!-- Summary bar -->
+      <div id="history-summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <strong style="font-size:15px;color:var(--navy)">📊 Lịch sử làm bài</strong>
+        <div style="flex:1"></div>
+        <select id="hist-f-book" onchange="renderHistoryTable()"
+          style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);outline:none">
+          <option value="">Tất cả bài</option>
+        </select>
+        <input id="hist-f-search" oninput="renderHistoryTable()" placeholder="🔍 Tìm tên bài…"
+          style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);outline:none;width:160px">
+        <button class="btn btn-secondary btn-sm" onclick="loadHistory()">🔄 Làm mới</button>
+        <span id="hist-count" style="font-size:12px;color:var(--grey-400)"></span>
+      </div>
+
+      <!-- Table -->
+      <div style="overflow:auto;border:1.5px solid var(--grey-200);border-radius:var(--radius-lg)">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:var(--grey-100)">
+              <th onclick="histSort('book')"  style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Tên bài <span id="hsi-book">⇅</span></th>
+              <th onclick="histSort('start')" style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Bắt đầu <span id="hsi-start">⇅</span></th>
+              <th onclick="histSort('end')"   style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Nộp bài <span id="hsi-end">⇅</span></th>
+              <th onclick="histSort('dur')"   style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Thời gian <span id="hsi-dur">⇅</span></th>
+              <th onclick="histSort('sent')"  style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Câu <span id="hsi-sent">⇅</span></th>
+              <th onclick="histSort('words')" style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Từ <span id="hsi-words">⇅</span></th>
+              <th onclick="histSort('correct')" style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Đúng <span id="hsi-correct">⇅</span></th>
+              <th onclick="histSort('acc')"   style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Kết quả <span id="hsi-acc">⇅</span></th>
+            </tr>
+          </thead>
+          <tbody id="history-list"></tbody>
+        </table>
+      </div>
     </div>
   </div><!-- end setup-wrap -->
 </div><!-- end screen-setup -->
-
-<!-- History full-width panel (outside setup-wrap) -->
-<div id="history-panel" style="display:none;padding:24px 28px 60px;max-width:1400px;margin:0 auto">
-  <!-- Summary bar -->
-  <div id="history-summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
-
-  <!-- Toolbar -->
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-    <strong style="font-size:15px;color:var(--navy)">📊 Lịch sử làm bài</strong>
-    <div style="flex:1"></div>
-    <select id="hist-f-book" onchange="renderHistoryTable()"
-      style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);outline:none">
-      <option value="">Tất cả bài</option>
-    </select>
-    <input id="hist-f-search" oninput="renderHistoryTable()" placeholder="🔍 Tìm tên bài…"
-      style="padding:6px 10px;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);outline:none;width:160px">
-    <button class="btn btn-secondary btn-sm" onclick="loadHistory()">🔄 Làm mới</button>
-    <span id="hist-count" style="font-size:12px;color:var(--grey-400)"></span>
-  </div>
-
-  <!-- Table -->
-  <div style="overflow:auto;border:1.5px solid var(--grey-200);border-radius:var(--radius-lg)">
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead>
-        <tr style="background:var(--grey-100)">
-          <th onclick="histSort('book')"  style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Tên bài <span id="hsi-book">⇅</span></th>
-          <th onclick="histSort('start')" style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Bắt đầu <span id="hsi-start">⇅</span></th>
-          <th onclick="histSort('end')"   style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Nộp bài <span id="hsi-end">⇅</span></th>
-          <th onclick="histSort('dur')"   style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Thời gian <span id="hsi-dur">⇅</span></th>
-          <th onclick="histSort('sent')"  style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Câu <span id="hsi-sent">⇅</span></th>
-          <th onclick="histSort('words')" style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Từ <span id="hsi-words">⇅</span></th>
-          <th onclick="histSort('correct')" style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Đúng <span id="hsi-correct">⇅</span></th>
-          <th onclick="histSort('acc')"   style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--grey-500);letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--grey-200);cursor:pointer;white-space:nowrap">Kết quả <span id="hsi-acc">⇅</span></th>
-        </tr>
-      </thead>
-      <tbody id="history-list"></tbody>
-    </table>
-  </div>
-</div>
 
 <!-- ===== VOCAB / STUDY SCREEN ===== -->
 <div id="screen-vocab" class="screen">
@@ -819,13 +816,7 @@ function goHome(){window.location.href='./index.html';}
 // ===== TABS =====
 function switchTab(tab){
   document.getElementById('tab-content-new').style.display=tab==='new'?'block':'none';
-  document.getElementById('tab-content-history').style.display='none'; // empty placeholder
-  // History panel is outside setup-wrap → control separately
-  var panel=document.getElementById('history-panel');
-  if(panel) panel.style.display=tab==='history'?'block':'none';
-  // Narrow the setup-wrap when in history (it only frames the hero + tabs)
-  var wrap=document.querySelector('.setup-wrap');
-  if(wrap) wrap.style.paddingBottom=tab==='history'?'0':'60px';
+  document.getElementById('history-panel').style.display=tab==='history'?'block':'none';
   document.getElementById('tab-new').classList.toggle('active',tab==='new');
   document.getElementById('tab-history').classList.toggle('active',tab==='history');
   if(tab==='history') loadHistory();
