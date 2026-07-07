@@ -1497,6 +1497,12 @@ function renderResults() {
       submittedAt: now,
       correct:     App.quizScore,
       total:       App.quizWords.length
+    }).then(function(res){
+      // Server tự tính hạn chót từ StartTime+Duration (không tin đồng hồ máy SV) — nếu
+      // bài bị coi là nộp trễ, server đã ghi nhận là vắng/trễ (điểm 0) thay vì điểm thật.
+      if (res && res.late) {
+        toast('⏰ ' + (res.error || 'Đã hết giờ — bài được tính là chưa hoàn thành.'), 'error', 6000);
+      }
     }).catch(() => {});
 
   } else if (App.quizAsnId) {
