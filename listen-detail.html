@@ -476,6 +476,7 @@
 <div class="detail-tabs">
   <button id="dtab-dictation" class="detail-tab active" onclick="showDetailTab('dictation')">🎧 Dictation</button>
   <button id="dtab-gapfill" class="detail-tab" onclick="showDetailTab('gapfill')">✏️ Gap-Fill (first attempt)</button>
+  <button id="dtab-compquiz" class="detail-tab" onclick="showDetailTab('compquiz')">❓ Comprehension Quiz (all attempts)</button>
 </div>
 
 <div class="main">
@@ -486,6 +487,9 @@
   </div>
   <div id="gapfill-panel" style="display:none">
     <div class="state-box"><span class="spinner"></span> Loading gap-fill…</div>
+  </div>
+  <div id="compquiz-panel" style="display:none">
+    <div class="state-box"><span class="spinner"></span> Loading quiz attempts…</div>
   </div>
 </div>
 
@@ -539,19 +543,24 @@ function toast(msg) {
 // GAP-FILL TAB (teacher view of first attempt)
 // ═══════════════════════════════════════════════
 let _gapLoaded = false;
+let _compLoaded = false;
 function showDetailTab(tab) {
-  const dict = document.getElementById('main-content');
-  const gap  = document.getElementById('gapfill-panel');
-  const bd   = document.getElementById('dtab-dictation');
-  const bg   = document.getElementById('dtab-gapfill');
-  if (tab === 'gapfill') {
-    dict.style.display = 'none'; gap.style.display = 'block';
-    bd.classList.remove('active'); bg.classList.add('active');
-    if (!_gapLoaded) { _gapLoaded = true; loadGapFill(); }
-  } else {
-    dict.style.display = 'block'; gap.style.display = 'none';
-    bd.classList.add('active'); bg.classList.remove('active');
-  }
+  const panels = {
+    dictation: document.getElementById('main-content'),
+    gapfill:   document.getElementById('gapfill-panel'),
+    compquiz:  document.getElementById('compquiz-panel')
+  };
+  const btns = {
+    dictation: document.getElementById('dtab-dictation'),
+    gapfill:   document.getElementById('dtab-gapfill'),
+    compquiz:  document.getElementById('dtab-compquiz')
+  };
+  Object.keys(panels).forEach(function(k){
+    panels[k].style.display = (k===tab) ? 'block' : 'none';
+    btns[k].classList.toggle('active', k===tab);
+  });
+  if (tab === 'gapfill' && !_gapLoaded) { _gapLoaded = true; loadGapFill(); }
+  if (tab === 'compquiz' && !_compLoaded) { _compLoaded = true; loadCompQuiz(); }
 }
 
 function gapSegmentScript(script) {
@@ -630,6 +639,79 @@ function renderGapFillDetail(row) {
       `<div class="gd-head">First-attempt Gap-Fill &middot; <strong style="color:${pct===100?'var(--green)':'var(--yellow)'}">${correct}/${total}</strong> (${pct}%) &middot; ${name} <span style="color:var(--text-muted)">${cls}</span></div>`
     + `<div class="gd-script">${html}</div>`
     + `<div class="gd-legend"><span class="gd-gap ok"><span class="gd-wrote">word</span></span> đúng &nbsp;·&nbsp; <span class="gd-gap bad"><span class="gd-wrote">wrote</span><span class="gd-ans">answer</span></span> sai (kèm đáp án) &nbsp;·&nbsp; \u2205 = bỏ trống</div>`;
+}
+
+// ═══════════════════════════════════════════════
+// COMPREHENSION QUIZ TAB (teacher view — ALL attempts)
+// ═══════════════════════════════════════════════
+async function loadCompQuiz() {
+  let rows = [];
+  // Primary: public gviz read of Lis_CompQuiz
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('Lis_CompQuiz')}`;
+    const resp = await fetch(url);
+    const raw  = await resp.text();
+    const json = JSON.parse(raw.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, ''));
+    const cols = json.table.cols.map(c => (c.label||c.id||'').trim());
+    const allRows = (json.table.rows||[]).map(r => Object.fromEntries(cols.map((c,i) => [c, r.c?.[i]?.v ?? ''])));
+    rows = allRows.filter(r => String(r.SessionID||r.sessionId||'').trim() === TARGET_SID.trim());
+  } catch(e) { console.warn('Lis_CompQuiz gviz failed:', e); }
+  // Fallback: GAS route
+  if (!rows.length && TEACHER_TOKEN) {
+    try {
+      const res = await gasCall('teacher.lis.getCompQuiz', {}, TEACHER_TOKEN);
+      if (res?.success && res.rows) {
+        rows = res.rows.filter(r => String(r.SessionID||'').trim() === TARGET_SID.trim());
+      }
+    } catch(e) { console.warn('getCompQuiz GAS fallback failed:', e); }
+  }
+  // Sort by AttemptNo ascending (1st attempt first)
+  rows.sort((a,b) => (parseInt(a.AttemptNo)||0) - (parseInt(b.AttemptNo)||0));
+  renderCompQuizDetail(rows);
+}
+
+function renderCompQuizDetail(rows) {
+  const panel = document.getElementById('compquiz-panel');
+  if (!rows.length) {
+    panel.innerHTML = '<div class="notice" style="padding:18px;color:var(--text-dim)">Sinh viên chưa làm phần Comprehension Quiz cho session này (hoặc session được tạo trước khi bật tính năng).</div>';
+    return;
+  }
+  const name = escHtml(rows[0].FullName||'');
+  const cls  = escHtml(rows[0].Class||'');
+  const finalPassed = rows.some(r => String(r.Passed||'').toUpperCase()==='Y');
+  let html = `<div class="gd-head">Comprehension Quiz &middot; <strong>${rows.length}</strong> lần thử &middot; ${name} <span style="color:var(--text-muted)">${cls}</span>`
+           + (finalPassed ? ' &middot; <strong style="color:var(--green)">✓ Đạt</strong>' : ' &middot; <strong style="color:var(--yellow)">Chưa đạt lần nào</strong>')
+           + `</div>`;
+  rows.forEach(row => {
+    let qs = [], answers = [];
+    try { qs      = JSON.parse(row.QuestionsJSON || '[]'); } catch(e) {}
+    try { answers = JSON.parse(row.AnswersJSON   || '[]'); } catch(e) {}
+    const correct = parseInt(row.Correct)||0, total = parseInt(row.Total)||qs.length;
+    const passed  = String(row.Passed||'').toUpperCase()==='Y';
+    const attemptNo = row.AttemptNo || '?';
+    html += `<div class="gd-attempt" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;padding:14px">`
+          + `<div style="font-weight:600;margin-bottom:10px;color:${passed?'var(--green)':'var(--red)'}">`
+          + `Lần ${attemptNo} &middot; ${correct}/${total} ${passed?'✓ Đạt':'✗ Chưa đạt'}</div>`;
+    (answers.length ? answers : qs.map((q,i)=>({q:q.question||q.q||'',chosen:-1,correctIdx:q.answer,ok:false}))).forEach((a, i) => {
+      const q = qs[i] || {};
+      const opts = q.options || [];
+      html += `<div style="margin-bottom:10px;padding:8px 0;border-bottom:1px solid var(--border-light,rgba(255,255,255,.06))">`
+            + `<div style="margin-bottom:4px">${escHtml(a.q || q.question || q.q || ('Câu ' + (i+1)))}</div>`;
+      opts.forEach((opt, oi) => {
+        const isChosen  = oi === a.chosen;
+        const isCorrect = oi === a.correctIdx;
+        let style = 'color:var(--text-dim)';
+        if (isCorrect) style = 'color:var(--green);font-weight:600';
+        else if (isChosen) style = 'color:var(--red);font-weight:600';
+        html += `<div style="padding-left:14px;font-size:.9rem;${style}">`
+              + (isCorrect ? '✓ ' : (isChosen ? '✗ ' : '&nbsp;&nbsp;'))
+              + escHtml(opt) + '</div>';
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  panel.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════

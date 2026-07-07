@@ -1727,6 +1727,7 @@ function submitComprehension(){
   var qs = App._compQuestions || [];
   if (!qs.length) return;
   var correct = 0, answered = 0;
+  var answersLog = [];
   qs.forEach(function(q, i){
     var sel = document.querySelector('input[name="cq' + i + '"]:checked');
     var card = document.querySelector('.comp-q[data-qi="' + i + '"]');
@@ -1737,6 +1738,7 @@ function submitComprehension(){
     if (sel) answered++;
     var ok = chosen === q.answer;
     if (ok) correct++;
+    answersLog.push({ q: q.question||q.q||'', chosen: chosen, correctIdx: q.answer, ok: ok });
     card.classList.add(ok ? 'correct' : 'wrong');
     var correctLabel = card.querySelector('.comp-opt[data-oi="' + q.answer + '"]');
     if (correctLabel) correctLabel.classList.add('opt-correct');
@@ -1747,10 +1749,20 @@ function submitComprehension(){
   });
   var total = qs.length;
   if (answered < total) { toast('H\u00e3y tr\u1ea3 l\u1eddi t\u1ea5t c\u1ea3 ' + total + ' c\u00e2u.', 'error'); return; }
+  var passed = (correct === total);
+  // Lưu MỌI lần thử (kể cả lần sai phải làm lại) — mỗi lần bấm Submit là 1 bản ghi riêng,
+  // AttemptNo tự tăng phía backend theo (sessionId, studentId).
+  gasRun('lis.saveCompQuiz', {
+    sessionId:    App.sessionId,
+    bookTestPart: App.bookTestPart,
+    questions:    qs.map(function(q){ return { question:q.question||q.q||'', options:q.options||[], answer:q.answer }; }),
+    answers:      answersLog,
+    correct:      correct, total: total, passed: passed
+  });
   document.getElementById('comp-score').innerHTML = '<strong style="color:' + (correct===total?'#1a7a4a':'#DB0007') + '">' + correct + '/' + total + '</strong>';
   var resEl = document.getElementById('comp-result');
   resEl.style.display = 'block';
-  if (correct === total) {
+  if (passed) {
     App._compPassed = true;
     resEl.innerHTML = '<div style="background:#e9f7ef;border:1px solid #1a7a4a;border-radius:10px;padding:14px;color:#1a7a4a;font-weight:600">\uD83C\uDF89 ' + correct + '/' + total + ' \u2014 Hi\u1ec3u b\u00e0i t\u1ed1t! B\u1ea1n c\u00f3 th\u1ec3 v\u00e0o Dictation.</div>';
     var pb = document.getElementById('btn-comp-proceed');
