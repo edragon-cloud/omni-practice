@@ -330,15 +330,18 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
             </div>
             <div id="err-script" style="font-size:.76rem;color:var(--red);display:none;margin-top:4px">⚠ Please paste the listening script.</div>
             <!-- Gemini Key widget -->
-            <div id="lis-key-widget" style="display:none;align-items:center;gap:8px;margin-top:10px;background:#f5f5f0;border:1.5px solid #e0e0d8;border-radius:8px;padding:9px 13px">
-              <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
-              <input type="password" id="lis-gemini-key"
-                style="flex:1;padding:6px 10px;border:1.5px solid #d0d0c8;border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;background:#fff"
-                placeholder="AIza... hoặc AQ... (free key từ aistudio.google.com)"
-                oninput="onLisKeyInput(this.value)"
-                onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
-              <span id="lis-key-status" style="font-size:.68rem;font-weight:700;white-space:nowrap;color:#888">no key</span>
-              <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.68rem;color:#1a3a8c;font-weight:700;white-space:nowrap">Get free key →</a>
+            <div id="lis-key-widget" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:#fff8e6;border:1.5px solid #e6c85a;border-radius:8px;padding:10px 13px">
+              <div style="font-size:.72rem;color:#7a5c00;line-height:1.5">⚠️ <strong>Bắt buộc</strong> — key này dùng để AI tách câu/sửa chính tả VÀ tạo Comprehension Quiz sau Gap-Fill. Thiếu key sẽ không bấm Start Session được.</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
+                <input type="password" id="lis-gemini-key"
+                  style="flex:1;padding:6px 10px;border:1.5px solid #d0d0c8;border-radius:6px;font-size:.82rem;font-family:monospace;outline:none;background:#fff"
+                  placeholder="AIza... hoặc AQ... (free key từ aistudio.google.com)"
+                  oninput="onLisKeyInput(this.value)"
+                  onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
+                <span id="lis-key-status" style="font-size:.68rem;font-weight:700;white-space:nowrap;color:#888">no key</span>
+                <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.68rem;color:#1a3a8c;font-weight:700;white-space:nowrap">Get free key →</a>
+              </div>
             </div>
             <button class="ai-split-btn" id="btn-ai-split" onclick="aiSplitScript()" style="display:none">
               🤖 AI Split into Sentences
@@ -440,6 +443,12 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
     <!-- HISTORY TAB (giờ nằm ngay trong setup-wrap, thay chỗ tab-content-new khi được chọn — 
          thay vì trước đây nằm ở cuối trang, gây khoảng trắng lớn phía trên) -->
     <div id="history-panel" style="display:none;padding:0;max-width:none;margin:0">
+      <!-- In-progress sessions (Save & Exit) — resume from here -->
+      <div id="inprogress-block" style="display:none;margin-bottom:24px">
+        <strong style="font-size:15px;color:var(--navy)">📌 Đang dang dở</strong>
+        <div id="inprogress-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
       <!-- Summary bar -->
       <div id="history-summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
 
@@ -564,6 +573,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       <span class="progress-pill" id="gapfill-score">—</span>
       <button class="btn btn-secondary btn-sm" onclick="backToVocab()">← Back to Script</button>
       <button class="btn btn-teal btn-sm" id="btn-gap-check" onclick="checkSegment()">Kiểm tra câu này</button>
+      <button class="btn btn-outline btn-sm" id="btn-gap-save" onclick="saveProgressGapFill()" disabled style="opacity:.4;cursor:not-allowed" title="Chỉ lưu được sau khi hoàn thành Gap-Fill">💾 Save &amp; Exit</button>
       <button class="btn btn-primary btn-sm" id="btn-gap-proceed" onclick="goToComprehension()" disabled style="opacity:.4;cursor:not-allowed">🔒 Continue</button>
     </div>
   </div>
@@ -598,6 +608,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       <span class="progress-pill" id="comp-score">—</span>
       <button class="btn btn-secondary btn-sm" onclick="showScreen('screen-gapfill')">← Back to Gap-Fill</button>
       <button class="btn btn-teal btn-sm" id="btn-comp-submit" onclick="submitComprehension()">Submit Answers</button>
+      <button class="btn btn-outline btn-sm" id="btn-comp-save" onclick="saveProgressCompQuiz()" style="display:none">💾 Save &amp; Exit</button>
       <button class="btn btn-primary btn-sm" id="btn-comp-proceed" onclick="goToDictation()" disabled style="opacity:.4;cursor:not-allowed">🔒 Start Dictation</button>
     </div>
   </div>
@@ -641,6 +652,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
         <input type="checkbox" id="autopause-cb" checked onchange="toggleAutoPause(this.checked)" style="cursor:pointer;accent-color:var(--teal)"> Auto-pause
       </label>
       <button class="btn btn-secondary btn-sm" onclick="openShortcutModal()" title="Phím tắt — mở bất kỳ lúc nào" style="white-space:nowrap">⌨️ Shortcuts</button>
+      <button class="btn btn-outline btn-sm" id="btn-dict-save" onclick="saveProgressDictation()" title="Lưu tiến trình giữa chừng và thoát" style="white-space:nowrap">💾 Save &amp; Exit</button>
     </div>
     <div class="sentences-scroll" id="sentences-scroll"></div>
     <div class="submit-area" id="submit-area">
@@ -748,11 +760,32 @@ async function callGeminiLis(prompt, maxTokens) {
   return raw.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
 }
 
+// Comprehension Quiz sau Gap-Fill giờ BẮT BUỘC (không còn âm thầm skip khi thiếu key) —
+// preflight test key THẬT SỰ hoạt động bằng 1 lệnh gọi nhẹ, chặn startSession() nếu fail.
+async function lisGeminiPreflight() {
+  const key = getLisGeminiKey();
+  const inp = document.getElementById('lis-gemini-key');
+  if (!key) {
+    toast('⛔ Cần nhập Gemini API key trước khi bắt đầu — bài yêu cầu làm Comprehension Quiz sau Gap-Fill.', 'error', 6000);
+    if (inp) { inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); }
+    return false;
+  }
+  toast('⏳ Đang kiểm tra Gemini key…', 'info', 3000);
+  try {
+    await callGeminiLis('Reply with exactly: OK', 10);
+    return true;
+  } catch (e) {
+    toast('⛔ Gemini key không hoạt động: ' + (e.message||'lỗi không xác định') + ' — kiểm tra lại key.', 'error', 7000);
+    if (inp) { inp.focus(); inp.style.borderColor = '#c00'; setTimeout(function(){ if(inp) inp.style.borderColor=''; }, 3000); }
+    return false;
+  }
+}
+
 // ===== STATE =====
 const App = {
   user:null, token:null,
   sentences:[], sessionId:'', startTime:null, bookTestPart:'', maxReplays:2,
-  audioBlobUrl:null,
+  audioBlobUrl:null, driveFileId:'',
   totalWords:0, correctWords:0, currentIdx:0,
   lastCheckedIdx:-1,
   submitted:false, reviewData:[], attemptData:[],
@@ -910,6 +943,7 @@ function loadAudioFile(file){
   var url=URL.createObjectURL(file);
   if(App.audioBlobUrl) URL.revokeObjectURL(App.audioBlobUrl);
   App.audioBlobUrl=url;
+  App.driveFileId='';   // file cục bộ — không thể khôi phục sau khi đóng tab (Save Progress sẽ cảnh báo)
   var drop=document.getElementById('audio-drop');
   drop.classList.add('audio-loaded');
   document.getElementById('audio-drop-icon').textContent='✅';
@@ -921,6 +955,7 @@ async function loadDriveAudio(){
   if(!fileId){toast('Enter a Google Drive File ID.','error');return;}
   var m=fileId.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if(m) fileId=m[1];
+  App.driveFileId=fileId;
   toast('Loading audio from Drive…','info');
   document.getElementById('vocab-audio-status').textContent='⏳ Loading…';
   try{
@@ -1193,7 +1228,7 @@ function unlockDictation(){
 }
 
 // ===== START SESSION =====
-function startSession(){
+async function startSession(){
   var btp = getBTPValue();
   var book = (document.getElementById('book-input')||{value:''}).value;
   var test = (document.getElementById('test-input')||{value:''}).value;
@@ -1205,6 +1240,12 @@ function startSession(){
   if(!btp){toast('Chọn đủ Book và Test.','error');return;}
   if(!script){document.getElementById('err-script').style.display='block';return;}
   document.getElementById('err-script').style.display='none';
+
+  // ── Gemini key BẮT BUỘC — Quiz sau Gap-Fill không còn là tùy chọn ──
+  // Check ngay từ đầu (trước cả word-count/audio) để SV không mất công điền hết form
+  // rồi mới phát hiện thiếu key ở bước cuối.
+  var okKey = await lisGeminiPreflight();
+  if (!okKey) return;
 
   // ── Word count check — block if script is too short ──
   var wordCount = script.split(/\s+/).filter(function(w){ return w.length > 0; }).length;
@@ -1532,12 +1573,15 @@ function renderGapFill(){
   document.getElementById('gapfill-count').textContent = 'Câu ' + (cur*2+1) + '–' + Math.min((cur+1)*2, sentenceCountForLabel()) + ' / ' + segCount + ' cặp · ' + segBlanks + ' ô';
   var proceed = document.getElementById('btn-gap-proceed');
   var checkBtn = document.getElementById('btn-gap-check');
+  var saveBtn = document.getElementById('btn-gap-save');
   if (App._gapTotal === 0 || App._gapPassed) {
     if (proceed) { proceed.disabled=false; proceed.style.opacity='1'; proceed.style.cursor='pointer'; proceed.textContent='Continue \u2192 Quiz'; }
+    if (saveBtn) { saveBtn.disabled=false; saveBtn.style.opacity='1'; saveBtn.style.cursor='pointer'; saveBtn.title='Lưu tiến trình và thoát — quay lại History để tiếp tục sau'; }
     if (checkBtn) checkBtn.style.display='none';
     if (App._gapTotal === 0) document.getElementById('gapfill-score').textContent='no blanks';
   } else {
     if (proceed) { proceed.disabled=true; proceed.style.opacity='.4'; proceed.style.cursor='not-allowed'; proceed.textContent='\uD83D\uDD12 Continue'; }
+    if (saveBtn) { saveBtn.disabled=true; saveBtn.style.opacity='.4'; saveBtn.style.cursor='not-allowed'; saveBtn.title='Chỉ lưu được sau khi hoàn thành Gap-Fill'; }
     if (checkBtn) checkBtn.style.display='';
     document.getElementById('gapfill-score').textContent='—';
     var firstInput = box.querySelector('.gap-input:not([disabled])');
@@ -1679,6 +1723,35 @@ function finishGapFill(){
   toast('Hoàn thành Gap-Fill! Tiếp tục sang Quiz.', 'success');
 }
 
+// ── SAVE PROGRESS: Gap-Fill (chỉ khả dụng sau khi HOÀN THÀNH — không save giữa chừng) ──
+async function saveProgressGapFill(){
+  if (!App._gapPassed) { toast('Hoàn thành Gap-Fill trước khi lưu.', 'error'); return; }
+  var btn = document.getElementById('btn-gap-save');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu…'; }
+  try {
+    var res = await api('lis.saveProgress', {
+      sessionId: App.sessionId, bookTestPart: App.bookTestPart,
+      audioDriveId: App.driveFileId || '', gapScript: App._gapScript,
+      sentences: App.sentences, stage: 'gapfill', gapFillDone: true, compQuizDone: false
+    });
+    if (res && res.success) {
+      toast('✅ Đã lưu tiến trình! Vào My History để tiếp tục sau.', 'success', 5000);
+      setTimeout(function(){ location.href = location.pathname; }, 1500); // về màn Setup sạch
+    } else {
+      toast('⚠️ Lưu thất bại: ' + (res && res.error || 'lỗi không xác định'), 'error', 5000);
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
+    }
+  } catch(e) {
+    toast('⚠️ Lưu thất bại: ' + e.message, 'error', 5000);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
+  }
+}
+
+function retryComprehension(){
+  App._compPoolPromise = null;   // clear cached failed promise để thử lại từ đầu
+  goToComprehension();
+}
+
 // ===== COMPREHENSION QUIZ (gate after gap-fill) =====
 async function goToComprehension(){
   audioPause();
@@ -1690,8 +1763,16 @@ async function goToComprehension(){
   var pool = [];
   try { pool = await prebuildComprehension(); } catch(e){}
   if (!pool || !pool.length) {
-    toast('Kh\u00f4ng t\u1ea1o \u0111\u01b0\u1ee3c quiz (c\u1ea7n Gemini key) \u2014 b\u1ecf qua b\u01b0\u1edbc ki\u1ec3m tra.', 'info', 4000);
-    goToDictation(); return;
+    // Quiz bắt buộc — key đã được xác nhận hoạt động lúc Start Session, nên nếu tới đây
+    // vẫn fail thì nhiều khả năng là hết quota GIỮA CHỪNG phiên làm bài. Cho SV cơ hội
+    // thử lại thay vì âm thầm bỏ qua bước kiểm tra (điều này khiến một số SV có Quiz,
+    // một số không — không nhất quán).
+    document.getElementById('comp-loading').innerHTML =
+      '<div style="text-align:center;padding:20px">'
+      + '<div style="color:#DB0007;font-weight:600;margin-bottom:12px">⚠️ Không tạo được Quiz (key hết quota hoặc lỗi mạng).</div>'
+      + '<button class="btn btn-primary btn-sm" onclick="retryComprehension()">🔄 Thử lại</button>'
+      + '</div>';
+    return;
   }
   App._compQuestions = getComprehensionBatch();
   App._compReady = true;
@@ -1714,6 +1795,8 @@ function renderComprehension(){
   document.getElementById('comp-score').textContent = qs.length + ' questions';
   var pb = document.getElementById('btn-comp-proceed');
   var sb = document.getElementById('btn-comp-submit');
+  var svb = document.getElementById('btn-comp-save');
+  if (svb) { svb.style.display = 'none'; svb.disabled = false; svb.textContent = '💾 Save & Exit'; }
   if (App._compPassed) {
     if (pb) { pb.disabled = false; pb.style.opacity = '1'; pb.style.cursor = 'pointer'; pb.textContent = 'Start Dictation \u2192'; }
     if (sb) sb.style.display = 'none';
@@ -1774,6 +1857,38 @@ function submitComprehension(){
       + '<div style="font-weight:600;margin-bottom:10px">' + correct + '/' + total + ' \u0111\u00fang \u2014 ch\u01b0a \u0111\u1ea1t. B\u1ea1n c\u1ea7n l\u00e0m l\u1ea1i Gap-Fill v\u1edbi c\u00e1c ch\u1ed7 tr\u1ed1ng m\u1edbi r\u1ed3i l\u00e0m quiz m\u1edbi.</div>'
       + '<button class="btn btn-primary btn-sm" onclick="redoGapFill()">\uD83D\uDD04 L\u00e0m l\u1ea1i Gap-Fill (gap m\u1edbi)</button></div>';
     toast(correct + '/' + total + ' \u2014 c\u1ea7n full \u0111i\u1ec3m. L\u00e0m l\u1ea1i gap-fill.', 'info');
+  }
+  // Quiz đã NỘP (đạt hay chưa đều tính là "hoàn thành bước này") → cho phép Save & Exit.
+  App._compLastPassed = passed;
+  var saveBtn = document.getElementById('btn-comp-save');
+  if (saveBtn) saveBtn.style.display = 'inline-flex';
+}
+
+// ── SAVE PROGRESS: Comprehension Quiz (chỉ khả dụng SAU KHI đã nộp — không save giữa chừng) ──
+async function saveProgressCompQuiz(){
+  var btn = document.getElementById('btn-comp-save');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu…'; }
+  try {
+    // Nếu quiz vừa nộp CHƯA đạt → bước tiếp theo khi resume là redo Gap-Fill (gap mới).
+    // Nếu đã đạt → bước tiếp theo là vào thẳng Dictation.
+    var passed = !!App._compLastPassed;
+    var res = await api('lis.saveProgress', {
+      sessionId: App.sessionId, bookTestPart: App.bookTestPart,
+      audioDriveId: App.driveFileId || '', gapScript: App._gapScript,
+      sentences: App.sentences,
+      stage: passed ? 'compquiz' : 'gapfill',
+      gapFillDone: true, compQuizDone: passed
+    });
+    if (res && res.success) {
+      toast('✅ Đã lưu tiến trình! Vào My History để tiếp tục sau.', 'success', 5000);
+      setTimeout(function(){ location.href = location.pathname; }, 1500);
+    } else {
+      toast('⚠️ Lưu thất bại: ' + (res && res.error || 'lỗi không xác định'), 'error', 5000);
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
+    }
+  } catch(e) {
+    toast('⚠️ Lưu thất bại: ' + e.message, 'error', 5000);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
   }
 }
 
@@ -2399,12 +2514,47 @@ function restoreProgress() {
   } catch(e) { return false; }
 }
 
+// ── SAVE PROGRESS: Dictation (server-side — khả dụng bất kỳ lúc nào, không cần điều kiện) ──
+// Khác autoSaveProgress() (localStorage, chỉ cùng máy/trình duyệt): hàm này lưu lên Sheet
+// để SV resume được từ máy/trình duyệt khác qua My History.
+async function saveProgressDictation(){
+  var btn = document.getElementById('btn-dict-save');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu…'; }
+  try {
+    var dictationState = {
+      currentIdx:   App.currentIdx,
+      reviewData:   App.reviewData,
+      attemptData:  App.attemptData,
+      totalWords:   App.totalWords,
+      correctWords: App.correctWords,
+      startTime:    App.startTime ? App.startTime.toISOString() : null
+    };
+    var res = await api('lis.saveProgress', {
+      sessionId: App.sessionId, bookTestPart: App.bookTestPart,
+      audioDriveId: App.driveFileId || '', gapScript: App._gapScript,
+      sentences: App.sentences, stage: 'dictation',
+      gapFillDone: true, compQuizDone: true, dictationState: dictationState
+    });
+    if (res && res.success) {
+      toast('✅ Đã lưu tiến trình! Vào My History để tiếp tục sau.', 'success', 5000);
+      setTimeout(function(){ location.href = location.pathname; }, 1500);
+    } else {
+      toast('⚠️ Lưu thất bại: ' + (res && res.error || 'lỗi không xác định'), 'error', 5000);
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
+    }
+  } catch(e) {
+    toast('⚠️ Lưu thất bại: ' + e.message, 'error', 5000);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
+  }
+}
+
 // ===== SUBMIT =====
 async function submitResults(){
   if(App.submitted) return;
   App.submitted=true; document.getElementById('btn-submit').disabled=true; audioPause();
   // Clear saved progress on successful submit
   try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  gasRun('lis.deleteProgress', { sessionId: App.sessionId });   // dọn Lis_Progress — session đã hoàn thành hẳn
   if(App._autoSaveTimer){clearInterval(App._autoSaveTimer);App._autoSaveTimer=null;}
   if(App._progressTimer){clearInterval(App._progressTimer);App._progressTimer=null;}
   var submitTime=new Date();
@@ -2617,11 +2767,119 @@ function renderHistoryTable(){
   }).join('');
 }
 
+// ── IN-PROGRESS SESSIONS (Save & Exit → resume via History) ──
+async function loadInProgressSessions(){
+  var block = document.getElementById('inprogress-block');
+  var list  = document.getElementById('inprogress-list');
+  if (!block || !list) return;
+  try{
+    var res = await api('lis.listMyProgress', {});
+    if (!res || !res.success || !res.rows || !res.rows.length) { block.style.display='none'; return; }
+    block.style.display = 'block';
+    var stageLabel = { gapfill:'✏️ Gap-Fill', compquiz:'🧠 Comprehension Quiz', dictation:'🎧 Dictation' };
+    list.innerHTML = res.rows.map(function(r){
+      var stage = r.Stage || 'gapfill';
+      var savedAt = r.UpdatedAt ? new Date(r.UpdatedAt) : null;
+      var savedStr = savedAt && !isNaN(savedAt) ? savedAt.toLocaleString('vi-VN') : '';
+      return '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff8e6;border:1.5px solid #e6c85a;border-radius:10px;padding:10px 14px">'
+        + '<div style="flex:1;min-width:180px">'
+        + '<div style="font-weight:700;color:var(--navy)">' + escHtml(r.BookTestPart||'') + '</div>'
+        + '<div style="font-size:12px;color:#7a5c00">Đang ở: ' + (stageLabel[stage]||stage) + (savedStr?' · Lưu lúc ' + savedStr:'') + '</div>'
+        + '</div>'
+        + '<button class="btn btn-primary btn-sm" onclick="resumeSession(\'' + escHtml(r.SessionID) + '\')">▶️ Tiếp tục</button>'
+        + '<button class="btn btn-secondary btn-sm" onclick="discardProgress(\'' + escHtml(r.SessionID) + '\')">🗑️ Xóa</button>'
+        + '</div>';
+    }).join('');
+  }catch(e){ console.warn('loadInProgressSessions failed:', e); block.style.display='none'; }
+}
+
+async function discardProgress(sessionId){
+  if (!confirm('Xóa tiến trình đã lưu cho session này? Không thể hoàn tác.')) return;
+  await gasRun('lis.deleteProgress', { sessionId: sessionId });
+  loadInProgressSessions();
+}
+
+// Resume: tải lại progress từ Sheet, khôi phục audio (nếu có Drive ID), rồi nhảy thẳng
+// vào đúng màn hình (stage) mà SV đã lưu.
+async function resumeSession(sessionId){
+  toast('⏳ Đang tải tiến trình…', 'info', 3000);
+  try{
+    var res = await api('lis.getProgress', { sessionId: sessionId });
+    if (!res || !res.success || !res.progress) { toast('⚠️ Không tìm thấy tiến trình.', 'error'); return; }
+    var p = res.progress;
+    App.sessionId    = p.SessionID;
+    App.bookTestPart = p.BookTestPart || '';
+    App.driveFileId  = p.AudioDriveId || '';
+    App._gapScript   = p.GapScript || '';
+    try { App.sentences = JSON.parse(p.SentencesJSON||'[]'); } catch(e){ App.sentences=[]; }
+    if (!App.sentences.length) { toast('⚠️ Dữ liệu câu bị lỗi — không thể khôi phục.', 'error'); return; }
+
+    // Khôi phục audio nếu có Drive ID; nếu không có (SV dùng file cục bộ lúc lưu) → cảnh báo
+    if (App.driveFileId) {
+      try{
+        var ares = await api('lis.getAudio', { fileId: App.driveFileId });
+        if (ares && ares.base64) {
+          var binary=atob(ares.base64), bytes=new Uint8Array(binary.length);
+          for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+          var blob=new Blob([bytes],{type:ares.mimeType||'audio/mpeg'});
+          if (App.audioBlobUrl) URL.revokeObjectURL(App.audioBlobUrl);
+          App.audioBlobUrl = URL.createObjectURL(blob);
+        }
+      }catch(e){ console.warn('resume audio load failed:', e); }
+    } else {
+      toast('⚠️ Session này không có audio lưu qua Google Drive — bạn cần tải lại file audio thủ công.', 'info', 6000);
+    }
+
+    var stage = p.Stage || 'gapfill';
+
+    // Resume vào Gap-Fill/Quiz cần gọi AI (build gap hoặc tạo câu hỏi) → cần Gemini key.
+    // Key chỉ lưu localStorage (không lưu server) nên nếu SV resume trên MÁY KHÁC, key sẽ
+    // trống — phải nhập lại trước khi tiếp tục.
+    if (stage === 'gapfill' || stage === 'compquiz') {
+      // Đảm bảo widget nhập key thực sự HIỂN THỊ trước khi yêu cầu — nó chỉ hiện khi màn
+      // Setup active và có script trong textarea (điều kiện onScriptInput()).
+      showScreen('screen-setup'); switchTab('new');
+      var kw = document.getElementById('lis-key-widget');
+      var ta = document.getElementById('raw-script-input');
+      if (kw && ta) { if (!ta.value.trim()) ta.value = App._gapScript || ' '; kw.style.display = 'flex'; }
+      var okKey = await lisGeminiPreflight();
+      if (!okKey) { toast('⚠️ Nhập Gemini key vào ô phía trên, sau đó vào My History bấm "Tiếp tục" lại.', 'error', 7000); return; }
+    }
+
+    if (stage === 'gapfill' && p.GapFillDone !== 'Y') {
+      // Gap-Fill chưa xong (trường hợp lưu sau quiz-chưa-đạt, cần redo) — build gap mới rồi vào màn Gap-Fill
+      buildGapsForScript(); App._gapCurSeg = 0; App._gapPassed = false;
+      showScreen('screen-gapfill'); renderGapFill();
+    } else if (stage === 'gapfill' || stage === 'compquiz') {
+      // Gap-Fill đã xong → vào thẳng Quiz (build gap trước để có App._gapOrder/_gapScript sẵn cho state)
+      buildGapsForScript(); App._gapPassed = true; App._gapFirstSaved = true;
+      goToComprehension();
+    } else if (stage === 'dictation') {
+      // Khôi phục toàn bộ state Dictation giữa chừng
+      var ds = {}; try { ds = JSON.parse(p.DictationStateJSON||'{}'); } catch(e){}
+      App.currentIdx   = ds.currentIdx   || 0;
+      App.reviewData   = ds.reviewData   || {};
+      App.attemptData  = ds.attemptData  || new Array(App.sentences.length);
+      App.totalWords   = ds.totalWords   || 0;
+      App.correctWords = ds.correctWords || 0;
+      App.startTime    = ds.startTime ? new Date(ds.startTime) : new Date();
+      App.submitted = false; App.lastCheckedIdx = -1; App.pendingNextIdx = -1;
+      document.getElementById('sentences-scroll').innerHTML = '';
+      document.getElementById('submit-area').classList.remove('visible');
+      for (var idx=0; idx<=App.currentIdx && idx<App.sentences.length; idx++) appendSentenceBlock(idx);
+      updateProgress(); updateScore();
+      showScreen('screen-dictation');
+    }
+    toast('✅ Đã khôi phục tiến trình.', 'success', 3000);
+  }catch(e){ console.error('resumeSession failed:', e); toast('⚠️ Lỗi khôi phục: ' + e.message, 'error', 5000); }
+}
+
 async function loadHistory(){
   var tbody=document.getElementById('history-list'); if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--grey-400)"><div class="spinner" style="margin:0 auto 8px"></div>Đang tải…</td></tr>';
   var bookSel=document.getElementById('hist-f-book');
   if(bookSel) while(bookSel.options.length>1) bookSel.remove(1);
+  loadInProgressSessions();   // fire-and-forget, independent block
   try{
     var fullName=App.user&&(App.user.fullName||App.user.FullName)||'';
     var res=await api('lis.getHistory',{fullName:fullName});

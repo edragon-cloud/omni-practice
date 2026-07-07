@@ -1338,10 +1338,11 @@ function launch(mode,qs,retryCount){
   S.idx=0;S.t0=new Date().toISOString();
   S.retryCount=(retryCount||0);   // lần luyện thứ (0=lần đầu, 1=retry1, ...)
   // Thời gian trả lời theo đúng chuẩn IELTS thật:
-  // Part 1 = câu hỏi ngắn, cá nhân (15-20s) · Part 2 = long turn với cue card (2 phút)
+  // Part 1 = KHÔNG giới hạn (SV tự nói tới khi bấm Stop → Next; 20s cũ không đủ thời gian
+  // nói thật, gây ức chế) · Part 2 = long turn với cue card (2 phút, đúng chuẩn thi)
   // Part 3 = thảo luận sâu hơn P1 nhưng vẫn ngắn hơn P2 nhiều (~45s)
-  const QSEC={part1:20, part2:120, part3:45, full:60, custom:60, forecast:60};
-  S.qSeconds=QSEC[mode]||60;
+  const QSEC={part1:0, part2:120, part3:45, full:60, custom:60, forecast:60};
+  S.qSeconds=QSEC[mode];   // 0/undefined = không giới hạn (startQCountdown sẽ tự bỏ qua)
   const lbl={part1:'/ IELTS Part 1',part2:'/ IELTS Part 2',part3:'/ IELTS Part 3',full:'/ Full Simulation',custom:'/ Custom Practice',forecast:'/ Forecast Test'};
   document.getElementById('sess-tb').textContent=lbl[mode]||'/ Speaking';
   updProg();SS('S-session');loadQ(0);
@@ -1360,7 +1361,7 @@ function loadQ(idx){
   document.getElementById('next-q-btn').textContent=(idx>=S.qs.length-1)?'Hoàn thành ✓':'Next →';
   if(S.mode==='part2'||(S.mode==='full'&&qo.partLabel==='Part 2'))startPrep();
   else{document.getElementById('prep-wrap').style.display='none';clearInterval(S.prepTm);}
-  startQCountdown(S.qSeconds||90);
+  startQCountdown(S.qSeconds);
 }
 function setupKWUI(qo){
   S.hintsVis=false;S.wordsVis=false;
@@ -1404,8 +1405,14 @@ function resetTalkUI(){
 }
 
 function startQCountdown(sec){
-  clearInterval(S.qcdTm);S.qcdLeft=sec;
+  clearInterval(S.qcdTm);
   const el=document.getElementById('ptt-countdown');
+  if(!sec){   // 0/undefined = không giới hạn thời gian cho câu này (vd Part 1)
+    if(el){el.textContent='';el.style.display='none';}
+    return;
+  }
+  if(el)el.style.display='';
+  S.qcdLeft=sec;
   const upd=()=>{const m=Math.floor(S.qcdLeft/60),s=S.qcdLeft%60;if(el){el.textContent=m+':'+String(s).padStart(2,'0');el.style.color=S.qcdLeft<=10?'var(--red)':'var(--g600,#888)';}};
   upd();
   S.qcdTm=setInterval(()=>{S.qcdLeft--;upd();if(S.qcdLeft<=0){clearInterval(S.qcdTm);toast('Hết giờ câu này','info');(async()=>{if(S.talking)await stopTalk();nextQuestion();})();}},1000);
