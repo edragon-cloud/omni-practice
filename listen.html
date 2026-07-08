@@ -331,7 +331,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
             <div id="err-script" style="font-size:.76rem;color:var(--red);display:none;margin-top:4px">⚠ Please paste the listening script.</div>
             <!-- Gemini Key widget -->
             <div id="lis-key-widget" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:#fff8e6;border:1.5px solid #e6c85a;border-radius:8px;padding:10px 13px">
-              <div style="font-size:.72rem;color:#7a5c00;line-height:1.5">⚠️ <strong>NOTICE</strong> — key này dùng để AI tách câu, sửa chính tả VÀ tạo Comprehension Quiz sau Gap-Fill. Thiếu key sẽ không thể Start Session được.</div>
+              <div style="font-size:.72rem;color:#7a5c00;line-height:1.5">⚠️ <strong>Bắt buộc</strong> — key này dùng để AI tách câu/sửa chính tả VÀ tạo Comprehension Quiz sau Gap-Fill. Thiếu key sẽ không bấm Start Session được.</div>
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:.72rem;font-weight:700;color:#555;white-space:nowrap">🔑 Gemini Key</span>
                 <input type="password" id="lis-gemini-key"
@@ -780,17 +780,6 @@ async function callGeminiLis(prompt, maxTokens) {
 // maxOutputTokens quá thấp), chặn nhầm SV dù key hoàn toàn hoạt động tốt. Bằng chứng key
 // hoạt động thật đã có sẵn: AI Split (aiSplitScript) đã test thành công bằng 1 lệnh gọi
 // thật với payload thật — không cần test lại lần nữa cho Quiz.
-function lisHasGeminiKey() {
-  const key = getLisGeminiKey();
-  const inp = document.getElementById('lis-gemini-key');
-  if (!key) {
-    toast('⛔ Cần nhập Gemini API key trước khi bắt đầu — dùng để AI tách câu và tạo Comprehension Quiz.', 'error', 6000);
-    if (inp) { inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); inp.style.borderColor = '#c00'; setTimeout(function(){ if(inp) inp.style.borderColor=''; }, 3000); }
-    return false;
-  }
-  return true;
-}
-
 // ===== STATE =====
 const App = {
   user:null, token:null,
@@ -1077,20 +1066,18 @@ function onScriptInput(){
 // mà regex làm được miễn phí). Đây là bước BẮT BUỘC (không có nhánh bỏ qua) vì mục đích
 // chính của key là kiểm tra chính tả, không phải tách câu.
 async function aiCheckSpelling(){
-  var script=document.getElementById('raw-script-input').value.trim(); if(!script) return;
-  var btn=document.getElementById('btn-ai-split');
+  var script=document.getElementById('raw-script-input').value.trim();
+  if (!script) return false;
   var key = getLisGeminiKey();
   if (!key) {
-    toast('Cần nhập Gemini API key để kiểm tra chính tả trước khi bắt đầu.', 'error');
-    document.getElementById('lis-gemini-key').focus();
-    document.getElementById('lis-gemini-key').style.borderColor = '#c00';
-    setTimeout(function(){ document.getElementById('lis-gemini-key').style.borderColor = '#d0d0c8'; }, 3000);
-    return;
+    showKeyModal('Cần key để AI kiểm tra chính tả script.', function(){ aiCheckSpelling(); });
+    return false;
   }
+  var btn=document.getElementById('btn-ai-split');
   // ── Normalize unicode apostrophes/quotes BEFORE sending to AI ──
   // Covers copy-paste from Word, PDF, Pages, Google Docs
   script = normalizeApostrophes(script);
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Checking spelling…';
+  if (btn) { btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Checking spelling…'; }
   try{
     var prompt = 'You are an IELTS listening script proofreader. Return the script with ONLY these fixes applied:\n'
       + '1. Fix ALL spelling errors.\n'
@@ -1108,10 +1095,14 @@ async function aiCheckSpelling(){
     _splitSentences = smartSplit(corrected);   // chia câu bằng regex (miễn phí) trên bản đã sửa
     renderSplitPreview(_splitSentences);
     toast('✅ Đã kiểm tra chính tả và chia thành '+_splitSentences.length+' câu!','success');
+    if (btn) { btn.disabled=false; btn.innerHTML='🤖 AI Check Spelling &amp; Split'; }
+    return true;
   }catch(e){
-    toast('AI error: '+e.message,'error');
-  }finally{
-    btn.disabled=false; btn.innerHTML='🤖 AI Check Spelling &amp; Split';
+    if (btn) { btn.disabled=false; btn.innerHTML='🤖 AI Check Spelling &amp; Split'; }
+    // Key có nhưng gọi AI fail (hết quota, key sai, lỗi mạng) → hiện modal cho SV sửa lại
+    // key ngay tại chỗ, nhập xong tự động thử lại luôn — không cần thao tác gì thêm.
+    showKeyModal('Lỗi: ' + e.message + ' — kiểm tra lại key.', function(){ aiCheckSpelling(); });
+    return false;
   }
 }
 
@@ -1240,30 +1231,16 @@ async function startSession(){
   if(!script){document.getElementById('err-script').style.display='block';return;}
   document.getElementById('err-script').style.display='none';
 
-  // ── AI Check Spelling BẮT BUỘC trước khi Start ──
-  // Đây là mục đích CHÍNH của Gemini key trong Listening (không phải tách câu — việc đó
-  // smartSplit() làm miễn phí bằng regex). Nếu SV chưa từng bấm "AI Check Spelling &
-  // Split" thành công cho script hiện tại, không cho Start — dù có key hay không.
-  if (!App._spellChecked) {
-    if (!lisHasGeminiKey()) return;   // lisHasGeminiKey() tự focus + báo lỗi nếu thiếu key
-    toast('⛔ Cần bấm "🤖 AI Check Spelling & Split" để kiểm tra chính tả trước khi Start.', 'error', 6000);
-    var splitBtn = document.getElementById('btn-ai-split');
-    if (splitBtn) { splitBtn.scrollIntoView({behavior:'smooth', block:'center'}); splitBtn.style.animation='none'; splitBtn.offsetHeight; splitBtn.style.outline='2px solid #EF4444'; setTimeout(function(){ if(splitBtn) splitBtn.style.outline=''; }, 1500); }
-    return;
-  }
-
-  // ── Word count check — block if script is too short ──
+  // ── Word count check TRƯỚC (không tốn AI call cho script quá ngắn) ──
   var wordCount = script.split(/\s+/).filter(function(w){ return w.length > 0; }).length;
   if (wordCount < MIN_WORDS) {
-    // Scroll to warning
     var wordBar = document.getElementById('script-word-bar');
     if (wordBar) wordBar.scrollIntoView({behavior:'smooth', block:'center'});
-    // Flash warning
     var wordWarn = document.getElementById('script-word-warn');
     if (wordWarn) {
       wordWarn.style.display = 'block';
       wordWarn.style.animation = 'none';
-      wordWarn.offsetHeight; // reflow
+      wordWarn.offsetHeight;
       wordWarn.style.outline = '2px solid #EF4444';
       setTimeout(function(){ if(wordWarn) wordWarn.style.outline = ''; }, 1500);
     }
@@ -1272,10 +1249,22 @@ async function startSession(){
   }
   if(!App.audioBlobUrl){toast('Please load an audio file first.','error');return;}
   App.bookTestPart = btp;
-  // Ưu tiên dùng kết quả đã qua AI spellcheck (_splitSentences) nếu có — kể cả khi SV quên
-  // bấm "Use these sentences" để confirm. Chỉ rơi về smartSplit(script) trên bản RAW khi
-  // thực sự chưa từng chạy AI (về lý thuyết không xảy ra vì đã chặn ở trên, đây là lưới an
-  // toàn cuối cùng để KHÔNG BAO GIỜ tách câu trên script chưa được sửa chính tả).
+
+  // ── AI Check Spelling: nếu SV bấm Start mà CHƯA từng check, tự động chạy NGẦM tại đây
+  // (không bắt bấm nút riêng). Nếu thiếu key → hiện modal ngay tại chỗ; nhập xong tự động
+  // tiếp tục toàn bộ luồng, SV không cần bấm Start lại lần 2. ──
+  if (!App._spellChecked) {
+    if (!getLisGeminiKey()) {
+      showKeyModal('Cần key để AI kiểm tra chính tả script trước khi bắt đầu.', function(){ startSession(); });
+      return;
+    }
+    toast('⏳ AI đang kiểm tra chính tả script…', 'info', 4000);
+    var ok = await aiCheckSpelling();
+    if (!ok) return;   // aiCheckSpelling() tự báo lỗi cụ thể (hết quota, key sai, lỗi mạng…)
+  }
+
+  // Ưu tiên dùng kết quả đã qua AI spellcheck (_splitSentences). Chỉ rơi về smartSplit(script)
+  // trên bản RAW nếu vì lý do gì đó chưa có (không nên xảy ra do luồng trên luôn đảm bảo có).
   App.sentences = (_splitSentences && _splitSentences.length>0) ? _splitSentences : smartSplit(script);
   if(!App.sentences.length){toast('No sentences found.','error');return;}
   App.maxReplays=parseInt(document.getElementById('max-replays').value)||2;
@@ -1758,15 +1747,6 @@ async function saveProgressGapFill(){
 
 // Điều hướng về màn Setup và đảm bảo widget nhập key THỰC SỰ hiển thị (nó chỉ hiện khi
 // textarea có nội dung — điền tạm nếu SV chưa từng quay lại Setup trong phiên này).
-function goFixGeminiKey(){
-  showScreen('screen-setup'); switchTab('new');
-  var kw = document.getElementById('lis-key-widget');
-  var ta = document.getElementById('raw-script-input');
-  if (kw && ta) { if (!ta.value.trim()) ta.value = App._gapScript || ' '; kw.style.display = 'flex'; }
-  var inp = document.getElementById('lis-gemini-key');
-  if (inp) { inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); }
-}
-
 function retryComprehension(){
   App._compPoolPromise = null;   // clear cached failed promise để thử lại từ đầu
   goToComprehension();
@@ -1777,23 +1757,22 @@ async function goToComprehension(){
   audioPause();
   showScreen('screen-comp');
   document.getElementById('comp-loading').style.display = 'block';
+  document.getElementById('comp-loading').innerHTML = '<div class="spinner" style="margin:0 auto 8px"></div>⏳ Đang tạo câu hỏi…';
   document.getElementById('comp-questions').style.display = 'none';
   document.getElementById('comp-result').style.display = 'none';
   document.getElementById('comp-score').textContent = '\u2014';
+
+  if (!getLisGeminiKey()) {
+    showKeyModal('Cần key để AI tạo Comprehension Quiz.', function(){ retryComprehension(); });
+    return;
+  }
+
   var pool = [];
   try { pool = await prebuildComprehension(); } catch(e){}
   if (!pool || !pool.length) {
-    // Quiz bắt buộc — key đã được xác nhận hoạt động lúc AI Check Spelling, nên nếu tới
-    // đây vẫn fail thì có thể là: (a) hết quota GIỮA CHỪNG phiên làm bài (tạm thời — Thử
-    // lại sẽ ổn), hoặc (b) key đã bị đổi/hỏng hẳn (Thử lại vô ích, cần sửa key ở Setup).
-    // Cho SV cả 2 lối ra thay vì kẹt trong vòng lặp Thử lại vô vọng.
-    document.getElementById('comp-loading').innerHTML =
-      '<div style="text-align:center;padding:20px">'
-      + '<div style="color:#DB0007;font-weight:600;margin-bottom:12px">⚠️ Không tạo được Quiz (key hết quota, key sai, hoặc lỗi mạng).</div>'
-      + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
-      + '<button class="btn btn-primary btn-sm" onclick="retryComprehension()">🔄 Thử lại</button>'
-      + '<button class="btn btn-secondary btn-sm" onclick="goFixGeminiKey()">🔑 Sửa lại Gemini key</button>'
-      + '</div></div>';
+    // Key có nhưng vẫn fail → hết quota GIỮA CHỪNG hoặc key đã hỏng. Hiện modal ngay tại
+    // chỗ để SV nhập key mới (hoặc key cũ vẫn còn — chỉ cần bấm Lưu & Tiếp tục để thử lại).
+    showKeyModal('Không tạo được Quiz (hết quota, key sai, hoặc lỗi mạng) — nhập lại key để thử lại.', function(){ retryComprehension(); });
     return;
   }
   App._compQuestions = getComprehensionBatch();
@@ -2823,6 +2802,76 @@ async function discardProgress(sessionId){
 
 // Resume: tải lại progress từ Sheet, khôi phục audio (nếu có Drive ID), rồi nhảy thẳng
 // vào đúng màn hình (stage) mà SV đã lưu.
+// ══════════════════════════════════════════════════
+// AUDIO RESUME MODAL — chỉ dùng khi resume vào DICTATION mà audio không khôi phục được
+// ══════════════════════════════════════════════════
+var _audioResumeCallback = null;
+function showAudioResumeModal(onDone){
+  _audioResumeCallback = onDone;
+  document.getElementById('resume-audio-drop').classList.remove('audio-loaded');
+  document.getElementById('resume-audio-drop-icon').textContent = '🎵';
+  document.getElementById('resume-audio-drop-text').textContent = 'Click hoặc kéo thả file audio vào đây';
+  document.getElementById('resume-drive-file-id').value = '';
+  document.getElementById('audio-resume-continue-btn').disabled = true;
+  document.getElementById('audio-resume-modal').style.display = 'flex';
+}
+function closeAudioResumeModal(){
+  document.getElementById('audio-resume-modal').style.display = 'none';
+  _audioResumeCallback = null;
+}
+function handleResumeAudioDrop(e){
+  e.preventDefault();
+  document.getElementById('resume-audio-drop').classList.remove('drag-over');
+  var f = e.dataTransfer.files[0];
+  if (f) _loadResumeAudioFile(f);
+}
+function handleResumeAudioFile(e){
+  var f = e.target.files[0];
+  if (f) _loadResumeAudioFile(f);
+}
+function _loadResumeAudioFile(file){
+  var url = URL.createObjectURL(file);
+  if (App.audioBlobUrl) URL.revokeObjectURL(App.audioBlobUrl);
+  App.audioBlobUrl = url;
+  App.driveFileId = '';   // file cục bộ — không có Drive ID
+  var drop = document.getElementById('resume-audio-drop');
+  drop.classList.add('audio-loaded');
+  document.getElementById('resume-audio-drop-icon').textContent = '✅';
+  document.getElementById('resume-audio-drop-text').textContent = file.name;
+  document.getElementById('audio-resume-continue-btn').disabled = false;
+}
+async function loadResumeAudioFromDrive(){
+  var fileId = document.getElementById('resume-drive-file-id').value.trim();
+  if (!fileId) { toast('Nhập Google Drive File ID.', 'error'); return; }
+  var m = fileId.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) fileId = m[1];
+  toast('⏳ Đang tải audio từ Drive…', 'info', 3000);
+  try{
+    var res = await api('lis.getAudio', { fileId: fileId });
+    if (res && res.base64) {
+      var binary=atob(res.base64), bytes=new Uint8Array(binary.length);
+      for (var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      var blob=new Blob([bytes],{type:res.mimeType||'audio/mpeg'});
+      if (App.audioBlobUrl) URL.revokeObjectURL(App.audioBlobUrl);
+      App.audioBlobUrl = URL.createObjectURL(blob);
+      App.driveFileId = fileId;
+      var drop = document.getElementById('resume-audio-drop');
+      drop.classList.add('audio-loaded');
+      document.getElementById('resume-audio-drop-icon').textContent = '✅';
+      document.getElementById('resume-audio-drop-text').textContent = res.name || fileId;
+      document.getElementById('audio-resume-continue-btn').disabled = false;
+      toast('✅ Đã tải audio từ Drive!', 'success');
+    } else {
+      toast(res && res.error ? res.error : 'Không tải được audio.', 'error');
+    }
+  }catch(e){ toast('Lỗi: ' + e.message, 'error'); }
+}
+function continueResumeAfterAudio(){
+  document.getElementById('audio-resume-modal').style.display = 'none';
+  var cb = _audioResumeCallback; _audioResumeCallback = null;
+  if (cb) cb();
+}
+
 async function resumeSession(sessionId){
   toast('⏳ Đang tải tiến trình…', 'info', 3000);
   try{
@@ -2836,7 +2885,8 @@ async function resumeSession(sessionId){
     try { App.sentences = JSON.parse(p.SentencesJSON||'[]'); } catch(e){ App.sentences=[]; }
     if (!App.sentences.length) { toast('⚠️ Dữ liệu câu bị lỗi — không thể khôi phục.', 'error'); return; }
 
-    // Khôi phục audio nếu có Drive ID; nếu không có (SV dùng file cục bộ lúc lưu) → cảnh báo
+    // Thử khôi phục audio qua Drive ID nếu có (không cảnh báo gì ở đây — Gap-Fill/Quiz
+    // không cần audio thật để resume; chỉ Dictation mới thực sự cần và được check kỹ bên dưới).
     if (App.driveFileId) {
       try{
         var ares = await api('lis.getAudio', { fileId: App.driveFileId });
@@ -2848,52 +2898,56 @@ async function resumeSession(sessionId){
           App.audioBlobUrl = URL.createObjectURL(blob);
         }
       }catch(e){ console.warn('resume audio load failed:', e); }
-    } else {
-      toast('⚠️ Session này không có audio lưu qua Google Drive — bạn cần tải lại file audio thủ công.', 'info', 6000);
     }
 
     var stage = p.Stage || 'gapfill';
 
-    // Resume vào Gap-Fill/Quiz cần gọi AI (build gap hoặc tạo câu hỏi) → cần Gemini key.
-    // Key chỉ lưu localStorage (không lưu server) nên nếu SV resume trên MÁY KHÁC, key sẽ
-    // trống — phải nhập lại trước khi tiếp tục.
-    if (stage === 'gapfill' || stage === 'compquiz') {
-      var okKey = getLisGeminiKey();
-      if (!okKey) {
-        // Hiện widget key TRƯỚC (chuyển màn Setup + hiện widget + focus), vì lúc này SV
-        // đang ở History, textarea/widget của Setup có thể chưa từng được hiển thị.
-        goFixGeminiKey();
-        toast('⚠️ Nhập Gemini key vào ô phía trên, sau đó vào My History bấm "Tiếp tục" lại.', 'error', 7000);
-        return;
-      }
+    // Resume vào Gap-Fill/Quiz cần gọi AI → cần Gemini key. Key chỉ lưu localStorage (không
+    // lưu server) nên nếu SV resume trên MÁY KHÁC, key sẽ trống — hiện modal tại chỗ, nhập
+    // xong tự động tiếp tục luôn phần resume đang dang dở (không cần quay lại History).
+    if ((stage === 'gapfill' || stage === 'compquiz') && !getLisGeminiKey()) {
+      showKeyModal('Cần key để tiếp tục ' + (stage==='gapfill'?'Gap-Fill':'Comprehension Quiz') + ' của session này.', function(){ resumeSession(sessionId); });
+      return;
     }
 
     if (stage === 'gapfill' && p.GapFillDone !== 'Y') {
-      // Gap-Fill chưa xong (trường hợp lưu sau quiz-chưa-đạt, cần redo) — build gap mới rồi vào màn Gap-Fill
       buildGapsForScript(); App._gapCurSeg = 0; App._gapPassed = false;
       showScreen('screen-gapfill'); renderGapFill();
+      toast('✅ Đã khôi phục tiến trình.', 'success', 3000);
     } else if (stage === 'gapfill' || stage === 'compquiz') {
       // Gap-Fill đã xong → vào thẳng Quiz (build gap trước để có App._gapOrder/_gapScript sẵn cho state)
       buildGapsForScript(); App._gapPassed = true; App._gapFirstSaved = true;
       goToComprehension();
+      toast('✅ Đã khôi phục tiến trình.', 'success', 3000);
     } else if (stage === 'dictation') {
-      // Khôi phục toàn bộ state Dictation giữa chừng
-      var ds = {}; try { ds = JSON.parse(p.DictationStateJSON||'{}'); } catch(e){}
-      App.currentIdx   = ds.currentIdx   || 0;
-      App.reviewData   = ds.reviewData   || {};
-      App.attemptData  = ds.attemptData  || new Array(App.sentences.length);
-      App.totalWords   = ds.totalWords   || 0;
-      App.correctWords = ds.correctWords || 0;
-      App.startTime    = ds.startTime ? new Date(ds.startTime) : new Date();
-      App.submitted = false; App.lastCheckedIdx = -1; App.pendingNextIdx = -1;
-      document.getElementById('sentences-scroll').innerHTML = '';
-      document.getElementById('submit-area').classList.remove('visible');
-      for (var idx=0; idx<=App.currentIdx && idx<App.sentences.length; idx++) appendSentenceBlock(idx);
-      updateProgress(); updateScore();
-      showScreen('screen-dictation');
+      // CHỈ màn Dictation thực sự cần audio thật để tiếp tục — nếu chưa có (session lưu
+      // bằng file cục bộ, không có Drive ID để tự khôi phục), hiện modal tại chỗ để SV
+      // add lại file/Drive ID, xong tự động tiếp tục luôn.
+      if (!App.audioBlobUrl) {
+        showAudioResumeModal(function(){ _finishResumeDictation(p); });
+        return;
+      }
+      _finishResumeDictation(p);
     }
-    toast('✅ Đã khôi phục tiến trình.', 'success', 3000);
   }catch(e){ console.error('resumeSession failed:', e); toast('⚠️ Lỗi khôi phục: ' + e.message, 'error', 5000); }
+}
+
+function _finishResumeDictation(p){
+  // Khôi phục toàn bộ state Dictation giữa chừng
+  var ds = {}; try { ds = JSON.parse(p.DictationStateJSON||'{}'); } catch(e){}
+  App.currentIdx   = ds.currentIdx   || 0;
+  App.reviewData   = ds.reviewData   || {};
+  App.attemptData  = ds.attemptData  || new Array(App.sentences.length);
+  App.totalWords   = ds.totalWords   || 0;
+  App.correctWords = ds.correctWords || 0;
+  App.startTime    = ds.startTime ? new Date(ds.startTime) : new Date();
+  App.submitted = false; App.lastCheckedIdx = -1; App.pendingNextIdx = -1;
+  document.getElementById('sentences-scroll').innerHTML = '';
+  document.getElementById('submit-area').classList.remove('visible');
+  for (var idx=0; idx<=App.currentIdx && idx<App.sentences.length; idx++) appendSentenceBlock(idx);
+  updateProgress(); updateScore();
+  showScreen('screen-dictation');
+  toast('✅ Đã khôi phục tiến trình.', 'success', 3000);
 }
 
 async function loadHistory(){
@@ -3068,7 +3122,100 @@ function closeShortcutModal(){
 document.getElementById('shortcut-modal').addEventListener('click',function(e){
   if(e.target===this) closeShortcutModal();
 });
+
+// ══════════════════════════════════════════════════
+// GEMINI KEY MODAL — dùng chung cho MỌI chỗ cần key giữa chừng.
+// Hiện chồng lên màn hiện tại (không chuyển màn), nhập xong bấm 1 nút để tiếp tục
+// đúng việc đang dang dở (resolve callback truyền vào showKeyModal()).
+// ══════════════════════════════════════════════════
+var _keyModalResolve = null;
+function showKeyModal(message, onSubmit){
+  var modal = document.getElementById('key-modal');
+  var msgEl = document.getElementById('key-modal-msg');
+  var inp = document.getElementById('key-modal-input');
+  if (msgEl) msgEl.textContent = message || 'Cần nhập Gemini API key để tiếp tục.';
+  if (inp) inp.value = getLisGeminiKey() || '';
+  _keyModalResolve = onSubmit || null;
+  modal.style.display = 'flex';
+  setTimeout(function(){ if (inp) inp.focus(); }, 80);
+}
+function closeKeyModal(){
+  document.getElementById('key-modal').style.display = 'none';
+  _keyModalResolve = null;
+}
+function submitKeyModal(){
+  var inp = document.getElementById('key-modal-input');
+  var val = (inp && inp.value || '').trim();
+  if (!val) { toast('Vui lòng nhập key.', 'error'); return; }
+  var savedInp = document.getElementById('lis-gemini-key');
+  if (savedInp) savedInp.value = val;   // đồng bộ với ô ở màn Setup nếu có
+  onLisKeyInput(val);   // lưu vào localStorage đúng key (LIS_GEMINI_KEY) + cập nhật status UI
+  document.getElementById('key-modal').style.display = 'none';
+  var cb = _keyModalResolve; _keyModalResolve = null;
+  if (cb) cb();
+}
+document.getElementById('key-modal').addEventListener('click', function(e){ if (e.target === this) closeKeyModal(); });
 </script>
+
+<div id="key-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:2100;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="background:linear-gradient(135deg,#0E0E0C,#1a1a14);padding:20px 24px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:1.6rem">🔑</div>
+      <div>
+        <h2 style="margin:0;color:#fff;font-size:1.1rem">Cần Gemini API Key</h2>
+        <p style="margin:2px 0 0;color:#bbb;font-size:.78rem" id="key-modal-msg">Cần nhập Gemini API key để tiếp tục.</p>
+      </div>
+    </div>
+    <div style="padding:22px 24px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input type="password" id="key-modal-input"
+          style="flex:1;padding:10px 12px;border:1.5px solid #d0d0c8;border-radius:8px;font-size:.88rem;font-family:monospace;outline:none"
+          placeholder="AIza... hoặc AQ..."
+          onkeydown="if(event.key==='Enter') submitKeyModal();"
+          onfocus="this.style.borderColor='#1a3a8c'" onblur="this.style.borderColor='#d0d0c8'">
+      </div>
+      <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.76rem;color:#1a3a8c;font-weight:700">Lấy key miễn phí tại aistudio.google.com →</a>
+      <div style="display:flex;gap:8px;margin-top:18px">
+        <button class="btn btn-secondary btn-sm" onclick="closeKeyModal()" style="flex:1">Hủy</button>
+        <button class="btn btn-primary btn-sm" onclick="submitKeyModal()" style="flex:2">✅ Lưu &amp; Tiếp tục</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     AUDIO RESUME MODAL — chỉ dùng khi resume vào DICTATION mà không khôi phục được
+     audio (session lưu bằng file upload cục bộ, không phải Google Drive ID).
+     Gap-Fill/Quiz không cần audio thật để resume nên không check ở 2 màn đó.
+     ══════════════════════════════════════════════════ -->
+<div id="audio-resume-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:2100;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="background:linear-gradient(135deg,#0E0E0C,#1a1a14);padding:20px 24px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:1.6rem">🎵</div>
+      <div>
+        <h2 style="margin:0;color:#fff;font-size:1.1rem">Cần file Audio</h2>
+        <p style="margin:2px 0 0;color:#bbb;font-size:.78rem">Session này lưu bằng file cục bộ nên audio không tự khôi phục được — thêm lại để tiếp tục Dictation.</p>
+      </div>
+    </div>
+    <div style="padding:22px 24px">
+      <div class="audio-drop" id="resume-audio-drop" onclick="document.getElementById('resume-audio-file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondrop="handleResumeAudioDrop(event)" ondragleave="this.classList.remove('drag-over')">
+        <div class="audio-drop-icon" id="resume-audio-drop-icon">🎵</div>
+        <div class="audio-drop-text" id="resume-audio-drop-text">Click hoặc kéo thả file audio vào đây</div>
+        <div class="audio-drop-hint">MP3, WAV, OGG, M4A — hoặc dán Google Drive File ID bên dưới</div>
+      </div>
+      <input type="file" id="resume-audio-file-input" accept="audio/*" style="display:none" onchange="handleResumeAudioFile(event)">
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="resume-drive-file-id" placeholder="Hoặc dán Google Drive File ID"
+          style="flex:1;padding:8px 10px;border:1.5px solid #d0d0c8;border-radius:8px;font-size:.82rem;font-family:monospace;outline:none">
+        <button class="btn btn-secondary btn-sm" onclick="loadResumeAudioFromDrive()" style="white-space:nowrap">Load</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:18px">
+        <button class="btn btn-secondary btn-sm" onclick="closeAudioResumeModal()" style="flex:1">Hủy</button>
+        <button class="btn btn-primary btn-sm" id="audio-resume-continue-btn" onclick="continueResumeAfterAudio()" style="flex:2" disabled>✅ Tiếp tục Dictation</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
