@@ -524,8 +524,16 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       <div class="rec-timer" id="rec-time" style="display:none">0:00</div>
       <div class="rec-hint" id="rec-hint">Nhấn SPACE lần nữa để chốt câu</div>
       <div id="ptt-interim" style="font-size:13px;color:var(--g600,#666);margin-top:8px;min-height:18px;font-style:italic"></div>
+      <div id="rec-play-wrap" style="display:none;gap:8px;justify-content:center;margin-top:10px">
+        <button class="btn btn-outline btn-sm" onclick="playLastRec()">🔊 Nghe lại</button>
+        <button class="btn btn-outline btn-sm" onclick="retryRecording()">🔄 Thu lại</button>
+      </div>
+      <audio id="rec-player" controls style="display:none;width:100%;margin-top:8px"></audio>
     </div>
-    <button class="btn btn-primary btn-full btn-lg" id="next-q-btn" onclick="nextQuestion()" style="margin-bottom:14px">Next →</button>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-outline btn-lg" id="prev-q-btn" onclick="prevQuestion()" style="flex:0 0 auto" disabled>◀ Prev</button>
+      <button class="btn btn-primary btn-lg" id="next-q-btn" onclick="nextQuestion()" style="flex:1">Next →</button>
+    </div>
     <div id="submit-wrap" style="display:none;margin-bottom:14px">
       <button class="btn btn-green btn-lg btn-full" onclick="finishSession()">✅ Xem kết quả</button>
     </div>
@@ -862,7 +870,8 @@ function renderHistPage(){
     const i=start+pi;   // index thật trong window._histRows (dùng cho Detail/Retry)
     let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
     let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
-    const avg=results.length?Math.round(results.reduce((a,x)=>a+(parseFloat(x.overall)||0),0)/results.length*2)/2:null;
+    const avg=parseFloat(row.Overall)||null;
+    const avgFallback=(()=>{if(avg)return avg;const graded=results.map(x=>parseFloat(x.overall)||0).filter(v=>v>0);return graded.length?Math.round(graded.reduce((a,b)=>a+b,0)/graded.length*2)/2:null;})();
     const attempts=parseInt(row.RetryCount||0)+1;
     const fl=avgCrit(results,['fluency']),vc=avgCrit(results,['lexical','vocabulary']),gr=avgCrit(results,['grammar']),pr=avgCrit(results,['pronunciation']);
     return `<tr>
@@ -875,9 +884,10 @@ function renderHistPage(){
       <td style="text-align:center">${cell(vc)}</td>
       <td style="text-align:center">${cell(gr)}</td>
       <td style="text-align:center">${cell(pr)}</td>
-      <td style="text-align:center"><span class="hist-overall-badge" style="background:${bcBg(avg||0)};color:${bc(avg||0)}">${avg??'—'}</span></td>
+      <td style="text-align:center"><span class="hist-overall-badge" style="background:${bcBg(avgFallback||0)};color:${bc(avgFallback||0)}">${avgFallback??'—'}</span></td>
       <td style="text-align:right;padding-right:24px;white-space:nowrap">
-        <button class="hist-action-link" onclick="showHistDetail(${i})" style="color:#4f46e5;margin-right:16px">👁 Detail</button>
+        <button class="hist-action-link" onclick="showHistDetail(${i})" style="color:#4f46e5;margin-right:8px">👁 Detail</button>
+        <button class="hist-action-link" onclick="openEditQuestionsModal(${i})" style="color:#f59e0b;margin-right:8px">✏ Edit</button>
         <button class="hist-action-link" onclick="retryFromHistory(${i})" style="color:#dc2626">↻ Retry</button>
       </td>
     </tr>`;
@@ -987,7 +997,8 @@ function openDetailModal({title, meta, results, qs, topic, rowIdx}){
 
   // Footer buttons
   const footerBtns = rowIdx!=null
-    ? `<button onclick="closeDetailModal();retryFromHistory(${rowIdx})" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">🔄 Retry Topic này</button>
+    ? `<button onclick="closeDetailModal();openEditQuestionsModal(${rowIdx})" style="background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">✏ Sửa câu hỏi</button>
+       <button onclick="closeDetailModal();retryFromHistory(${rowIdx})" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">🔄 Retry Topic này</button>
        <button onclick="closeDetailModal()" style="background:rgba(255,255,255,.1);color:#d1d5db;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">Đóng</button>`
     : `<button onclick="closeDetailModal()" style="background:rgba(255,255,255,.1);color:#d1d5db;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">Đóng</button>`;
   document.getElementById('dm-footer').innerHTML=footerBtns;
@@ -1319,6 +1330,18 @@ async function startFromSetup(){
   }
   if(!(await geminiPreflight())) return;   // check key chấm điểm TRƯỚC khi tập nói
   if(!needGroqKey()) return;               // check key transcribe (Groq)
+  // Fix #2: dò xem bộ câu hỏi này (đã chuẩn hoá) đã luyện trước đây chưa —
+  // tránh tạo topic trùng chỉ vì gõ khác chút (colors/colours...), backend so
+  // theo nội dung câu hỏi thật chứ không theo tên topic gõ tay.
+  try{
+    const chk=await gasCall('speak.findExistingSession',{mode:S.mode,questions:qs});
+    if(chk&&chk.success&&chk.exists){
+      toast('Topic này (câu hỏi giống) đã luyện '+(chk.retryCount+1)+' lần trước đây — vào My History để luyện tiếp',
+        'info',5000);
+      SS('S-history');loadSpeakHistory();
+      return;
+    }
+  }catch(e){/* lỗi kiểm tra không nên chặn SV luyện tập — bỏ qua, luyện bình thường */}
   launch(S.mode,qs);
 }
 async function startForecast(){
@@ -1355,13 +1378,40 @@ function loadQ(idx){
   const lblMap={part1:'IELTS PART 1',part2:'IELTS PART 2 — LONG TURN',part3:'IELTS PART 3',full:qo.partLabel?'IELTS '+qo.partLabel.toUpperCase():'IELTS',custom:'QUESTION',forecast:'QUESTION'};
   document.getElementById('q-lbl').textContent=(lblMap[S.mode]||'QUESTION')+' — Q'+(idx+1);
   updProg();setupKWUI(qo);
-  S.curAnswer='';S.talking=false;
+  S.talking=false;
   resetTalkUI();
   document.getElementById('submit-wrap').style.display='none';
   document.getElementById('next-q-btn').textContent=(idx>=S.qs.length-1)?'Hoàn thành ✓':'Next →';
+  const pb=document.getElementById('prev-q-btn');if(pb)pb.disabled=(idx<=0);
+  // Fix #5: nếu câu này đã có câu trả lời từ trước (đang quay lại xem/sửa) → khôi phục
+  const prev=S.recs[idx];
+  if(prev&&prev.studentAnswer){
+    S.curAnswer=prev.studentAnswer;
+    document.getElementById('ptt-interim').textContent=S.curAnswer;
+    if(prev._audioBlob){
+      const rb=document.getElementById('rec-btn');
+      rb.textContent='✓';rb.className='rec-btn dn';
+      document.getElementById('rec-area').className='rec-area done';
+      document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';
+      document.getElementById('rec-hint').textContent='Bấm Next, hoặc thu lại nếu muốn sửa';
+      document.getElementById('rec-play-wrap').style.display='flex';
+    }
+  }else{
+    S.curAnswer='';
+  }
   if(S.mode==='part2'||(S.mode==='full'&&qo.partLabel==='Part 2'))startPrep();
   else{document.getElementById('prep-wrap').style.display='none';clearInterval(S.prepTm);}
   startQCountdown(S.qSeconds);
+}
+// Fix #5: cho phép quay lại câu trước để nghe/sửa câu trả lời trước khi Submit
+async function prevQuestion(){
+  if(S.idx<=0)return;
+  if(S.talking)await stopTalk();
+  clearInterval(S.qcdTm);
+  // Lưu tạm câu đang dở (nếu SV đã nói gì đó) trước khi rời câu hiện tại
+  const idx=S.idx,ans=(S.curAnswer||'').trim();
+  if(ans)S.recs[idx].studentAnswer=ans;
+  S.idx=idx-1;loadQ(S.idx);
 }
 function setupKWUI(qo){
   S.hintsVis=false;S.wordsVis=false;
@@ -1401,6 +1451,8 @@ function resetTalkUI(){
   document.getElementById('rec-hint').textContent='Nhấn SPACE lần nữa để chốt câu';
   document.getElementById('rec-time').style.display='none';
   document.getElementById('ptt-interim').textContent='';
+  document.getElementById('rec-play-wrap').style.display='none';
+  const player=document.getElementById('rec-player');player.pause();player.style.display='none';player.src='';
   S.lastAudioUrl=null;
 }
 
@@ -1419,25 +1471,59 @@ function startQCountdown(sec){
 }
 
 // ── PUSH-TO-TALK ──
-function toggleTalk(){if(S.talking)stopTalk();else startTalk();}
+function toggleTalk(){if(S.talkBusy)return;if(S.talking)stopTalk();else startTalk();}
 async function startTalk(){
-  if(S.talking)return;
+  if(S.talking||S.talkBusy)return;
   if(!needGroqKey())return;
+  S.talkBusy=true;
   S.talking=true;
+  S.recStartTs=Date.now();
   const rb=document.getElementById('rec-btn');rb.textContent='⏹';rb.className='rec-btn act';
   document.getElementById('rec-area').className='rec-area recg';
   document.getElementById('rec-st').innerHTML='🔴 Đang ghi âm… nói tự nhiên';
   document.getElementById('rec-hint').textContent='Nhấn SPACE để chốt câu';
+  document.getElementById('rec-play-wrap').style.display='none';
   await startAudioCapture();
+  S.talkBusy=false;
 }
 async function stopTalk(){
-  if(!S.talking)return;S.talking=false;
+  if(!S.talking||S.talkBusy)return;
+  S.talkBusy=true;S.talking=false;
   const rb=document.getElementById('rec-btn');rb.textContent='⏳';rb.className='rec-btn';rb.disabled=true;
-  await stopAudioCaptureAndTranscribe();
-  rb.textContent='✓';rb.className='rec-btn dn';rb.disabled=false;
-  document.getElementById('rec-area').className='rec-area done';
-  document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';
-  document.getElementById('rec-hint').textContent='Bấm Next, hoặc SPACE để nói thêm';
+  const ok=await stopAudioCaptureAndTranscribe();
+  if(ok){
+    rb.textContent='✓';rb.className='rec-btn dn';rb.disabled=false;
+    document.getElementById('rec-area').className='rec-area done';
+    document.getElementById('rec-st').textContent='Đã ghi câu trả lời ✓';
+    document.getElementById('rec-hint').textContent='Bấm Next, hoặc SPACE để nói thêm';
+    if(S.recs[S.idx]&&S.recs[S.idx]._audioBlob)document.getElementById('rec-play-wrap').style.display='flex';
+  }else{
+    // Ghi âm lỗi/quá ngắn → về trạng thái sẵn sàng ghi lại, không đánh dấu done
+    rb.textContent='🎤';rb.className='rec-btn';rb.disabled=false;
+    document.getElementById('rec-area').className='rec-area';
+    document.getElementById('rec-st').innerHTML='Nhấn <b>SPACE</b> (hoặc 🎤) để thử ghi lại';
+    document.getElementById('rec-hint').textContent='Nhấn SPACE lần nữa để chốt câu';
+  }
+  S.talkBusy=false;
+}
+// ── Fix #6: nghe lại bản ghi hiện tại, hoặc thu lại từ đầu nếu chưa ổn ──
+function playLastRec(){
+  const rec=S.recs[S.idx];
+  if(!rec||!rec._audioBlob){toast('Chưa có bản ghi để nghe lại','error');return;}
+  const player=document.getElementById('rec-player');
+  player.src=URL.createObjectURL(rec._audioBlob);
+  player.style.display='block';
+  player.play().catch(()=>toast('Không phát được bản ghi','error'));
+}
+function retryRecording(){
+  const idx=S.idx,rec=S.recs[idx];
+  if(rec){rec.studentAnswer='';rec._audioBlob=null;rec._audioMime=null;rec.overall=null;rec.scores=null;rec.graded=false;}
+  S.gradeP[idx]=null;
+  S.curAnswer='';
+  document.getElementById('ptt-interim').textContent='';
+  document.getElementById('rec-play-wrap').style.display='none';
+  resetTalkUI();
+  toast('Đã xoá bản ghi cũ — thu lại câu trả lời','info',2500);
 }
 
 
@@ -1470,6 +1556,13 @@ function _stopMediaRecorder(){
 async function stopAudioCaptureAndTranscribe(){
   const rec=await _stopMediaRecorder();
   if(!rec){toast('Không ghi được audio','error');return;}
+  const durMs=Date.now()-(S.recStartTs||Date.now());
+  if(rec.blob.size<1500||durMs<400){
+    // File quá nhỏ/thời lượng quá ngắn (thường do double-trigger hoặc bấm nhầm)
+    // → gửi cho Groq chắc chắn lỗi "could not process file". Bỏ qua, giữ nguyên UI để SV thu lại.
+    toast('Bản ghi quá ngắn — giữ SPACE lâu hơn rồi thử lại','error',4000);
+    return false;
+  }
   S.lastAudioBlob=rec.blob;S.lastAudioMime=rec.mime;
   S.lastAudioUrl=URL.createObjectURL(rec.blob);
   const idx=S.idx;
@@ -1484,8 +1577,10 @@ async function stopAudioCaptureAndTranscribe(){
     });
     S.curAnswer=(S.curAnswer+' '+await transcribeAudio(b64,rec.mime)).trim();
     document.getElementById('ptt-interim').textContent=S.curAnswer;
+    return true;
   }catch(e){
     toast('Lỗi phiên âm: '+e.message,'error',5000);
+    return false;
   }
 }
 
@@ -1494,13 +1589,15 @@ async function nextQuestion(){
   if(S.talking)await stopTalk();   // đợi transcribe xong TRƯỚC khi đọc S.curAnswer — tránh mất câu trả lời
   clearInterval(S.qcdTm);
   const idx=S.idx,ans=(S.curAnswer||'').trim();
+  const unchanged=(S.recs[idx].studentAnswer||'').trim()===ans;
   S.recs[idx].studentAnswer=ans;
   S.recs[idx].question=S.qs[idx].question;
   S.recs[idx].keywords=S.qs[idx].keywords||[];
   S.recs[idx].sttMethod='gemini';
-  if(ans.length>=5){
+  // Nếu quay lại (Prev) rồi Next mà không đổi gì và đã chấm rồi → khỏi chấm lại, tiết kiệm Gemini call
+  if(ans.length>=5&&!(unchanged&&S.recs[idx].graded)){
     const kw=(S.qs[idx].keywords||[]).join(', ');
-    S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);}).catch(e=>{console.warn('grade Q'+idx,e);});
+    S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);S.recs[idx].graded=true;}).catch(e=>{console.warn('grade Q'+idx,e);});
   }
   const next=idx+1;
   if(next<S.qs.length){S.idx=next;loadQ(next);}else finishSession();
@@ -1524,7 +1621,7 @@ async function finishSession(){
     gStep('Chấm xong ✓',true);
     gStep('Đang lưu file ghi âm…');
     // Upload audio từng câu lên Drive (nền — không chặn nếu lỗi)
-    await Promise.all(answered.map(async r=>{
+    await Promise.all(answered.map(async (r,qi)=>{
       if(!r._audioBlob)return;
       try{
         const b64=await new Promise((res,rej)=>{
@@ -1533,7 +1630,8 @@ async function finishSession(){
           rd.onerror=rej;
           rd.readAsDataURL(r._audioBlob);
         });
-        const up=await gasCall('speak.uploadAudio',{audioBase64:b64,mimeType:r._audioMime||'audio/webm'});
+        const up=await gasCall('speak.uploadAudio',{audioBase64:b64,mimeType:r._audioMime||'audio/webm',
+          topic:S.topic||S.mode||'practice', attemptNum:(S.retryCount||0)+1, qIdx:qi+1});
         if(up&&up.success)r.audioUrl=up.url;
       }catch(e){console.warn('upload audio failed',e);}
     }));
@@ -1567,6 +1665,9 @@ async function confirmEnd(){
 // SPACE = push-to-talk (chỉ khi đang ở màn luyện tập, không trong ô nhập)
 document.addEventListener('keydown',function(e){
   if(e.code!=='Space')return;
+  if(e.repeat)return;   // giữ phím SPACE trên desktop bắn hàng loạt keydown → toggleTalk() bị gọi
+                          // dồn dập, start/stop MediaRecorder chồng lấp → sinh file webm vỡ/rỗng
+                          // → Groq trả "could not process file". Chặn ngay tại nguồn.
   const ss=document.getElementById('S-session');
   if(!ss||ss.offsetParent===null)return;
   const tag=(e.target.tagName||'').toLowerCase();
@@ -2706,9 +2807,87 @@ function again(){
 }
 
 function finishAndExit(){
-  // Ghi nhận đã hoàn thành, về màn lịch sử
   toast('Đã lưu kết quả luyện tập ✓','success',2500);
   setTimeout(()=>{SS('S-history');loadSpeakHistory();},600);
+}
+
+// ── FIX #3: EDIT QUESTIONS MODAL ─────────────────────────────────────────
+let _eqmRowIdx=null;  // index trong window._histRows đang edit
+function openEditQuestionsModal(i){
+  const row=(window._histRows||[])[i]; if(!row)return;
+  _eqmRowIdx=i;
+  document.getElementById('eqm-topic').value=row.Topic||'';
+  let qs=[];
+  try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
+  if(!qs.length){try{qs=JSON.parse(row.ResultsJSON||'[]').filter(r=>r.question).map(r=>({question:r.question,keywords:r.keywords||[]}));}catch(e){}}
+  const list=document.getElementById('eqm-list');
+  list.innerHTML='';
+  (qs.length?qs:[{question:'',keywords:[]}]).forEach((q,qi)=>_eqmRenderRow(list,q,qi));
+  document.getElementById('edit-q-modal').style.display='block';
+  document.body.style.overflow='hidden';
+}
+function closeEditQuestionsModal(){
+  document.getElementById('edit-q-modal').style.display='none';
+  document.body.style.overflow='';
+}
+function _eqmRenderRow(list,q,qi){
+  const div=document.createElement('div');
+  div.className='eqm-row';
+  div.style.cssText='background:#1f2937;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;margin-bottom:10px;position:relative';
+  const qText=typeof q==='string'?q:(q.question||'');
+  const kw=Array.isArray(q.keywords)?q.keywords.join(', '):'';
+  div.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="background:#3b82f6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${qi+1}</span>
+      <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase">Câu hỏi</span>
+      <button onclick="this.closest('.eqm-row').remove()" style="margin-left:auto;background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px" title="Xoá câu này">×</button>
+    </div>
+    <textarea class="eqm-q" rows="2" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#111827;color:#f3f4f6;font-size:13px;resize:vertical;font-family:inherit">${qText.replace(/</g,'&lt;')}</textarea>
+    <div style="margin-top:8px">
+      <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase">Keywords</span>
+      <span style="font-size:10px;color:#6b7280;margin-left:4px">(phân cách bởi dấu phẩy)</span>
+    </div>
+    <input class="eqm-kw" type="text" value="${kw.replace(/"/g,'&quot;')}" placeholder="keyword1, keyword2, ..." style="width:100%;margin-top:4px;padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:#111827;color:#f3f4f6;font-size:13px">
+  `;
+  list.appendChild(div);
+}
+function eqmAddQuestion(){
+  const list=document.getElementById('eqm-list');
+  const count=list.querySelectorAll('.eqm-row').length;
+  _eqmRenderRow(list,{question:'',keywords:[]},count);
+  list.lastElementChild.querySelector('.eqm-q').focus();
+}
+async function saveEditedQuestions(){
+  const row=(window._histRows||[])[_eqmRowIdx]; if(!row)return;
+  const list=document.getElementById('eqm-list');
+  const rows=list.querySelectorAll('.eqm-row');
+  const questions=[];
+  rows.forEach(r=>{
+    const q=(r.querySelector('.eqm-q')||{}).value?.trim()||'';
+    const kw=(r.querySelector('.eqm-kw')||{}).value?.trim()||'';
+    if(q) questions.push({question:q, keywords:kw?kw.split(',').map(s=>s.trim()).filter(Boolean):[]});
+  });
+  if(!questions.length){toast('Cần ít nhất 1 câu hỏi','error');return;}
+  const topic=document.getElementById('eqm-topic').value.trim();
+  const sKey=row.SessionKey||'';
+  if(!sKey){toast('Session này chưa có SessionKey — cần luyện lại ít nhất 1 lần sau khi cập nhật backend','error',5000);closeEditQuestionsModal();return;}
+  toast('Đang lưu…','info',2000);
+  try{
+    const res=await gasCall('speak.updateQuestions',{sessionKey:sKey, questions:questions, topic:topic});
+    if(res&&res.success){
+      toast('Đã cập nhật câu hỏi & keywords ✓','success',3000);
+      // Cập nhật local data để hiện đúng ngay (không cần reload toàn bộ history)
+      row.QuestionsJSON=JSON.stringify(questions);
+      if(topic) row.Topic=topic;
+      if(res.sessionKey) row.SessionKey=res.sessionKey;
+      closeEditQuestionsModal();
+      renderHistPage();
+    }else{
+      toast('Lỗi: '+(res.error||'Không rõ'),'error',5000);
+    }
+  }catch(e){
+    toast('Lỗi: '+e.message,'error',5000);
+  }
 }
 
 // Retry từ history — restore câu hỏi + keywords, launch thẳng không qua setup
@@ -2793,5 +2972,30 @@ function retryFromHistory(i){
   .dm-qcard-body>div:first-child{border-right:none !important;border-bottom:1px solid rgba(255,255,255,.07)}
 }
 </style>
+
+<!-- ── EDIT QUESTIONS MODAL (Fix #3) ── -->
+<div id="edit-q-modal" style="display:none;position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,.72);overflow-y:auto" onclick="if(event.target===this)closeEditQuestionsModal()">
+  <div style="max-width:640px;margin:24px auto;padding:0 12px 40px">
+    <div style="background:#111827;border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#f9fafb">✏️ Sửa câu hỏi &amp; Key words</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px">Áp dụng cho tất cả các lần luyện của topic này</div>
+        </div>
+        <button onclick="closeEditQuestionsModal()" style="border:none;background:rgba(255,255,255,.1);color:#9ca3af;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer">×</button>
+      </div>
+      <div style="padding:16px 20px;max-height:60vh;overflow-y:auto">
+        <label style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em">Topic</label>
+        <input id="eqm-topic" type="text" style="width:100%;margin:6px 0 16px;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:#1f2937;color:#f3f4f6;font-size:13px">
+        <div id="eqm-list"></div>
+        <button onclick="eqmAddQuestion()" style="margin-top:6px;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px dashed rgba(99,102,241,.4);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">+ Thêm câu hỏi</button>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeEditQuestionsModal()" style="background:rgba(255,255,255,.1);color:#d1d5db;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">Huỷ</button>
+        <button onclick="saveEditedQuestions()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer">💾 Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

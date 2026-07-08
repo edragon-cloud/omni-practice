@@ -3593,8 +3593,13 @@ async function loadSpeakResults(force){
     const info = studentMap[name] || { cls:'—', sid:'—' };
     let results = []; try { results = JSON.parse(r.ResultsJSON||'[]'); } catch(e) {}
     let questions = []; try { questions = JSON.parse(r.QuestionsJSON||'[]'); } catch(e) {}
-    let avgBand = 0;
-    if (results.length) avgBand = Math.round(results.reduce((a,x) => a+(parseFloat(x.overall)||0),0)/results.length*2)/2;
+    let avgBand = parseFloat(r.Overall)||0;
+    if (!avgBand && results.length) {
+      // Fallback cho dữ liệu cũ chưa có cột Overall — CHỈ tính trên câu đã chấm (overall>0),
+      // không chia cho tổng số câu (đó là bug cũ khiến điểm hiện sai, vd "1" thay vì điểm thật)
+      const graded = results.map(x => parseFloat(x.overall)||0).filter(v => v>0);
+      if (graded.length) avgBand = Math.round(graded.reduce((a,b)=>a+b,0)/graded.length*2)/2;
+    }
     return Object.assign({}, r, { _cls: info.cls, _sid: info.sid, _results: results, _questions: questions, _avgBand: avgBand });
   });
   { var _arc=_archivedIdSet(); _spkRows = _spkRows.filter(function(r){ return !_arc[String(r._sid||'')]; }); }
