@@ -343,8 +343,8 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
                 <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:.68rem;color:#1a3a8c;font-weight:700;white-space:nowrap">Get free key →</a>
               </div>
             </div>
-            <button class="ai-split-btn" id="btn-ai-split" onclick="aiSplitScript()" style="display:none">
-              🤖 AI Split into Sentences
+            <button class="ai-split-btn" id="btn-ai-split" onclick="aiCheckSpelling()" style="display:none">
+              🤖 AI Check Spelling &amp; Split
             </button>
             <div class="split-preview-box" id="split-preview-box">
               <div class="split-preview-header">
@@ -563,6 +563,10 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .gapfill-hint{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:.9rem;font-weight:700;text-align:center}
 .gapfill-hint-ok{background:#e9f7ef;color:#1a7a4a;border:1.5px solid #1a7a4a}
 .gapfill-hint-bad{background:#fdecec;color:#DB0007;border:1.5px solid #DB0007}
+.gapfill-layout{display:flex;flex-direction:column;height:calc(100vh - 56px)}
+.gapfill-audio-row{background:#fff;padding:6px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e8edf8;flex-shrink:0}
+.gapfill-audio-row label{font-size:1rem;flex-shrink:0}
+.gapfill-scroll{flex:1;overflow-y:auto}
 </style>
 <div id="screen-gapfill" class="screen">
   <div class="topbar">
@@ -577,14 +581,22 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
       <button class="btn btn-primary btn-sm" id="btn-gap-proceed" onclick="goToComprehension()" disabled style="opacity:.4;cursor:not-allowed">🔒 Continue</button>
     </div>
   </div>
-  <div style="max-width:1000px;margin:0 auto;padding:18px">
-    <div style="background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:14px 20px;margin-bottom:14px;font-size:.85rem;color:#555;line-height:1.6">
-      🎧 Nghe và điền theo <strong>từng 2 câu một</strong>. Điền hết các ô rồi nhấn <strong>Enter</strong> ở ô cuối — hệ thống chấm ngay, đánh dấu <strong style="color:#1a7a4a">✓ đúng</strong> / <strong style="color:#DB0007">✗ sai</strong> trên từng ô. Sai ô nào thì nhấn <strong>Enter</strong> để làm lại đúng 2 câu đó (không mất tiến độ các câu trước); đúng hết thì nhấn <strong>Enter</strong> để tự động sang 2 câu tiếp theo. Xong tất cả mới mở khóa Quiz.
-      <div style="margin-top:10px"><audio id="gap-audio-el" controls style="width:100%;height:34px" preload="none"></audio></div>
+  <div class="gapfill-layout">
+    <!-- Audio ghim cố định — luôn hiện, không cuộn theo nội dung (giống Dictation) -->
+    <div class="gapfill-audio-row">
+      <label>🎵</label>
+      <audio id="gap-audio-el" controls style="flex:1;min-width:0;height:34px" preload="none"></audio>
     </div>
-    <div id="gapfill-loading" style="text-align:center;padding:48px;color:#888">⏳ Generating gaps…</div>
-    <div id="gapfill-script" class="script-text" style="display:none;white-space:pre-wrap;line-height:2.6;font-size:1rem"></div>
-    <div id="gapfill-hint" class="gapfill-hint" style="display:none"></div>
+    <div class="gapfill-scroll">
+      <div style="max-width:1000px;margin:0 auto;padding:18px">
+        <div style="background:#fff;border:1px solid #e6e6e6;border-radius:12px;padding:14px 20px;margin-bottom:14px;font-size:.85rem;color:#555;line-height:1.6">
+          🎧 Nghe và điền theo <strong>từng 2 câu một</strong>. Điền hết các ô rồi nhấn <strong>Enter</strong> ở ô cuối — hệ thống chấm ngay, đánh dấu <strong style="color:#1a7a4a">✓ đúng</strong> / <strong style="color:#DB0007">✗ sai</strong> trên từng ô. Sai ô nào thì nhấn <strong>Enter</strong> để làm lại đúng 2 câu đó (không mất tiến độ các câu trước); đúng hết thì nhấn <strong>Enter</strong> để tự động sang 2 câu tiếp theo. Xong tất cả mới mở khóa Quiz.
+        </div>
+        <div id="gapfill-loading" style="text-align:center;padding:48px;color:#888">⏳ Generating gaps…</div>
+        <div id="gapfill-script" class="script-text" style="display:none;white-space:pre-wrap;line-height:2.6;font-size:1rem"></div>
+        <div id="gapfill-hint" class="gapfill-hint" style="display:none"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -746,7 +758,10 @@ async function callGeminiLis(prompt, maxTokens) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         contents: [{parts: [{text: prompt}]}],
-        generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens || 512 }
+        // Gemini 2.5 dùng 1 phần token cho reasoning nội bộ TRƯỚC khi sinh text — nếu
+        // maxOutputTokens quá thấp (vd 10), model tốn hết budget cho reasoning và trả về
+        // rỗng dù key hoàn toàn hợp lệ (gây báo lỗi sai). Luôn dùng tối thiểu 256.
+        generationConfig: { temperature: 0.2, maxOutputTokens: Math.max(maxTokens || 512, 256) }
       })
     }
   );
@@ -760,32 +775,27 @@ async function callGeminiLis(prompt, maxTokens) {
   return raw.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
 }
 
-// Comprehension Quiz sau Gap-Fill giờ BẮT BUỘC (không còn âm thầm skip khi thiếu key) —
-// preflight test key THẬT SỰ hoạt động bằng 1 lệnh gọi nhẹ, chặn startSession() nếu fail.
-async function lisGeminiPreflight() {
+// Check ĐƠN GIẢN: key có tồn tại hay không (không rỗng). KHÔNG gọi thêm 1 lệnh API test
+// riêng — điều đó chính là nguồn gây lỗi "Gemini returned empty response" giả (do
+// maxOutputTokens quá thấp), chặn nhầm SV dù key hoàn toàn hoạt động tốt. Bằng chứng key
+// hoạt động thật đã có sẵn: AI Split (aiSplitScript) đã test thành công bằng 1 lệnh gọi
+// thật với payload thật — không cần test lại lần nữa cho Quiz.
+function lisHasGeminiKey() {
   const key = getLisGeminiKey();
   const inp = document.getElementById('lis-gemini-key');
   if (!key) {
-    toast('⛔ Cần nhập Gemini API key trước khi bắt đầu — bài yêu cầu làm Comprehension Quiz sau Gap-Fill.', 'error', 6000);
-    if (inp) { inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); }
+    toast('⛔ Cần nhập Gemini API key trước khi bắt đầu — dùng để AI tách câu và tạo Comprehension Quiz.', 'error', 6000);
+    if (inp) { inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); inp.style.borderColor = '#c00'; setTimeout(function(){ if(inp) inp.style.borderColor=''; }, 3000); }
     return false;
   }
-  toast('⏳ Đang kiểm tra Gemini key…', 'info', 3000);
-  try {
-    await callGeminiLis('Reply with exactly: OK', 10);
-    return true;
-  } catch (e) {
-    toast('⛔ Gemini key không hoạt động: ' + (e.message||'lỗi không xác định') + ' — kiểm tra lại key.', 'error', 7000);
-    if (inp) { inp.focus(); inp.style.borderColor = '#c00'; setTimeout(function(){ if(inp) inp.style.borderColor=''; }, 3000); }
-    return false;
-  }
+  return true;
 }
 
 // ===== STATE =====
 const App = {
   user:null, token:null,
   sentences:[], sessionId:'', startTime:null, bookTestPart:'', maxReplays:2,
-  audioBlobUrl:null, driveFileId:'',
+  audioBlobUrl:null, driveFileId:'', _spellChecked:false,
   totalWords:0, correctWords:0, currentIdx:0,
   lastCheckedIdx:-1,
   submitted:false, reviewData:[], attemptData:[],
@@ -1007,6 +1017,7 @@ function onScriptInput(){
   if(kw) kw.style.display=val?'flex':'none';
   if(btn) btn.style.display=val.length>20?'inline-flex':'none';
   if(val===''){box.style.display='none';_splitConfirmed=false;_splitSentences=[];}
+  App._spellChecked=false;   // script vừa đổi → chưa được AI kiểm tra chính tả, cần bấm lại nút Check
 
   // ── Word count indicator ──
   var wordBar  = document.getElementById('script-word-bar');
@@ -1060,12 +1071,17 @@ function onScriptInput(){
     }
   }
 }
-async function aiSplitScript(){
+// AI CHỈ làm 1 việc: kiểm tra & sửa chính tả/apostrophe/viết hoa trên TOÀN BỘ script.
+// Việc CHIA CÂU do smartSplit() (regex, miễn phí) đảm nhiệm SAU KHI có bản đã sửa —
+// tách bạch 2 trách nhiệm, tránh AI phải trả về JSON array cồng kềnh (tốn token cho việc
+// mà regex làm được miễn phí). Đây là bước BẮT BUỘC (không có nhánh bỏ qua) vì mục đích
+// chính của key là kiểm tra chính tả, không phải tách câu.
+async function aiCheckSpelling(){
   var script=document.getElementById('raw-script-input').value.trim(); if(!script) return;
   var btn=document.getElementById('btn-ai-split');
   var key = getLisGeminiKey();
   if (!key) {
-    toast('Please enter your Gemini API key first.', 'error');
+    toast('Cần nhập Gemini API key để kiểm tra chính tả trước khi bắt đầu.', 'error');
     document.getElementById('lis-gemini-key').focus();
     document.getElementById('lis-gemini-key').style.borderColor = '#c00';
     setTimeout(function(){ document.getElementById('lis-gemini-key').style.borderColor = '#d0d0c8'; }, 3000);
@@ -1074,45 +1090,28 @@ async function aiSplitScript(){
   // ── Normalize unicode apostrophes/quotes BEFORE sending to AI ──
   // Covers copy-paste from Word, PDF, Pages, Google Docs
   script = normalizeApostrophes(script);
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Splitting…';
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Checking spelling…';
   try{
-    var prompt = 'You are an IELTS listening script proofreader.\n'
-      + 'Tasks:\n'
+    var prompt = 'You are an IELTS listening script proofreader. Return the script with ONLY these fixes applied:\n'
       + '1. Fix ALL spelling errors.\n'
       + '2. Fix apostrophes: every contraction and possessive MUST use the standard straight apostrophe \' (U+0027).\n'
       + '   Examples: don\'t, it\'s, I\'m, she\'s, they\'re, Mark\'s, world\'s.\n'
       + '   Replace any curly/smart apostrophes (\u2018 \u2019 \u02BC) with straight apostrophe \'.\n'
       + '3. Fix capitalization (first word of sentence, proper nouns).\n'
-      + '4. Split into individual sentences — one sentence per array item.\n'
-      + 'CRITICAL splitting rules:\n'
-      + '- Each array item = exactly ONE sentence.\n'
-      + '- Short filler responses like "OK.", "Yes.", "No.", "Right.", "Fine.", "Sure.", "Well.", "Exactly.", "Indeed." MUST be their OWN separate item — NEVER merge with adjacent sentences.\n'
-      + '- Split at EVERY sentence boundary, even when the next sentence is very short.\n'
-      + '- Include EVERY sentence. Do not skip, merge, or truncate ANY sentence.\n'
-      + 'Return ONLY a valid JSON array of strings. No markdown, no explanation.\n\n'
+      + 'Do NOT change wording, do NOT split into sentences, do NOT add explanations or markdown.\n'
+      + 'Return ONLY the corrected script as plain text, preserving the original paragraph structure.\n\n'
       + 'Script:\n' + script;
-    var raw = await callGeminiLis(prompt);
-    var sentences;
-    try {
-      var si = raw.indexOf('['), ei = raw.lastIndexOf(']') + 1;
-      sentences = si >= 0 ? JSON.parse(raw.substring(si, ei)) : null;
-    } catch(pe) { sentences = null; }
-    if (sentences && sentences.length) {
-      // Normalize apostrophes in AI output too (in case AI used curly quotes)
-      _splitSentences = sentences.map(function(s){
-        return normalizeApostrophes(String(s).trim());
-      }).filter(Boolean);
-      renderSplitPreview(_splitSentences);
-      toast('Split into '+_splitSentences.length+' sentences!','success');
-    } else {
-      _splitSentences = smartSplit(script);
-      renderSplitPreview(_splitSentences);
-      toast('AI returned unexpected format — using smart split','info');
-    }
+    var raw = await callGeminiLis(prompt, 4096);
+    var corrected = normalizeApostrophes(String(raw).trim());
+    if (!corrected) throw new Error('AI trả về rỗng');
+    App._spellChecked = true;   // flag: script đã qua AI spellcheck — startSession() sẽ không chặn nữa
+    _splitSentences = smartSplit(corrected);   // chia câu bằng regex (miễn phí) trên bản đã sửa
+    renderSplitPreview(_splitSentences);
+    toast('✅ Đã kiểm tra chính tả và chia thành '+_splitSentences.length+' câu!','success');
   }catch(e){
     toast('AI error: '+e.message,'error');
   }finally{
-    btn.disabled=false; btn.innerHTML='🤖 AI Split into Sentences';
+    btn.disabled=false; btn.innerHTML='🤖 AI Check Spelling &amp; Split';
   }
 }
 
@@ -1174,7 +1173,7 @@ function confirmSplit(){
   document.getElementById('err-script').parentNode.insertBefore(badge,document.getElementById('err-script').nextSibling);
 }
 function resetSplitPreview(){
-  _splitConfirmed=false; _splitSentences=[];
+  _splitConfirmed=false; _splitSentences=[]; App._spellChecked=false;
   document.getElementById('split-preview-box').style.display='none';
   var ta=document.getElementById('raw-script-input'); ta.disabled=false; ta.style.background='';
   var badge=document.getElementById('split-badge'); if(badge) badge.remove();
@@ -1241,11 +1240,17 @@ async function startSession(){
   if(!script){document.getElementById('err-script').style.display='block';return;}
   document.getElementById('err-script').style.display='none';
 
-  // ── Gemini key BẮT BUỘC — Quiz sau Gap-Fill không còn là tùy chọn ──
-  // Check ngay từ đầu (trước cả word-count/audio) để SV không mất công điền hết form
-  // rồi mới phát hiện thiếu key ở bước cuối.
-  var okKey = await lisGeminiPreflight();
-  if (!okKey) return;
+  // ── AI Check Spelling BẮT BUỘC trước khi Start ──
+  // Đây là mục đích CHÍNH của Gemini key trong Listening (không phải tách câu — việc đó
+  // smartSplit() làm miễn phí bằng regex). Nếu SV chưa từng bấm "AI Check Spelling &
+  // Split" thành công cho script hiện tại, không cho Start — dù có key hay không.
+  if (!App._spellChecked) {
+    if (!lisHasGeminiKey()) return;   // lisHasGeminiKey() tự focus + báo lỗi nếu thiếu key
+    toast('⛔ Cần bấm "🤖 AI Check Spelling & Split" để kiểm tra chính tả trước khi Start.', 'error', 6000);
+    var splitBtn = document.getElementById('btn-ai-split');
+    if (splitBtn) { splitBtn.scrollIntoView({behavior:'smooth', block:'center'}); splitBtn.style.animation='none'; splitBtn.offsetHeight; splitBtn.style.outline='2px solid #EF4444'; setTimeout(function(){ if(splitBtn) splitBtn.style.outline=''; }, 1500); }
+    return;
+  }
 
   // ── Word count check — block if script is too short ──
   var wordCount = script.split(/\s+/).filter(function(w){ return w.length > 0; }).length;
@@ -1267,7 +1272,11 @@ async function startSession(){
   }
   if(!App.audioBlobUrl){toast('Please load an audio file first.','error');return;}
   App.bookTestPart = btp;
-  App.sentences=(_splitConfirmed&&_splitSentences.length>0)?_splitSentences:smartSplit(script);
+  // Ưu tiên dùng kết quả đã qua AI spellcheck (_splitSentences) nếu có — kể cả khi SV quên
+  // bấm "Use these sentences" để confirm. Chỉ rơi về smartSplit(script) trên bản RAW khi
+  // thực sự chưa từng chạy AI (về lý thuyết không xảy ra vì đã chặn ở trên, đây là lưới an
+  // toàn cuối cùng để KHÔNG BAO GIỜ tách câu trên script chưa được sửa chính tả).
+  App.sentences = (_splitSentences && _splitSentences.length>0) ? _splitSentences : smartSplit(script);
   if(!App.sentences.length){toast('No sentences found.','error');return;}
   App.maxReplays=parseInt(document.getElementById('max-replays').value)||2;
   App.sessionId=generateSessionId();
@@ -1747,6 +1756,17 @@ async function saveProgressGapFill(){
   }
 }
 
+// Điều hướng về màn Setup và đảm bảo widget nhập key THỰC SỰ hiển thị (nó chỉ hiện khi
+// textarea có nội dung — điền tạm nếu SV chưa từng quay lại Setup trong phiên này).
+function goFixGeminiKey(){
+  showScreen('screen-setup'); switchTab('new');
+  var kw = document.getElementById('lis-key-widget');
+  var ta = document.getElementById('raw-script-input');
+  if (kw && ta) { if (!ta.value.trim()) ta.value = App._gapScript || ' '; kw.style.display = 'flex'; }
+  var inp = document.getElementById('lis-gemini-key');
+  if (inp) { inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+
 function retryComprehension(){
   App._compPoolPromise = null;   // clear cached failed promise để thử lại từ đầu
   goToComprehension();
@@ -1763,15 +1783,17 @@ async function goToComprehension(){
   var pool = [];
   try { pool = await prebuildComprehension(); } catch(e){}
   if (!pool || !pool.length) {
-    // Quiz bắt buộc — key đã được xác nhận hoạt động lúc Start Session, nên nếu tới đây
-    // vẫn fail thì nhiều khả năng là hết quota GIỮA CHỪNG phiên làm bài. Cho SV cơ hội
-    // thử lại thay vì âm thầm bỏ qua bước kiểm tra (điều này khiến một số SV có Quiz,
-    // một số không — không nhất quán).
+    // Quiz bắt buộc — key đã được xác nhận hoạt động lúc AI Check Spelling, nên nếu tới
+    // đây vẫn fail thì có thể là: (a) hết quota GIỮA CHỪNG phiên làm bài (tạm thời — Thử
+    // lại sẽ ổn), hoặc (b) key đã bị đổi/hỏng hẳn (Thử lại vô ích, cần sửa key ở Setup).
+    // Cho SV cả 2 lối ra thay vì kẹt trong vòng lặp Thử lại vô vọng.
     document.getElementById('comp-loading').innerHTML =
       '<div style="text-align:center;padding:20px">'
-      + '<div style="color:#DB0007;font-weight:600;margin-bottom:12px">⚠️ Không tạo được Quiz (key hết quota hoặc lỗi mạng).</div>'
+      + '<div style="color:#DB0007;font-weight:600;margin-bottom:12px">⚠️ Không tạo được Quiz (key hết quota, key sai, hoặc lỗi mạng).</div>'
+      + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
       + '<button class="btn btn-primary btn-sm" onclick="retryComprehension()">🔄 Thử lại</button>'
-      + '</div>';
+      + '<button class="btn btn-secondary btn-sm" onclick="goFixGeminiKey()">🔑 Sửa lại Gemini key</button>'
+      + '</div></div>';
     return;
   }
   App._compQuestions = getComprehensionBatch();
@@ -2836,14 +2858,14 @@ async function resumeSession(sessionId){
     // Key chỉ lưu localStorage (không lưu server) nên nếu SV resume trên MÁY KHÁC, key sẽ
     // trống — phải nhập lại trước khi tiếp tục.
     if (stage === 'gapfill' || stage === 'compquiz') {
-      // Đảm bảo widget nhập key thực sự HIỂN THỊ trước khi yêu cầu — nó chỉ hiện khi màn
-      // Setup active và có script trong textarea (điều kiện onScriptInput()).
-      showScreen('screen-setup'); switchTab('new');
-      var kw = document.getElementById('lis-key-widget');
-      var ta = document.getElementById('raw-script-input');
-      if (kw && ta) { if (!ta.value.trim()) ta.value = App._gapScript || ' '; kw.style.display = 'flex'; }
-      var okKey = await lisGeminiPreflight();
-      if (!okKey) { toast('⚠️ Nhập Gemini key vào ô phía trên, sau đó vào My History bấm "Tiếp tục" lại.', 'error', 7000); return; }
+      var okKey = getLisGeminiKey();
+      if (!okKey) {
+        // Hiện widget key TRƯỚC (chuyển màn Setup + hiện widget + focus), vì lúc này SV
+        // đang ở History, textarea/widget của Setup có thể chưa từng được hiển thị.
+        goFixGeminiKey();
+        toast('⚠️ Nhập Gemini key vào ô phía trên, sau đó vào My History bấm "Tiếp tục" lại.', 'error', 7000);
+        return;
+      }
     }
 
     if (stage === 'gapfill' && p.GapFillDone !== 'Y') {
