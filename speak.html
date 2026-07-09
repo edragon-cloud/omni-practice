@@ -802,7 +802,26 @@ let ttsCache={}, _ttsId=0;
   if(k){S.gkey=k;document.getElementById('key-inp').value=k;kSt(true);}
   const gk=localStorage.getItem('fl_groq_key');
   if(gk){S.groqKey=gk;document.getElementById('groq-key-inp').value=gk;gqSt(true);}
+  fetchSharedKeys();
 })();
+// ── SHARED KEY POOL — teacher đặt trong GAS Settings, SV dùng chung ──
+async function fetchSharedKeys(){
+  try{
+    const r=await gasCall('speak.getSharedKeys',{});
+    if(r&&r.success){
+      if(r.geminiKeys&&r.geminiKeys.length) S._sharedGeminiKeys=r.geminiKeys;
+      if(r.groqKeys&&r.groqKeys.length) S._sharedGroqKeys=r.groqKeys;
+      if(!S.gkey&&S._sharedGeminiKeys&&S._sharedGeminiKeys.length){
+        S.gkey=S._sharedGeminiKeys[0];
+        try{document.getElementById('key-inp').value='(shared key)';kSt(true);}catch(_){}
+      }
+      if(!S.groqKey&&S._sharedGroqKeys&&S._sharedGroqKeys.length){
+        S.groqKey=S._sharedGroqKeys[0];
+        try{document.getElementById('groq-key-inp').value='(shared key)';gqSt(true);}catch(_){}
+      }
+    }
+  }catch(_){}
+}
 
 function goHub(){location.href='./index.html';}
 
@@ -1575,7 +1594,11 @@ async function stopAudioCaptureAndTranscribe(){
       rd.onerror=rej;
       rd.readAsDataURL(rec.blob);
     });
-    S.curAnswer=(S.curAnswer+' '+await transcribeAudio(b64,rec.mime)).trim();
+    const result=await transcribeAudio(b64,rec.mime);
+    const transcriptText=typeof result==='string'?result:result.text;
+    S.curAnswer=(S.curAnswer+' '+transcriptText).trim();
+    // Lưu word timestamps cho hiển thị transcript
+    if(result.words&&result.words.length) S.recs[S.idx]._wordTimestamps=result.words;
     document.getElementById('ptt-interim').textContent=S.curAnswer;
     return true;
   }catch(e){
@@ -1594,11 +1617,7 @@ async function nextQuestion(){
   S.recs[idx].question=S.qs[idx].question;
   S.recs[idx].keywords=S.qs[idx].keywords||[];
   S.recs[idx].sttMethod='gemini';
-  // Nếu quay lại (Prev) rồi Next mà không đổi gì và đã chấm rồi → khỏi chấm lại, tiết kiệm Gemini call
-  if(ans.length>=5&&!(unchanged&&S.recs[idx].graded)){
-    const kw=(S.qs[idx].keywords||[]).join(', ');
-    S.gradeP[idx]=gradeOneQuestion(S.qs[idx].question,ans,kw).then(g=>{Object.assign(S.recs[idx],g);S.recs[idx].graded=true;}).catch(e=>{console.warn('grade Q'+idx,e);});
-  }
+  // Không chấm nền nữa — chấm tất cả khi Finish để tiết kiệm token + tránh 429
   const next=idx+1;
   if(next<S.qs.length){S.idx=next;loadQ(next);}else finishSession();
 }
@@ -1606,53 +1625,143 @@ async function nextQuestion(){
 // ── FINISH: chờ chấm nền xong → báo cáo → lưu → render ──
 async function finishSession(){
   if(S.talking)await stopTalk();clearInterval(S.qcdTm);
+  // Lưu câu cuối nếu có
+  const lastAns=(S.curAnswer||'').trim();
+  if(lastAns&&S.recs[S.idx]) S.recs[S.idx].studentAnswer=lastAns;
   const answered=S.recs.filter(r=>r.studentAnswer&&r.studentAnswer.trim().length>=2);
   if(!answered.length){if(confirm('Chưa có câu trả lời nào. Thoát?'))SS('S-home');return;}
   if(!(await geminiPreflight()))return;
   SS('S-grading');document.getElementById('g-steps').innerHTML='';
-  gStep('Đang hoàn tất chấm điểm…');
+
   try{
-    await Promise.all(S.gradeP.filter(Boolean));
-    // Kiểm tra câu nào chấm thất bại (overall rỗng dù có trả lời) để cảnh báo
-    const failedCount = answered.filter(r=>!r.overall && (!r.scores)).length;
-    if(failedCount>0){
-      toast(failedCount+' câu chưa chấm được (transcript lỗi hoặc quá dài) — thử Re-try','error',5000);
+  // ── STEP 1: Batch chấm FC/LR/GRA với Gemini (1 call) ──
+  gStep('Đang chấm điểm…');
+  try{
+    const qaBlock=answered.map((r,i)=>{
+      const kw=(r.keywords||[]).join(', ');
+      return `Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer}"${kw?'\nKeywords: '+kw:''}`;
+    }).join('\n\n');
+    const batchPrompt=buildBatchGradePrompt(qaBlock, answered.length);
+    const rawGrade=await gemFetch('You are a certified IELTS Speaking examiner. Return ONLY valid JSON array.', batchPrompt, Math.min(1500*answered.length, 6000));
+    const cleanGrade=rawGrade.replace(/```json|```/g,'').trim();
+    const si=cleanGrade.indexOf('['),ei=cleanGrade.lastIndexOf(']')+1;
+    if(si!==-1&&ei>si){
+      const grades=JSON.parse(cleanGrade.substring(si,ei));
+      grades.forEach((g,i)=>{if(answered[i])Object.assign(answered[i],g);});
     }
-    gStep('Chấm xong ✓',true);
-    gStep('Đang lưu file ghi âm…');
-    // Upload audio từng câu lên Drive (nền — không chặn nếu lỗi)
-    await Promise.all(answered.map(async (r,qi)=>{
-      if(!r._audioBlob)return;
-      try{
-        const b64=await new Promise((res,rej)=>{
-          const rd=new FileReader();
-          rd.onloadend=()=>res(rd.result.split(',')[1]);
-          rd.onerror=rej;
-          rd.readAsDataURL(r._audioBlob);
-        });
-        const up=await gasCall('speak.uploadAudio',{audioBase64:b64,mimeType:r._audioMime||'audio/webm',
-          topic:S.topic||S.mode||'practice', attemptNum:(S.retryCount||0)+1, qIdx:qi+1});
-        if(up&&up.success)r.audioUrl=up.url;
-      }catch(e){console.warn('upload audio failed',e);}
-    }));
-    gStep('Đang tạo báo cáo IELTS…');
-    const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
-    let report='';
-    try{report=await gemFetch('You are a professional IELTS examiner.',buildIELTSPrompt(tb),2000);}
-    catch(eRpt){report='### ⚠️ Báo cáo chưa tải được\n\n'+eRpt.message+'\n\nXem điểm từng câu bên dưới.';toast('Báo cáo lỗi: '+eRpt.message,'error',5000);}
-    gStep('Báo cáo xong ✓',true);
-    try{saveToGAS(S.mode||'ielts',answered,report,S.t0?Math.round((new Date()-new Date(S.t0))/1000):0,S.retryCount||0);}catch(_){}
-    setTimeout(()=>{
-      renderResults(answered,report,'ielts',null);
-      // Hiển thị số lần luyện + trạng thái keywords
-      const rc=S.retryCount||0;
-      const info=document.getElementById('retry-info');
-      if(info){
-        const kwMsg=rc>=3?'🔒 Keywords are now fully hidden — speak from memory':'🔑 Keywords visible for '+(3-rc)+' more attempt(s)';
-        info.innerHTML=`Practice attempt <strong>${rc+1}</strong> &nbsp;·&nbsp; ${kwMsg}`;
-      }
-    },300);
+  }catch(eg){console.warn('Batch grade failed:',eg);toast('Chấm điểm lỗi: '+eg.message,'error',5000);}
+  gStep('Chấm điểm xong ✓',true);
+
+  // ── STEP 2: Upload audio lên Drive ──
+  gStep('Đang lưu ghi âm…');
+  await Promise.all(answered.map(async (r,qi)=>{
+    if(!r._audioBlob)return;
+    try{
+      const b64=await new Promise((res,rej)=>{const rd=new FileReader();rd.onloadend=()=>res(rd.result.split(',')[1]);rd.onerror=rej;rd.readAsDataURL(r._audioBlob);});
+      const up=await gasCall('speak.uploadAudio',{audioBase64:b64,mimeType:r._audioMime||'audio/webm',topic:S.topic||S.mode||'practice',attemptNum:(S.retryCount||0)+1,qIdx:qi+1});
+      if(up&&up.success)r.audioUrl=up.url;
+    }catch(e){console.warn('upload audio failed',e);}
+  }));
+  gStep('Lưu ghi âm xong ✓',true);
+
+  // ── STEP 3: Báo cáo IELTS ──
+  gStep('Đang tạo báo cáo…');
+  const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
+  let report='';
+  try{report=await gemFetch('You are a professional IELTS examiner.',buildIELTSPrompt(tb),2000);}
+  catch(eRpt){report='### ⚠️ Báo cáo lỗi\n\n'+eRpt.message;}
+  gStep('Báo cáo xong ✓',true);
+
+  // ── STEP 4: Lưu kết quả (retry 3 lần nếu lỗi mạng) ──
+  gStep('Đang lưu kết quả…');
+  let saveOk=false;
+  for(let at=0;at<3&&!saveOk;at++){
+    try{await saveToGASAsync(S.mode||'ielts',answered,report,S.t0?Math.round((new Date()-new Date(S.t0))/1000):0,S.retryCount||0);saveOk=true;}
+    catch(e){if(at<2)await new Promise(r=>setTimeout(r,2000));}
+  }
+  if(!saveOk)toast('Không lưu được kết quả — kiểm tra mạng','error',7000);
+  gStep(saveOk?'Lưu xong ✓':'⚠ Lưu lỗi',true);
+  setTimeout(()=>renderResults(answered,report,'ielts',null),300);
   }catch(e){gStep('Lỗi: '+e.message);toast('Lỗi: '+e.message,'error',6000);setTimeout(()=>SS('S-session'),3000);}
+}
+
+// ── BATCH GRADE PROMPT ──
+function buildBatchGradePrompt(qaBlock,count){
+  return `${gradeRubric()}
+
+Grade ALL ${count} answers below. The transcripts are produced by Whisper STT — hesitation fillers (uhm, ah, uh, like, you know, well, I mean) are preserved EXACTLY as spoken. Use them to evaluate Fluency & Pronunciation accurately.
+
+${qaBlock}
+
+Return ONLY raw JSON array of ${count} objects (no markdown):
+[{"overall":6.0,"scores":{"fluency":{"score":6.0,"comment":"tiếng Việt"},"lexical":{"score":6.0,"comment":"tiếng Việt"},"grammar":{"score":6.0,"comment":"tiếng Việt"},"pronunciation":{"score":6.0,"comment":"tiếng Việt"}},"errors":[{"wrong":"exact substring","correct":"fixed","reason":"tiếng Việt"}],"suggestion":"tiếng Việt"}]
+Max 3 errors/question. "wrong" MUST be exact substring from student answer. Focus on grammar/vocabulary errors — pronunciation issues go in the pronunciation comment, not errors array.`;
+}
+
+function gradeRubric(){return `IELTS SPEAKING BAND DESCRIPTORS (STRICT — no inflation):
+
+FLUENCY & COHERENCE (FC):
+Band 7+: Speaks at length without noticeable effort; uses range of connectives and discourse markers; self-corrects successfully.
+Band 6: Willing to speak at length; some hesitation/repetition; uses basic connectives.
+Band 5: Maintains flow despite hesitation; limited discourse markers; may not always be coherent.
+Band 4: Frequent hesitation; short or incomplete utterances; coherence often lost.
+FILLER PENALTY (HARD RULE): Count ALL fillers: "uhm","uh","ah","like","you know","I mean","well" in transcript.
+  - 1-2 fillers, mostly at clause start → no penalty (natural discourse markers)
+  - 3-4 fillers OR any filler mid-sentence while searching for words → cap FC ≤ 6.0
+  - 5+ fillers OR repeated self-corrections → cap FC ≤ 5.5
+Short answers (<3 sentences for Part 1) → cap FC ≤ 6.0 regardless of quality.
+
+LEXICAL RESOURCE (LR):
+Band 7+: Vocabulary used flexibly; natural use of phrasal verbs, collocations, and idioms across response.
+Band 6: Adequate range; attempts less common vocabulary with some errors.
+Band 5: Limited range; paraphrases; errors may cause difficulty.
+ALTERNATION RULE: Score 7.0+ requires natural ROTATION of vocabulary features (not just one advanced word). If vocabulary sounds memorized or forced → cap ≤ 6.5. Basic/repetitive vocabulary → cap ≤ 5.5.
+
+GRAMMATICAL RANGE & ACCURACY (GRA):
+Band 7+: Mix of simple and complex structures; frequent error-free sentences; accurate tense shifts.
+Band 6: Some complex forms; errors sometimes impede.
+Band 5: Mostly basic forms; frequent errors but meaning clear.
+TENSE-SHIFT RULE: Score 7.0+ requires demonstrated tense variation AND complex syntax (relative clauses, conditionals, passive). Repeated S-V agreement or article errors → cap ≤ 6.0.
+
+PRONUNCIATION (from Whisper transcript — infer from evidence):
+CRITICAL: Whisper transcribes what it HEARS phonetically. Use these signals to infer pronunciation quality:
+  - Whisper writes wrong words that SOUND LIKE the intended word (e.g., "tree" instead of "three", "veri" → "very") → phonological errors → lower score
+  - Fillers like "uhm/uh/ah" indicate hesitation in connected speech → affects fluency & prosody
+  - Clean transcript with varied sentence rhythm → likely good prosody → higher score
+  - Vietnamese L1 typical issues: final consonants (d/t/p/k), th-sounds, vowel length → look for signs in transcript
+Band 7+: Easy to understand throughout; varied prosody; minimal L1 interference visible in transcript.
+Band 6: Mostly understandable; some L1 influence detectable.
+Band 5: Understandable but noticeable L1 patterns; some phonological errors visible in transcript.
+Band 4: Frequent errors cause difficulty; many signs of L1 interference.
+FILLER-PRONUNCIATION LINK: Heavy use of "uhm/uh" + short chunked sentences → likely poor connected speech → pronunciation ≤ 5.5.
+
+SCORING RULES:
+- 0.5 steps: 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0
+- overall = mean of 4 criteria, rounded to nearest 0.5
+- ANTI-INFLATION: Most Vietnamese university EFL students score 4.5-6.0. Band 6.5 = above average. Band 7.0 = genuinely good. Band 8+ = near-native (very rare). Band 9 = exceptional.
+- MUST differentiate criteria — awarding all 4 the same score is always wrong.`;}
+
+// ── SAVE TO GAS (async + proper error) ──
+async function saveToGASAsync(mode,results,report,durationSec,retryCount){
+  const user=S.user||{};const now=new Date();
+  const startTime=S.liveStartTime||S.t0||new Date(now-(durationSec||0)*1000);
+  const qArr=(results||[]).map(r=>({question:r.question||'',keywords:r.keywords||[]}));
+  const rArr=(results||[]).map(r=>({
+    question:r.question||'',keywords:r.keywords||[],studentAnswer:r.studentAnswer||'',
+    overall:r.overall||'',scores:r.scores||null,errors:r.errors||[],
+    suggestion:r.suggestion||'',audioUrl:r.audioUrl||''
+  }));
+  const payload={
+    startingTime:(startTime instanceof Date?startTime:new Date(startTime)).toISOString(),
+    submittingTime:now.toISOString(),
+    studentName:user.fullName||'',accessCode:user.studentId||'',class:user.class||'',
+    mode:mode,durationMin:Math.round((durationSec||0)/60),topic:S.topic||'',
+    retryCount:retryCount||0,questionsJSON:JSON.stringify(qArr),resultsJSON:JSON.stringify(rArr),
+    reportText:(report||'').substring(0,4000)
+  };
+  const res=await gasCall('speak.saveResult',payload);
+  if(!res||!res.success)throw new Error(res?.error||'Save failed');
+  return res;
 }
 
 async function confirmEnd(){
@@ -1694,23 +1803,42 @@ async function transcribeAudio(base64, mime){
 
   const fd = new FormData();
   fd.append('file', blob, 'answer.'+ext);
-  fd.append('model', 'whisper-large-v3-turbo');   // nhanh nhất, đủ chính xác cho hội thoại
+  fd.append('model', 'whisper-large-v3-turbo');
   fd.append('language', 'en');
-  fd.append('response_format', 'json');
+  fd.append('response_format', 'verbose_json');   // trả word-level timestamps
   fd.append('temperature', '0');
+  fd.append('timestamp_granularities[]', 'word');
+  // Chống hallucination: KHÔNG cho Whisper đoán/thêm từ — chỉ ghi đúng âm nghe được
+  fd.append('prompt', 'Transcribe exactly what is spoken. Do not add, predict, or correct any words. If unclear, leave as heard.');
 
   const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + S.groqKey },
+    headers: { 'Authorization': 'Bearer ' + (S.groqKey || (S._sharedGroqKeys||[])[0] || '') },
     body: fd
   });
   if (!r.ok) {
+    // Nếu key riêng lỗi, thử shared key
+    if(r.status===429 && S._sharedGroqKeys && S._sharedGroqKeys.length){
+      for(const sk of S._sharedGroqKeys){
+        if(sk===S.groqKey) continue;
+        const fd2=new FormData();
+        fd2.append('file',blob,'answer.'+ext);
+        fd2.append('model','whisper-large-v3-turbo');
+        fd2.append('language','en');
+        fd2.append('response_format','verbose_json');
+        fd2.append('temperature','0');
+        fd2.append('timestamp_granularities[]','word');
+        fd2.append('prompt','Transcribe exactly what is spoken. Do not add, predict, or correct any words.');
+        const r2=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{'Authorization':'Bearer '+sk},body:fd2});
+        if(r2.ok){const j2=await r2.json();return {text:(j2.text||'').trim(),words:j2.words||[]};}
+      }
+    }
     const e = await r.json().catch(()=>({}));
     const msg = e.error?.message || ('Groq lỗi ' + r.status);
     throw new Error(msg);
   }
   const j = await r.json();
-  return (j.text || '').trim();
+  return {text:(j.text||'').trim(), words:j.words||[]};
 }
 
 // ── GEMINI FETCH — direct REST, no SDK, with model fallback ──────────
@@ -1735,7 +1863,19 @@ async function gemFetch(sys, usr, mx, _attempt){
           for(let i=ds;i>0;i--){if(el)el.textContent=`⏳ Đang thử lại sau ${i}s…`;await new Promise(res=>setTimeout(res,1000));}
           return gemFetch(sys,usr,mx,_attempt+1);
         }
-        // Gemini hết quota sau các lần retry → âm thầm chuyển sang Groq Llama nếu có key
+        // Gemini hết quota sau các lần retry → thử shared keys pool
+        if(S._sharedGeminiKeys&&S._sharedGeminiKeys.length){
+          for(const sk of S._sharedGeminiKeys){
+            if(sk===S.gkey) continue;
+            try{
+              const body2={contents:[{parts:[{text:usr}]}],generationConfig:{maxOutputTokens:mx,temperature:0.45}};
+              if(sys) body2.systemInstruction={parts:[{text:sys}]};
+              const r2=await fetch(base+GM_PRIMARY+':generateContent?key='+sk,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body2)});
+              if(r2.ok){const j2=await r2.json();const t2=j2.candidates?.[0]?.content?.parts?.[0]?.text||'';if(t2)return t2.trim();}
+            }catch(_){}
+          }
+        }
+        // Fallback Groq Llama nếu có
         if(S.groqKey){
           console.warn('[gemFetch] Gemini quota hết — chuyển sang Groq Llama');
           return await groqChatFetch(sys,usr,mx);
@@ -1788,7 +1928,9 @@ async function submitAll(){
   try{
     for(let i=0;i<answered.length;i++){
       gStep(`Transcribing Q${i+1}/${answered.length}…`);
-      answered[i].studentAnswer = await transcribeAudio(answered[i].audioBase64, answered[i].mimeType||'audio/webm');
+      const tResult = await transcribeAudio(answered[i].audioBase64, answered[i].mimeType||'audio/webm');
+      answered[i].studentAnswer = typeof tResult==='string'?tResult:tResult.text;
+      if(tResult.words) answered[i]._wordTimestamps=tResult.words;
     }
     gStep('Transcription done ✓',true);
 
@@ -1861,6 +2003,7 @@ Band 7: Speaks at length without noticeable effort; some hesitation but self-cor
 Band 6: Willing to speak at length; some hesitation/repetition; uses basic connectives consistently, not always coherently.
 Band 5: Maintains flow despite hesitation; uses simple connectives; limited range of discourse markers; may not always be coherent.
 Band 4: Hesitation is often noticeable; short or incomplete utterances; overuses basic connectives; coherence often lost.
+HESITATION ANALYSIS RULE: Explicitly analyze fillers ("uhm", "ah", "like", "you know"). If fillers disrupt mid-sentence flow or indicate language-searching → cap FC at 6.0. If fillers are minimal or only at clause boundaries → can award 7.0+. A short or simple answer should NOT score above 6.0 on fluency regardless of accuracy.
 
 LEXICAL RESOURCE:
 Band 9: Uses vocabulary with full flexibility and precision; natural and sophisticated use of lexical features; rare minor errors.
@@ -1869,6 +2012,7 @@ Band 7: Uses vocabulary flexibly; some less common items with some awareness of 
 Band 6: Adequate range; attempts less common vocabulary; some errors in word choice/collocation/spelling.
 Band 5: Manages to communicate despite limited vocabulary; paraphrases consistently; errors may cause some difficulty.
 Band 4: Limited vocabulary; errors cause strain; meanings sometimes unclear.
+LEXICAL ALTERNATION RULE: For 7.0+, the candidate MUST demonstrate natural rotation of lexical features (phrasal verbs, collocations, idioms, less-common words) across sentences. ALL lexical items MUST fit context perfectly. If vocabulary sounds "memorized" or forced → cap LR at 6.0-6.5.
 
 GRAMMATICAL RANGE & ACCURACY:
 Band 9: Uses a full range of structures naturally and appropriately; only occasional slips.
@@ -1877,21 +2021,20 @@ Band 7: Uses a mix of simple and complex structures; frequently error-free sente
 Band 6: Mix of structures; some complex forms attempted; errors sometimes impede communication.
 Band 5: Produces basic forms reliably; limited complex structures; frequent errors but meaning usually clear.
 Band 4: Mostly simple sentences; frequent errors cause comprehension difficulty.
+TENSE-SHIFT RULE: For 7.0+, explicitly look for accurate tense shifts between consecutive sentences and context-appropriate complex syntax (relative clauses, conditionals, passive voice). Frequent basic errors (S-V agreement, wrong articles) → cap GRA at 6.0.
 
-PRONUNCIATION:
-Band 9: Uses a full range of pronunciation features with precision and subtlety; accent does not affect clarity.
-Band 8: Uses a wide range of pronunciation features; accent does not cause difficulty; mostly easy to understand throughout.
-Band 7: Easy to understand throughout; uses some features flexibly; accent and occasional errors rarely cause difficulty.
-Band 6: Generally easy to understand; some features may cause listener difficulty; accent noticeable but not impeding.
-Band 5: Understandable but mispronunciation noticeable; uses few features of connected speech; L1 accent sometimes intrusive.
-Band 4: Mispronunciation is frequent; hard to understand at times; very limited use of pronunciation features.
+PRONUNCIATION (inferred from transcript):
+Band 7+: Easy to understand throughout; varied intonation patterns implied by sentence structure variety.
+Band 6: Generally understandable; some L1 influence evident in word choices/structures.
+Band 5: Understandable but limited range of expression; mispronunciation patterns visible in transcription errors.
+Band 4: Hard to understand at times; very limited expression range.
+NOTE: Since this is transcribed audio, infer pronunciation from: transcription accuracy, word choice patterns, connected speech markers, and any phonetic substitutions visible in the transcript.
 
 SCORING RULES (FOLLOW STRICTLY):
 - Each criterion: score in 0.5 steps (4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0)
 - overall = mean of 4 criteria, rounded to nearest 0.5
 - ANTI-INFLATION: Most university EFL students score 5.0–6.5. Band 7 requires genuinely good performance. Band 8+ is near-native — very rare. Band 9 is exceptional.
 - DO NOT award all criteria the same score — differentiate based on actual performance.
-- A short or simple answer should NOT score above 6.0 on fluency regardless of accuracy.
 `;
 
   const prompt = `${RUBRIC}
@@ -2328,7 +2471,8 @@ async function liveToggleMic(){
       const blob=new Blob(_liveChunks,{type:mime});
       const b64=await new Promise(res=>{const rd=new FileReader();rd.onloadend=()=>res(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
       try{
-        const transcript=await transcribeAudio(b64, mime);
+        const tRes=await transcribeAudio(b64, mime);
+        const transcript=typeof tRes==='string'?tRes:tRes.text;
         if(transcript){
           addTranscriptLine('user', transcript);
           S.liveTranscript.push({role:'user',text:transcript});
