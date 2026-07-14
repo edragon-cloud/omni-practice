@@ -1866,8 +1866,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function callGeminiDirect(prompt, maxTokens, _retry){
   const key=getFrKey();
   if(!key) throw new Error('Chưa có Gemini API key — vui lòng nhập key trước');
-  // Try gemini-2.5-flash first, fall back to gemini-2.0-flash on failure
-  const models = _retry ? ['gemini-2.0-flash','gemini-1.5-flash'] : ['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
+  // Try gemini-3.5-flash first, fall back on failure (2.5-flash EOL Oct 2026)
+  const models = _retry ? ['gemini-2.5-flash-lite','gemini-2.5-flash'] : ['gemini-3.5-flash','gemini-2.5-flash-lite','gemini-2.5-flash'];
   let lastErr = null;
   for(const model of models){
     try{

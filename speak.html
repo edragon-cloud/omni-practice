@@ -762,8 +762,8 @@ window._Modality = Modality;
 // ── CONFIG ────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyNN9nNKUE9NsS0EN6o6I0y8-66da9EKU96QeDdUaAMMWnYrrwm7nG5rgkcaHBRtyJkYA/exec';
 // Alias models — Google tự cập nhật version mới nhất, không cần đổi code
-const GM_PRIMARY = 'gemini-2.5-flash';      // always latest Gemini 2.5 Flash
-const GM_FALLBACK= 'gemini-2.5-flash-lite'; // lite fallback khi hết quota
+const GM_PRIMARY = 'gemini-3.5-flash';       // GA May 19 2026 — thay thế 2.5-flash (EOL Oct 2026)
+const GM_FALLBACK= 'gemini-2.5-flash-lite';  // lite fallback khi hết quota
 const GM_REST    = GM_PRIMARY;
 const GM_LIVE  = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
@@ -1056,7 +1056,7 @@ function needGroqKey(){if(!S.groqKey){toast('Vui lòng nhập Groq API key để
 // Tiny probe call (1 token, model lite) → tốn cực ít quota. Trả {ok} | {ok:false,status}
 async function geminiTestKey(key){
   try{
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key='+key,
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key='+key,
       {method:'POST',headers:{'Content-Type':'application/json'},
        body:JSON.stringify({contents:[{parts:[{text:'hi'}]}],generationConfig:{maxOutputTokens:1}})});
     if(r.ok) return {ok:true};
@@ -1147,13 +1147,13 @@ async function gem(sys, usr, mx, _attempt) {
     generationConfig: { maxOutputTokens: mx, temperature: 0.45 }
   };
   if (sys) body.systemInstruction = { parts: [{ text: sys }] };
-  // Primary: gemini-2.5-flash | Fallback: gemini-2.5-flash-lite (lower quota usage)
+  // Primary: gemini-3.5-flash | Fallback: gemini-2.5-flash-lite (lower quota usage)
   // Models in fallback order — edit GM_PRIMARY / GM_FALLBACK to change
   const _base = 'https://generativelanguage.googleapis.com/v1beta/models/';
   const _modelList = [
     _base + GM_PRIMARY + ':generateContent?key=' + S.gkey,
     _base + GM_FALLBACK + ':generateContent?key=' + S.gkey,
-    _base + 'gemini-2.0-flash:generateContent?key=' + S.gkey
+    _base + 'gemini-2.5-flash:generateContent?key=' + S.gkey
   ];
   const url = _modelList[Math.min(_attempt-1, _modelList.length-1)];
   const r = await fetch(url,
@@ -1848,7 +1848,7 @@ async function gemFetch(sys, usr, mx, _attempt){
   const body={contents:[{parts:[{text:usr}]}],generationConfig:{maxOutputTokens:mx,temperature:0.45}};
   if(sys) body.systemInstruction={parts:[{text:sys}]};
   const base='https://generativelanguage.googleapis.com/v1beta/models/';
-  const models=[GM_PRIMARY, GM_FALLBACK, 'gemini-2.0-flash'];
+  const models=[GM_PRIMARY, GM_FALLBACK, 'gemini-2.5-flash'];
   const url=base+models[Math.min(_attempt-1,models.length-1)]+':generateContent?key='+S.gkey;
   const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!r.ok){
