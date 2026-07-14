@@ -1088,18 +1088,34 @@ async function aiCheckSpelling(){
   script = normalizeApostrophes(script);
   if (btn) { btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Checking spelling…'; }
   try{
-    var prompt = 'You are an IELTS listening script proofreader. Return the script with ONLY these fixes applied:\n'
-      + '1. Fix ALL spelling errors.\n'
-      + '2. Fix apostrophes: every contraction and possessive MUST use the standard straight apostrophe \' (U+0027).\n'
-      + '   Examples: don\'t, it\'s, I\'m, she\'s, they\'re, Mark\'s, world\'s.\n'
-      + '   Replace any curly/smart apostrophes (\u2018 \u2019 \u02BC) with straight apostrophe \'.\n'
-      + '3. Fix capitalization (first word of sentence, proper nouns).\n'
-      + 'Do NOT change wording, do NOT split into sentences, do NOT add explanations or markdown.\n'
-      + 'Return ONLY the corrected script as plain text, preserving the original paragraph structure.\n\n'
-      + 'Script:\n' + script;
-    var raw = await callGeminiLis(prompt, 4096);
+    var prompt = 'TASK: You are a text corrector. I will give you a script. You must return the EXACT SAME script text, word-for-word, with ONLY these mechanical fixes:\n'
+      + '- Fix spelling mistakes\n'
+      + '- Convert curly apostrophes (\u2018 \u2019 \u02BC) to straight apostrophe \' (U+0027)\n'
+      + '- Fix capitalization of the first word of each sentence and proper nouns\n\n'
+      + 'ABSOLUTE RULES:\n'
+      + '1. Return the FULL script text exactly as given, start to finish. Do NOT shorten, summarize, or omit any part.\n'
+      + '2. Do NOT describe your changes. Do NOT write things like \'"Yoga" -> capitalized\' or \'"Monday" -> fixed\'.\n'
+      + '3. Do NOT output a list. Do NOT number anything. Do NOT split into separate lines per sentence.\n'
+      + '4. Keep the original paragraph breaks (blank lines between paragraphs).\n'
+      + '5. Output ONLY the corrected running text, nothing else — no preamble, no markdown, no explanation.\n\n'
+      + 'EXAMPLE:\n'
+      + 'INPUT: "yoga is good. we teach it on mondays. childern love it."\n'
+      + 'CORRECT OUTPUT: "Yoga is good. We teach it on Mondays. Children love it."\n'
+      + 'WRONG OUTPUT (never do this): "Yoga -> capitalized. Mondays -> capitalized. childern -> children."\n\n'
+      + 'Now correct this script and return the full corrected text:\n\n' + script;
+    var raw = await callGeminiLis(prompt, 8192);
     var corrected = normalizeApostrophes(String(raw).trim());
     if (!corrected) throw new Error('AI trả về rỗng');
+    // ── Guard: phát hiện AI trả về danh sách thay đổi thay vì script ──
+    // Nếu output chứa nhiều dấu "-> " hoặc "→ " (dấu hiệu AI liệt kê thay đổi) → bỏ AI,
+    // dùng thẳng script gốc (chỉ normalize apostrophe) để KHÔNG BAO GIỜ mất chữ.
+    var arrowCount = (corrected.match(/->|\u2192/g) || []).length;
+    var looksLikeChangeList = arrowCount >= 3 && corrected.length < script.length * 0.8;
+    if (looksLikeChangeList) {
+      console.warn('AI trả về danh sách thay đổi — dùng script gốc thay thế');
+      corrected = normalizeApostrophes(script);
+      toast('⚠️ AI trả về sai định dạng — dùng script gốc, chỉ chia câu.','info');
+    }
     App._spellChecked = true;   // flag: script đã qua AI spellcheck — startSession() sẽ không chặn nữa
     _splitSentences = smartSplit(corrected);   // chia câu bằng regex (miễn phí) trên bản đã sửa
     renderSplitPreview(_splitSentences);

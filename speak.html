@@ -1138,6 +1138,28 @@ function gasCall(action,payload){
   });
 }
 
+// ── POST version — dùng cho payload LỚN (saveResult) tránh vượt giới hạn URL của JSONP ──
+// JSONP nhét toàn bộ payload vào URL (GET). Với resultsJSON + reportText dài (>8000 ký tự),
+// URL bị cắt → GAS nhận payload hỏng → KHÔNG LƯU ĐƯỢC. POST không có giới hạn này.
+// GAS dùng "Content-Type: text/plain" để tránh CORS preflight (GAS không trả CORS headers).
+async function gasPost(action, payload){
+  const body = JSON.stringify({
+    action: action,
+    payload: payload || {},
+    sessionToken: S.tok || ''
+  });
+  const r = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: body,
+    redirect: 'follow'
+  });
+  if (!r.ok) throw new Error('POST failed: HTTP ' + r.status);
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch(e){ throw new Error('Invalid JSON response: ' + text.substring(0,200)); }
+}
+
 // ── GEMINI REST — fetch-based, clean errors, auto-retry on 429 ────────
 async function gem(sys, usr, mx, _attempt) {
   mx = mx || 1024; _attempt = _attempt || 1;
@@ -1759,7 +1781,7 @@ async function saveToGASAsync(mode,results,report,durationSec,retryCount){
     retryCount:retryCount||0,questionsJSON:JSON.stringify(qArr),resultsJSON:JSON.stringify(rArr),
     reportText:(report||'').substring(0,4000)
   };
-  const res=await gasCall('speak.saveResult',payload);
+  const res=await gasPost('speak.saveResult',payload);
   if(!res||!res.success)throw new Error(res?.error||'Save failed');
   return res;
 }
@@ -2730,7 +2752,18 @@ function saveToGAS(mode, results, report, durationSec, retryCount) {
     resultsJSON:    JSON.stringify(rArr),
     reportText:     (report||'').substring(0, 4000)
   };
-  gasCall('speak.saveResult', payload).catch(e => console.warn('speak.saveResult failed:', e));
+  // Retry 3 lần (đợi 2s giữa mỗi lần) — không nuốt lỗi âm thầm như trước
+  (async function(){
+    for(let at=0;at<3;at++){
+      try{
+        const res=await gasPost('speak.saveResult', payload);
+        if(res&&res.success) return;
+      }catch(e){ console.warn('saveToGAS attempt '+(at+1)+':',e); }
+      if(at<2) await new Promise(r=>setTimeout(r,2000));
+    }
+    console.error('saveToGAS thất bại sau 3 lần thử');
+    try{toast('⚠️ Không lưu được kết quả — kiểm tra mạng','error',6000);}catch(_){}
+  })();
 }
 
 // ── RENDER RESULTS ─────────────────────────────────────────────────────
