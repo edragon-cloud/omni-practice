@@ -1131,8 +1131,25 @@ function normalizeApostrophes(text){
 }
 function smartSplit(text){
   text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-  var raw=text.match(/[^.!?]+[.!?]+(?:[\s\n]|$)|[^.!?\n]+(?:\n|$)/g)||[text];
-  return raw.map(function(s){return s.trim();}).filter(function(s){return s.length>2;});
+  // ── Bảo vệ các dấu chấm KHÔNG phải kết thúc câu bằng placeholder tạm ──
+  // Sau khi tách xong sẽ khôi phục lại. Tránh tách sai ở: số thập phân, giá tiền,
+  // giờ (8.20 p.m.), viết tắt (Mr. Dr. p.m. a.m. e.g. i.e. U.S.), năm trong ngoặc.
+  var DOT='\u0001';  // placeholder không xuất hiện trong text thường
+  var protectedText=text
+    // Số thập phân / giá tiền / giờ: chữ số . chữ số  → 7.20, 19.99, 8.20
+    .replace(/(\d)\.(\d)/g, '$1'+DOT+'$2')
+    // Viết tắt phổ biến có dấu chấm (giữ nguyên dấu chấm)
+    .replace(/\b(Mr|Mrs|Ms|Dr|Prof|St|Ave|Rd|Blvd|Jr|Sr|vs|etc|e\.g|i\.e|a\.m|p\.m|No|Vol|Fig|Inc|Ltd|Co)\./gi,
+             function(m){ return m.replace(/\./g, DOT); })
+    // Initials & acronyms dạng A.B.C. hoặc U.S.A.
+    .replace(/\b([A-Z])\.(?=[A-Z]\.)/g, '$1'+DOT)
+    // p.m / a.m viết liền không space sau: 8.20p.m.
+    .replace(/([ap])\.(m)\b/gi, '$1'+DOT+'$2');
+  // ── Tách câu: kết thúc bằng . ! ? theo sau bởi space/xuống dòng/hết chuỗi ──
+  var raw=protectedText.match(/[^.!?]+[.!?]+(?:["'\u201D\u2019)]*)(?:[\s\n]|$)|[^.!?\n]+(?:\n|$)/g)||[protectedText];
+  return raw
+    .map(function(s){ return s.split(DOT).join('.').trim(); })  // khôi phục dấu chấm đã bảo vệ
+    .filter(function(s){ return s.length>2; });
 }
 function renderSplitPreview(sents){
   document.getElementById('split-count').textContent=sents.length;
