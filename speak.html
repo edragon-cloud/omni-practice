@@ -1572,8 +1572,22 @@ function retryRecording(){
 async function startAudioCapture(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':(MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm');
-    S.mr=new MediaRecorder(stream,{mimeType:mime});S.chunks=[];
+    // Dò định dạng theo thứ tự ưu tiên. Bao gồm cả ogg (Firefox) và mp4 (Safari/iOS).
+    // Nếu KHÔNG hỗ trợ cái nào → để browser tự chọn (không ép mimeType), vì ép 1 định dạng
+    // không hỗ trợ khiến MediaRecorder sinh file hỏng → Groq báo "could not process file".
+    const candidates=[
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg'
+    ];
+    const mime=candidates.find(t=>{
+      try{ return MediaRecorder.isTypeSupported(t); }catch(_){ return false; }
+    });
+    S.mr = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
+    S.chunks=[];
     S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};
     S.mr.stream=stream;S.mr.start(100);
   }catch(e){
@@ -1608,15 +1622,10 @@ async function stopAudioCaptureAndTranscribe(){
   S.lastAudioUrl=URL.createObjectURL(rec.blob);
   const idx=S.idx;
   if(S.recs[idx])S.recs[idx]._audioBlob=rec.blob,S.recs[idx]._audioMime=rec.mime;
-  document.getElementById('rec-st').textContent='Đang phiên âm (Gemini)…';
+  document.getElementById('rec-st').textContent='Đang phiên âm…';
   try{
-    const b64=await new Promise((res,rej)=>{
-      const rd=new FileReader();
-      rd.onloadend=()=>res(rd.result.split(',')[1]);
-      rd.onerror=rej;
-      rd.readAsDataURL(rec.blob);
-    });
-    const result=await transcribeAudio(b64,rec.mime);
+    // Truyền thẳng Blob — không cần vòng base64 (tiết kiệm RAM, tránh hỏng data file lớn)
+    const result=await transcribeAudio(rec.blob,rec.mime);
     const transcriptText=typeof result==='string'?result:result.text;
     S.curAnswer=(S.curAnswer+' '+transcriptText).trim();
     // Lưu word timestamps cho hiển thị transcript
@@ -1624,7 +1633,7 @@ async function stopAudioCaptureAndTranscribe(){
     document.getElementById('ptt-interim').textContent=S.curAnswer;
     return true;
   }catch(e){
-    toast('Lỗi phiên âm: '+e.message,'error',5000);
+    toast('Lỗi phiên âm: '+e.message,'error',6000);
     return false;
   }
 }
@@ -1814,50 +1823,82 @@ document.addEventListener('keydown',function(e){
 //   tính theo từng em, không còn lo nghẽn khi cả lớp luyện cùng lúc.
 // - Gemini được rảnh tay hoàn toàn cho việc chấm điểm (việc nó giỏi nhất).
 // Nhận thẳng Blob (không cần chuyển base64 — multipart/form-data hiệu quả hơn).
-async function transcribeAudio(base64, mime){
-  if(!S.groqKey) throw new Error('Chưa có Groq API key — vui lòng nhập ở trang chủ Fluentalk');
-  // base64 đầu vào (tương thích chữ ký cũ) → chuyển lại thành Blob cho FormData
-  const byteChars = atob(base64);
-  const byteNumbers = new Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-  const blob = new Blob([new Uint8Array(byteNumbers)], {type: mime||'audio/webm'});
-  const ext = (mime||'').includes('mp4') ? 'm4a' : 'webm';
+// Map mime thực tế của MediaRecorder → đuôi file Groq/Whisper chấp nhận.
+// Groq hỗ trợ: flac, mp3, mp4, mpeg, mpga, m4a, ogg, opus, wav, webm.
+// QUAN TRỌNG: đặt sai đuôi (vd file OGG mà đặt .webm) → Groq báo
+// "could not process file - is it a valid media file?" dù file hoàn toàn hợp lệ.
+function _mimeToExt(mime){
+  const m=String(mime||'').toLowerCase();
+  if(m.includes('webm'))            return 'webm';
+  if(m.includes('ogg')||m.includes('opus')) return 'ogg';
+  if(m.includes('mp4')||m.includes('m4a')||m.includes('aac')) return 'm4a';
+  if(m.includes('mpeg')||m.includes('mp3'))  return 'mp3';
+  if(m.includes('wav'))             return 'wav';
+  if(m.includes('3gpp')||m.includes('3gp'))  return '3gp';
+  if(m.includes('flac'))            return 'flac';
+  return 'webm';   // mặc định — hầu hết trình duyệt desktop
+}
 
-  const fd = new FormData();
-  fd.append('file', blob, 'answer.'+ext);
-  fd.append('model', 'whisper-large-v3-turbo');
-  fd.append('language', 'en');
-  fd.append('response_format', 'verbose_json');   // trả word-level timestamps
-  fd.append('temperature', '0');
-  fd.append('timestamp_granularities[]', 'word');
-  // Chống hallucination: KHÔNG cho Whisper đoán/thêm từ — chỉ ghi đúng âm nghe được
-  fd.append('prompt', 'Transcribe exactly what is spoken. Do not add, predict, or correct any words. If unclear, leave as heard.');
+// Nhận Blob (ưu tiên) hoặc base64 (tương thích chữ ký cũ).
+// Truyền thẳng Blob giúp tránh vòng base64 → atob (tốn RAM, dễ hỏng data với file lớn).
+async function transcribeAudio(input, mime){
+  if(!S.groqKey && !(S._sharedGroqKeys||[]).length)
+    throw new Error('Chưa có Groq API key — vui lòng nhập ở trang chủ Fluentalk');
+  let blob;
+  if(input instanceof Blob){
+    blob=input;
+    mime=mime||blob.type;
+  }else{
+    const byteChars=atob(input);
+    const byteNumbers=new Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++) byteNumbers[i]=byteChars.charCodeAt(i);
+    blob=new Blob([new Uint8Array(byteNumbers)],{type:mime||'audio/webm'});
+  }
+  // Guard: file rỗng/quá nhỏ → Groq chắc chắn báo "could not process file".
+  // Báo lỗi rõ ràng cho SV thay vì để Groq trả lỗi khó hiểu.
+  if(!blob || blob.size<1200)
+    throw new Error('Bản ghi trống hoặc quá ngắn — hãy giữ nút ghi âm lâu hơn rồi thử lại');
+
+  const ext=_mimeToExt(mime);
+
+  function _buildForm(){
+    const fd=new FormData();
+    fd.append('file', blob, 'answer.'+ext);
+    fd.append('model', 'whisper-large-v3-turbo');
+    fd.append('language', 'en');
+    fd.append('response_format', 'verbose_json');   // trả word-level timestamps
+    fd.append('temperature', '0');
+    fd.append('timestamp_granularities[]', 'word');
+    // Chống hallucination: KHÔNG cho Whisper đoán/thêm từ — chỉ ghi đúng âm nghe được
+    fd.append('prompt', 'Transcribe exactly what is spoken. Do not add, predict, or correct any words. If unclear, leave as heard.');
+    return fd;
+  }
 
   const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + (S.groqKey || (S._sharedGroqKeys||[])[0] || '') },
-    body: fd
+    body: _buildForm()
   });
   if (!r.ok) {
-    // Nếu key riêng lỗi, thử shared key
+    // Key riêng hết quota (429) → thử lần lượt các shared key
     if(r.status===429 && S._sharedGroqKeys && S._sharedGroqKeys.length){
       for(const sk of S._sharedGroqKeys){
         if(sk===S.groqKey) continue;
-        const fd2=new FormData();
-        fd2.append('file',blob,'answer.'+ext);
-        fd2.append('model','whisper-large-v3-turbo');
-        fd2.append('language','en');
-        fd2.append('response_format','verbose_json');
-        fd2.append('temperature','0');
-        fd2.append('timestamp_granularities[]','word');
-        fd2.append('prompt','Transcribe exactly what is spoken. Do not add, predict, or correct any words.');
-        const r2=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{'Authorization':'Bearer '+sk},body:fd2});
+        const r2=await fetch('https://api.groq.com/openai/v1/audio/transcriptions',
+          {method:'POST',headers:{'Authorization':'Bearer '+sk},body:_buildForm()});
         if(r2.ok){const j2=await r2.json();return {text:(j2.text||'').trim(),words:j2.words||[]};}
       }
     }
     const e = await r.json().catch(()=>({}));
-    const msg = e.error?.message || ('Groq lỗi ' + r.status);
-    throw new Error(msg);
+    const rawMsg = e.error?.message || ('Groq lỗi ' + r.status);
+    // Dịch lỗi kỹ thuật của Groq sang thông báo SV hiểu được
+    if(/could not process file|valid media file|invalid file format/i.test(rawMsg)){
+      console.error('[transcribeAudio] Groq từ chối file:', {mime, ext, size:blob.size, rawMsg});
+      throw new Error('Không đọc được file ghi âm (định dạng '+(mime||'?')+', '+Math.round(blob.size/1024)+'KB). Hãy ghi âm lại — nếu vẫn lỗi, thử trình duyệt Chrome.');
+    }
+    if(r.status===429) throw new Error('Groq hết lượt dùng — đợi ít phút rồi thử lại');
+    if(r.status===401) throw new Error('Groq API key không hợp lệ — kiểm tra lại key');
+    throw new Error(rawMsg);
   }
   const j = await r.json();
   return {text:(j.text||'').trim(), words:j.words||[]};
@@ -1950,7 +1991,10 @@ async function submitAll(){
   try{
     for(let i=0;i<answered.length;i++){
       gStep(`Transcribing Q${i+1}/${answered.length}…`);
-      const tResult = await transcribeAudio(answered[i].audioBase64, answered[i].mimeType||'audio/webm');
+      // Ưu tiên Blob gốc (nếu còn trong bộ nhớ), fallback base64
+      const src = answered[i]._audioBlob || answered[i].audioBase64;
+      const srcMime = answered[i]._audioMime || answered[i].mimeType || 'audio/webm';
+      const tResult = await transcribeAudio(src, srcMime);
       answered[i].studentAnswer = typeof tResult==='string'?tResult:tResult.text;
       if(tResult.words) answered[i]._wordTimestamps=tResult.words;
     }
@@ -2480,8 +2524,9 @@ async function liveToggleMic(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     _liveChunks=[];
-    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
-    _liveMr=new MediaRecorder(stream,{mimeType:mime});
+    const _liveCands=['audio/webm;codecs=opus','audio/webm','audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/ogg;codecs=opus','audio/ogg'];
+    const mime=_liveCands.find(t=>{try{return MediaRecorder.isTypeSupported(t);}catch(_){return false;}});
+    _liveMr = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
     _liveMr.ondataavailable=e=>{if(e.data.size>0)_liveChunks.push(e.data);};
     _liveMr.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
@@ -2491,9 +2536,8 @@ async function liveToggleMic(){
       setLiveState('Đang nhận diện giọng nói…');
       // Transcribe
       const blob=new Blob(_liveChunks,{type:mime});
-      const b64=await new Promise(res=>{const rd=new FileReader();rd.onloadend=()=>res(rd.result.split(',')[1]);rd.readAsDataURL(blob);});
       try{
-        const tRes=await transcribeAudio(b64, mime);
+        const tRes=await transcribeAudio(blob, _liveMr.mimeType||mime);
         const transcript=typeof tRes==='string'?tRes:tRes.text;
         if(transcript){
           addTranscriptLine('user', transcript);
