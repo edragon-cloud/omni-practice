@@ -431,7 +431,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
     <div id="setup-qs"></div>
     <!-- TOPIC -->
     <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);display:block;margin-bottom:6px">📌 Topic / Chủ đề</label>
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g600);display:block;margin-bottom:6px">📌 Topic / Chủ đề <span style="color:var(--red,#dc2626)">*</span> <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--g500,#888)">— bắt buộc, để ghi nhận số lần luyện</span></label>
       <input id="topic-inp" type="text" placeholder="Vd: Hometown, Technology, Education…" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:14px;font-family:var(--f);outline:none" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--g200)'">
     </div>
     <!-- Mode selector: Record (graded later) vs Live (real-time voice) -->
@@ -1362,7 +1362,22 @@ function setSetupMode(m){
 async function startFromSetup(){
   const qs=collectQs(S.mode);
   if(!qs.length){toast('Vui lòng nhập ít nhất 1 câu hỏi','error');return;}
-  S.topic=(document.getElementById('topic-inp')||{value:''}).value.trim()||'';
+  // ── Topic BẮT BUỘC ──────────────────────────────────────────────
+  // Không có topic thì GV không thể biết SV luyện chủ đề nào / mấy lần.
+  const ti=document.getElementById('topic-inp');
+  const topic=(ti&&ti.value||'').trim();
+  if(topic.length<2){
+    toast('Vui lòng nhập tên Topic trước khi luyện (vd: Hometown, Colours…)','error',4000);
+    if(ti){
+      ti.style.borderColor='var(--red,#dc2626)';
+      ti.focus();
+      ti.scrollIntoView({behavior:'smooth',block:'center'});
+      // Xoá viền đỏ ngay khi SV bắt đầu gõ
+      ti.addEventListener('input',function _clr(){ ti.style.borderColor='var(--g200)'; ti.removeEventListener('input',_clr); });
+    }
+    return;
+  }
+  S.topic=topic;
   // Live mode for Part 1/2/3/full — pass questions to Gemini Live as examiner script
   if(_setupMode==='live'||S.mode==='ielts-live'){
     S.liveIeltQs=qs;
@@ -1392,6 +1407,9 @@ async function startForecast(){
   if(!needGroqKey()) return;
   const n=parseInt(document.getElementById('fc-count').value)||5;
   const picked=lines.sort(()=>Math.random()-.5).slice(0,n).map(q=>({question:q,keywords:[],partLabel:''}));
+  // Forecast không có ô topic riêng — TRƯỚC ĐÂY không gán S.topic nên dính topic
+  // còn sót của phiên luyện trước đó. Gán nhãn có ngày để GV phân biệt được.
+  S.topic='Forecast '+new Date().toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
   S.mode='forecast';launch('forecast',picked);
 }
 
