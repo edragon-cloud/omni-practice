@@ -1665,23 +1665,47 @@ async function finishSession(){
   SS('S-grading');document.getElementById('g-steps').innerHTML='';
 
   try{
-  // ── STEP 1: Batch chấm FC/LR/GRA với Gemini (1 call) ──
-  gStep('Đang chấm điểm…');
-  try{
-    const qaBlock=answered.map((r,i)=>{
-      const kw=(r.keywords||[]).join(', ');
-      return `Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer}"${kw?'\nKeywords: '+kw:''}`;
-    }).join('\n\n');
-    const batchPrompt=buildBatchGradePrompt(qaBlock, answered.length);
-    const rawGrade=await gemFetch('You are a certified IELTS Speaking examiner. Return ONLY valid JSON array.', batchPrompt, Math.min(1500*answered.length, 6000));
-    const cleanGrade=rawGrade.replace(/```json|```/g,'').trim();
-    const si=cleanGrade.indexOf('['),ei=cleanGrade.lastIndexOf(']')+1;
-    if(si!==-1&&ei>si){
-      const grades=JSON.parse(cleanGrade.substring(si,ei));
-      grades.forEach((g,i)=>{if(answered[i])Object.assign(answered[i],g);});
-    }
-  }catch(eg){console.warn('Batch grade failed:',eg);toast('Chấm điểm lỗi: '+eg.message,'error',5000);}
-  gStep('Chấm điểm xong ✓',true);
+  // ── LAYER 2: chỉ số local (0 token) ──
+  answered.forEach(r => { r._m = localMetrics(r.studentAnswer, r._wordTimestamps); });
+
+  // ── LAYER 3: quyết định câu nào thực sự cần Gemini ──
+  const { toGrade, reused, milestone } = decideGrading(answered);
+  if(reused.length){
+    gStep(`${reused.length} câu nói gần giống lần trước → dùng lại điểm cũ (tiết kiệm AI)`, true);
+  }
+
+  // ── LAYER 4: 1 call Gemini DUY NHẤT — chấm điểm + báo cáo chung ──
+  let rpt = null;
+  if(toGrade.length){
+    gStep(milestone ? 'Mốc kiểm tra — đang chấm lại toàn bộ…' : 'Đang chấm điểm…');
+    try{
+      const qaBlock = toGrade.map((r,i) => {
+        const kw = (r.keywords||[]).join(', ');
+        return `Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer}"\nSTATS: ${metricsLine(r._m)}${kw?'\nKeywords: '+kw:''}`;
+      }).join('\n\n');
+      const batchPrompt = buildBatchGradePrompt(qaBlock, toGrade.length);
+      // Output nén → cần ít token hơn nhiều so với schema cũ
+      const cap = Math.min(700*toGrade.length + 400, 4000);
+      const rawGrade = await gemFetch('IELTS Speaking examiner. Return ONLY valid JSON.', batchPrompt, cap);
+      const clean = rawGrade.replace(/```json|```/g,'').trim();
+      const si = clean.indexOf('{'), ei = clean.lastIndexOf('}')+1;
+      if(si!==-1 && ei>si){
+        const parsed = JSON.parse(clean.substring(si,ei));
+        const arr = parsed.qs || parsed.questions || [];
+        arr.forEach((g,i) => {
+          if(!toGrade[i]) return;
+          const full = expandGrade(g);
+          Object.assign(toGrade[i], full);
+          cacheStore(toGrade[i].question, toGrade[i].studentAnswer, full);   // nạp cache cho lần retry sau
+        });
+        rpt = parsed.r || parsed.report || null;
+      }
+    }catch(eg){ console.warn('Batch grade failed:',eg); toast('Chấm điểm lỗi: '+eg.message,'error',5000); }
+    gStep('Chấm điểm xong ✓',true);
+  }
+
+  // ── Áp HARD CAP bằng code (deterministic, 0 token) ──
+  answered.forEach(r => applyLocalCaps(r, r._m));
 
   // ── STEP 2: Upload audio lên Drive ──
   gStep('Đang lưu ghi âm…');
@@ -1695,12 +1719,23 @@ async function finishSession(){
   }));
   gStep('Lưu ghi âm xong ✓',true);
 
-  // ── STEP 3: Báo cáo IELTS ──
+  // ── STEP 3: Báo cáo — DỰNG LOCAL, không gọi Gemini lần 2 ──
+  // Bảng điểm + số liệu tính bằng code; phần cần AI (cụm từ tốt / bản nâng cấp /
+  // lời khuyên) đã lấy kèm trong field "r" của call chấm điểm ở trên.
   gStep('Đang tạo báo cáo…');
-  const tb=answered.map((r,i)=>`Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer||'[no answer]'}"`).join('\n\n');
-  let report='';
-  try{report=await gemFetch('You are a professional IELTS examiner.',buildIELTSPrompt(tb),2000);}
-  catch(eRpt){report='### ⚠️ Báo cáo lỗi\n\n'+eRpt.message;}
+  const sessM = answered.reduce((acc,r) => {
+    const m = r._m||{};
+    acc.wordCount += m.wordCount||0; acc.fillerCount += m.fillerCount||0;
+    acc.fillerMidClause += m.fillerMidClause||0;
+    (m.uniqueWords!=null) && acc._u.push(m.uniqueWords);
+    (m.wpm) && acc._w.push(m.wpm);
+    (m.ttr) && acc._t.push(m.ttr);
+    return acc;
+  }, {wordCount:0, fillerCount:0, fillerMidClause:0, _u:[], _w:[], _t:[]});
+  sessM.uniqueWords = sessM._u.reduce((a,b)=>a+b,0);
+  sessM.wpm = sessM._w.length ? Math.round(sessM._w.reduce((a,b)=>a+b,0)/sessM._w.length) : 0;
+  sessM.ttr = sessM._t.length ? Math.round(sessM._t.reduce((a,b)=>a+b,0)/sessM._t.length*100)/100 : 0;
+  const report = buildLocalReport(answered, rpt, sessM);
   gStep('Báo cáo xong ✓',true);
 
   // ── STEP 4: Lưu kết quả (retry 3 lần nếu lỗi mạng) ──
@@ -1716,61 +1751,286 @@ async function finishSession(){
   }catch(e){gStep('Lỗi: '+e.message);toast('Lỗi: '+e.message,'error',6000);setTimeout(()=>SS('S-session'),3000);}
 }
 
-// ── BATCH GRADE PROMPT ──
+// ════════════════════════════════════════════════════════════════════
+// LAYER 2 — LOCAL ANALYSIS ENGINE (KHÔNG gọi AI)
+// Mọi chỉ số đếm được bằng code đều tính ở đây. Gemini KHÔNG bao giờ
+// phải đếm từ/filler/tốc độ nói → cắt được phần lớn rubric trong prompt.
+// ════════════════════════════════════════════════════════════════════
+// Từ đệm KHÔNG THỂ NHẦM — chỉ có nghĩa là ngập ngừng. Dùng để áp hard cap.
+const FILLER_RE = /\b(uh+m*|um+|er+m*|erm+|ah+|hmm+)\b/gi;
+// Từ ĐA NGHĨA — có thể là từ đệm, cũng có thể là nghĩa thật:
+//   "I LIKE it" (động từ) vs "it's, like, blue" (từ đệm)
+//   "WELL, my answer is…" (discourse marker tự nhiên, band 7+ vẫn dùng) vs "done WELL" (trạng từ)
+// KHÔNG áp hard cap cho nhóm này — chỉ đếm rồi báo Gemini tự phán theo ngữ cảnh,
+// vì phân biệt được hay không mới đúng là việc cần AI.
+const HEDGE_RE  = /\b(like|well|you know|i mean|sort of|kind of|basically|actually)\b/gi;
+
+function _words(t){ return String(t||'').toLowerCase().match(/\b[a-z']+\b/g) || []; }
+
+// Dice coefficient trên bigram — đo 2 transcript có "giống nhau" không.
+// O(n), nhạy với thứ tự từ hơn Jaccard đơn từ. 1.0 = giống hệt.
+function _bigrams(ws){
+  const out=[]; for(let i=0;i<ws.length-1;i++) out.push(ws[i]+' '+ws[i+1]); return out;
+}
+function similarity(a,b){
+  const A=_bigrams(_words(a)), B=_bigrams(_words(b));
+  if(!A.length||!B.length) return a.trim()===b.trim()?1:0;
+  const setB=new Map(); B.forEach(g=>setB.set(g,(setB.get(g)||0)+1));
+  let hit=0;
+  A.forEach(g=>{ const c=setB.get(g); if(c>0){hit++;setB.set(g,c-1);} });
+  return (2*hit)/(A.length+B.length);
+}
+
+// Toàn bộ chỉ số local cho 1 câu trả lời.
+// wordTimestamps = mảng {word,start,end} do Groq verbose_json trả về → có duration thật.
+function localMetrics(text, wordTimestamps){
+  const ws = _words(text);
+  const uniq = new Set(ws);
+  const fillers = String(text||'').match(FILLER_RE) || [];   // chỉ uh/um/er/ah/hmm
+  const hedges  = String(text||'').match(HEDGE_RE)  || [];   // like/well/you know… — chỉ tham khảo
+
+  // Filler giữa câu (đang tìm từ) vs đầu mệnh đề (discourse marker tự nhiên).
+  // Phân biệt được bằng regex → không cần AI phán đoán.
+  let midClause = 0;
+  const re = new RegExp(FILLER_RE.source, 'gi');
+  let m;
+  while((m = re.exec(text)) !== null){
+    const before = text.slice(Math.max(0, m.index-40), m.index).trim();
+    // Không đứng sau dấu câu và không ở đầu chuỗi → nằm giữa mệnh đề
+    if(before && !/[.,!?;:]$/.test(before)) midClause++;
+  }
+
+  // Chuỗi filler liên tiếp dài nhất ("uh um uh")
+  let longestRun = 0, run = 0;
+  ws.forEach(w=>{ if(/^(uh+m*|um+|er+m*|ah+|hmm+)$/.test(w)){run++;longestRun=Math.max(longestRun,run);} else run=0; });
+
+  // Cụm 3 từ lặp lại (dấu hiệu bí từ / học vẹt)
+  const tri = {}; let repeatedPhrases = 0;
+  for(let i=0;i<ws.length-2;i++){ const k=ws.slice(i,i+3).join(' '); tri[k]=(tri[k]||0)+1; }
+  Object.values(tri).forEach(c=>{ if(c>1) repeatedPhrases++; });
+
+  const sentences = (String(text||'').match(/[^.!?]+[.!?]+/g) || []).length || (ws.length?1:0);
+
+  // Duration + tốc độ nói lấy từ word timestamps của Groq (chính xác, miễn phí)
+  let durationSec = 0, wpm = 0;
+  if(Array.isArray(wordTimestamps) && wordTimestamps.length > 1){
+    const st = wordTimestamps[0].start, en = wordTimestamps[wordTimestamps.length-1].end;
+    if(typeof st==='number' && typeof en==='number' && en>st){
+      durationSec = Math.round((en-st)*10)/10;
+      wpm = Math.round(ws.length / (durationSec/60));
+    }
+  }
+
+  return {
+    wordCount: ws.length,
+    uniqueWords: uniq.size,
+    ttr: ws.length ? Math.round(uniq.size/ws.length*100)/100 : 0,  // type-token ratio = độ đa dạng từ vựng
+    sentences,
+    avgSentLen: sentences ? Math.round(ws.length/sentences) : 0,
+    fillerCount: fillers.length,          // uh/um/er/ah/hmm — dùng cho hard cap
+    fillerMidClause: midClause,
+    fillerLongestRun: longestRun,
+    fillerRate: ws.length ? Math.round(fillers.length/ws.length*1000)/10 : 0,  // %
+    hedgeCount: hedges.length,            // like/well/you know — KHÔNG hard cap, chỉ báo Gemini
+    repeatedPhrases,
+    durationSec,
+    wpm
+  };
+}
+
+// Nén metrics thành 1 dòng ngắn cho prompt (~25 token thay vì để Gemini tự đếm)
+function metricsLine(m){
+  const bits = [`${m.wordCount}w`, `${m.sentences}sent`, `TTR ${m.ttr}`,
+                `fillers ${m.fillerCount} (${m.fillerMidClause} mid-clause)`];
+  if(m.hedgeCount) bits.push(`${m.hedgeCount} hedge-words (judge in context: filler or real meaning?)`);
+  if(m.wpm) bits.push(`${m.wpm}wpm`);
+  if(m.repeatedPhrases) bits.push(`${m.repeatedPhrases} repeated 3-grams`);
+  return bits.join(' · ');
+}
+
+// ── HARD CAPS áp dụng LOCAL sau khi Gemini trả điểm ──
+// Các luật này thuần đếm → áp bằng code thì chính xác 100% và tốn 0 token.
+// Trước đây nằm trong prompt và phụ thuộc vào việc Gemini đếm đúng.
+function applyLocalCaps(rec, m){
+  const sc = rec.scores; if(!sc) return;
+  const cap = (k, v, why) => {
+    if(sc[k] && parseFloat(sc[k].score) > v){
+      sc[k].score = v;
+      sc[k].comment = (sc[k].comment||'') + ` [Tự động giới hạn ${v}: ${why}]`;
+    }
+  };
+  // FILLER PENALTY — luật gốc của thầy, nay chạy deterministic
+  if(m.fillerCount >= 5 || m.fillerLongestRun >= 2)      cap('fluency', 5.5, `${m.fillerCount} từ đệm`);
+  else if(m.fillerCount >= 3 || m.fillerMidClause >= 1)  cap('fluency', 6.0, `${m.fillerCount} từ đệm, ${m.fillerMidClause} giữa câu`);
+  // Câu trả lời quá ngắn không thể đạt fluency cao
+  if(m.sentences < 3 && m.wordCount < 40)                cap('fluency', 6.0, 'câu trả lời quá ngắn');
+  // Filler dày + câu vụn → connected speech kém
+  if(m.fillerRate >= 6 && m.avgSentLen < 9)              cap('pronunciation', 5.5, 'nhiều từ đệm, câu vụn');
+  // Từ vựng lặp nhiều → LR không thể cao
+  if(m.wordCount >= 30 && m.ttr < 0.45)                  cap('lexical', 5.5, `từ vựng lặp (TTR ${m.ttr})`);
+
+  // Tính lại overall sau khi cap
+  const vals = ['fluency','lexical','grammar','pronunciation']
+    .map(k => parseFloat(sc[k]?.score)||0).filter(v => v>0);
+  if(vals.length) rec.overall = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*2)/2;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LAYER 3 — DECISION ENGINE: có cần gọi Gemini không?
+// ════════════════════════════════════════════════════════════════════
+// Cache sống trên S nên tồn tại qua các lần retry (launch() không xoá S._gradeCache).
+// Mỗi entry: {q, text, metrics, grade}
+const SIM_THRESHOLD  = 0.92;   // ≥ mức này coi như "nói lại gần y hệt"
+const MILESTONE_EVERY = 5;     // cứ 5 lần luyện thì bắt buộc chấm tươi 1 lần
+
+function _cacheKey(question){ return String(question||'').trim().toLowerCase().slice(0,120); }
+
+// Trả về grade cũ nếu lần này nói gần giống hệt 1 lần trước → khỏi gọi AI.
+function cacheLookup(question, text){
+  if(!S._gradeCache) return null;
+  const key = _cacheKey(question);
+  const list = S._gradeCache[key];
+  if(!list || !list.length) return null;
+  let best = null, bestSim = 0;
+  list.forEach(e => { const s = similarity(e.text, text); if(s > bestSim){ bestSim = s; best = e; } });
+  if(best && bestSim >= SIM_THRESHOLD) return { grade: best.grade, sim: bestSim };
+  return null;
+}
+function cacheStore(question, text, grade){
+  if(!S._gradeCache) S._gradeCache = {};
+  const key = _cacheKey(question);
+  if(!S._gradeCache[key]) S._gradeCache[key] = [];
+  S._gradeCache[key].push({ text, grade: JSON.parse(JSON.stringify(grade)) });
+  if(S._gradeCache[key].length > 12) S._gradeCache[key].shift();   // giữ tối đa 12 bản/câu
+}
+
+// Quyết định cho TOÀN session: những câu nào cần gửi Gemini.
+// Trả về {toGrade:[...], reused:[...]}
+function decideGrading(answered){
+  const rc = S.retryCount || 0;
+  const milestone = (rc > 0) && (rc % MILESTONE_EVERY === 0);   // lần 6, 11, 16…
+  const toGrade = [], reused = [];
+  answered.forEach(r => {
+    const hit = cacheLookup(r.question, r.studentAnswer);
+    // Không có bản gần giống trong cache → bắt buộc gọi Gemini
+    if(!hit){ toGrade.push(r); return; }
+    // Mốc kiểm tra: chấm tươi lại — NHƯNG chỉ khi SV thực sự đổi cách nói.
+    // Nếu nói y hệt (sim ≥ .98) thì điểm cũ vẫn đúng, chấm lại chỉ tốn token vô ích.
+    if(milestone && hit.sim < 0.98){ toGrade.push(r); return; }
+    Object.assign(r, hit.grade);
+    r._fromCache = true; r._cacheSim = hit.sim;
+    reused.push(r);
+  });
+  return { toGrade, reused, milestone };
+}
+
+// ── BATCH GRADE PROMPT (Layer 4) ──────────────────────────────────
+// Nguyên tắc: Gemini CHỈ nhận thứ cần suy luận. Mọi con số đã tính sẵn ở Layer 2.
+// Rubric rút gọn từ ~1100 → ~160 token: bỏ toàn bộ band descriptor chuẩn (Gemini đã
+// thuộc IELTS rubric sẵn), chỉ giữ phần HIỆU CHỈNH riêng của mình (anti-inflation +
+// các luật cap cần suy luận). Luật cap thuần đếm đã chuyển sang applyLocalCaps().
 function buildBatchGradePrompt(qaBlock,count){
   return `${gradeRubric()}
 
-Grade ALL ${count} answers below. The transcripts are produced by Whisper STT — hesitation fillers (uhm, ah, uh, like, you know, well, I mean) are preserved EXACTLY as spoken. Use them to evaluate Fluency & Pronunciation accurately.
+Grade the ${count} answer(s) below. STATS are pre-computed — do NOT recount, just interpret.
 
 ${qaBlock}
 
-Return ONLY raw JSON array of ${count} objects (no markdown):
-[{"overall":6.0,"scores":{"fluency":{"score":6.0,"comment":"tiếng Việt"},"lexical":{"score":6.0,"comment":"tiếng Việt"},"grammar":{"score":6.0,"comment":"tiếng Việt"},"pronunciation":{"score":6.0,"comment":"tiếng Việt"}},"errors":[{"wrong":"exact substring","correct":"fixed","reason":"tiếng Việt"}],"suggestion":"tiếng Việt"}]
-Max 3 errors/question. "wrong" MUST be exact substring from student answer. Focus on grammar/vocabulary errors — pronunciation issues go in the pronunciation comment, not errors array.`;
+Return ONLY this JSON (no markdown). Keys are short — follow exactly:
+{"qs":[{"b":6,"f":[6,"nhận xét ngắn tiếng Việt"],"l":[6,"..."],"g":[5.5,"..."],"p":[5.5,"..."],"e":[["exact wrong substring","correction","lý do tiếng Việt"]],"s":"gợi ý cải thiện tiếng Việt"}],"r":{"good":["cụm từ dùng tốt"],"weak":"điểm yếu lớn nhất, tiếng Việt","up":"viết lại câu yếu nhất theo chuẩn Band 8","adv":"lời khuyên luyện tập tiếng Việt"}}
+
+qs = ${count} object, đúng thứ tự câu hỏi.
+b=overall, f=fluency, l=lexical, g=grammar, p=pronunciation. Mỗi tiêu chí = [điểm, nhận xét].
+e = tối đa 3 lỗi ngữ pháp/từ vựng, "exact wrong substring" PHẢI copy nguyên văn từ câu trả lời.
+r = báo cáo chung cho cả session (1 object duy nhất).`;
 }
 
-function gradeRubric(){return `IELTS SPEAKING BAND DESCRIPTORS (STRICT — no inflation):
+function gradeRubric(){return `IELTS Speaking examiner. Students = Vietnamese university EFL.
+Score FC/LR/GRA/P in 0.5 steps 4.0-9.0. b = mean of 4, rounded to 0.5.
+CALIBRATION (quan trọng nhất): typical student = 4.5-6.0. 6.5 = above average. 7.0 = genuinely good. 8.0+ = near-native, rare. When torn between two bands, pick the LOWER.
+LR: award 7+ only for natural ROTATION of phrasal verbs / collocations / idioms across the answer. Forced or memorized-sounding vocab -> max 6.5.
+GRA: award 7+ only for accurate tense shifts between sentences AND correct complex syntax (relative clause / conditional / passive). Repeated S-V agreement or article errors -> max 6.0.
+P: inferred from the Whisper transcript. Evidence = phonetic substitutions (e.g. "tree" for "three"), Vietnamese L1 signs (dropped final consonants, th-sounds, vowel length).
+The 4 criteria MUST differ — identical scores across all 4 is always wrong.
+Transcript keeps fillers verbatim; filler counts are in STATS and are already penalised downstream — judge only what fillers reveal about language-searching.`;}
 
-FLUENCY & COHERENCE (FC):
-Band 7+: Speaks at length without noticeable effort; uses range of connectives and discourse markers; self-corrects successfully.
-Band 6: Willing to speak at length; some hesitation/repetition; uses basic connectives.
-Band 5: Maintains flow despite hesitation; limited discourse markers; may not always be coherent.
-Band 4: Frequent hesitation; short or incomplete utterances; coherence often lost.
-FILLER PENALTY (HARD RULE): Count ALL fillers: "uhm","uh","ah","like","you know","I mean","well" in transcript.
-  - 1-2 fillers, mostly at clause start → no penalty (natural discourse markers)
-  - 3-4 fillers OR any filler mid-sentence while searching for words → cap FC ≤ 6.0
-  - 5+ fillers OR repeated self-corrections → cap FC ≤ 5.5
-Short answers (<3 sentences for Part 1) → cap FC ≤ 6.0 regardless of quality.
+// Giãn JSON nén của Gemini về đúng shape mà renderResults/saveToGAS đang dùng.
+// Chấp nhận CẢ shape nén (b/f/l/g/p/e/s) lẫn shape cũ (overall/scores/errors/suggestion)
+// để lỡ Gemini trả về kiểu cũ thì vẫn không vỡ.
+function expandGrade(o){
+  if(!o || typeof o!=='object') return {};
+  if(o.scores || o.overall!==undefined){          // đã là shape cũ → giữ nguyên
+    return o;
+  }
+  const pair = v => Array.isArray(v)
+    ? { score: parseFloat(v[0])||0, comment: String(v[1]||'') }
+    : { score: parseFloat(v)||0, comment: '' };
+  return {
+    overall: parseFloat(o.b)||0,
+    scores: { fluency:pair(o.f), lexical:pair(o.l), grammar:pair(o.g), pronunciation:pair(o.p) },
+    errors: (o.e||[]).map(e => Array.isArray(e)
+      ? { wrong:String(e[0]||''), correct:String(e[1]||''), reason:String(e[2]||'') }
+      : e),
+    suggestion: String(o.s||'')
+  };
+}
 
-LEXICAL RESOURCE (LR):
-Band 7+: Vocabulary used flexibly; natural use of phrasal verbs, collocations, and idioms across response.
-Band 6: Adequate range; attempts less common vocabulary with some errors.
-Band 5: Limited range; paraphrases; errors may cause difficulty.
-ALTERNATION RULE: Score 7.0+ requires natural ROTATION of vocabulary features (not just one advanced word). If vocabulary sounds memorized or forced → cap ≤ 6.5. Basic/repetitive vocabulary → cap ≤ 5.5.
+// ── BÁO CÁO DỰNG LOCAL (thay cho call Gemini thứ 2) ───────────────
+// Số liệu + bảng điểm hoàn toàn tính được bằng code. Phần cần AI (cụm từ tốt,
+// bản nâng cấp Band 8, lời khuyên) đã nằm trong field "r" của cùng 1 call.
+function buildLocalReport(answered, r, sessionMetrics){
+  const avg = k => {
+    const v = answered.map(x => parseFloat(x.scores?.[k]?.score)||0).filter(x=>x>0);
+    return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*2)/2 : 0;
+  };
+  const oa = answered.map(x=>parseFloat(x.overall)||0).filter(x=>x>0);
+  const overall = oa.length ? Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2 : 0;
+  const cmt = k => answered.find(x=>x.scores?.[k]?.comment)?.scores[k].comment || '—';
+  const M = sessionMetrics || {};
+  r = r || {};
 
-GRAMMATICAL RANGE & ACCURACY (GRA):
-Band 7+: Mix of simple and complex structures; frequent error-free sentences; accurate tense shifts.
-Band 6: Some complex forms; errors sometimes impede.
-Band 5: Mostly basic forms; frequent errors but meaning clear.
-TENSE-SHIFT RULE: Score 7.0+ requires demonstrated tense variation AND complex syntax (relative clauses, conditionals, passive). Repeated S-V agreement or article errors → cap ≤ 6.0.
-
-PRONUNCIATION (from Whisper transcript — infer from evidence):
-CRITICAL: Whisper transcribes what it HEARS phonetically. Use these signals to infer pronunciation quality:
-  - Whisper writes wrong words that SOUND LIKE the intended word (e.g., "tree" instead of "three", "veri" → "very") → phonological errors → lower score
-  - Fillers like "uhm/uh/ah" indicate hesitation in connected speech → affects fluency & prosody
-  - Clean transcript with varied sentence rhythm → likely good prosody → higher score
-  - Vietnamese L1 typical issues: final consonants (d/t/p/k), th-sounds, vowel length → look for signs in transcript
-Band 7+: Easy to understand throughout; varied prosody; minimal L1 interference visible in transcript.
-Band 6: Mostly understandable; some L1 influence detectable.
-Band 5: Understandable but noticeable L1 patterns; some phonological errors visible in transcript.
-Band 4: Frequent errors cause difficulty; many signs of L1 interference.
-FILLER-PRONUNCIATION LINK: Heavy use of "uhm/uh" + short chunked sentences → likely poor connected speech → pronunciation ≤ 5.5.
-
-SCORING RULES:
-- 0.5 steps: 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0
-- overall = mean of 4 criteria, rounded to nearest 0.5
-- ANTI-INFLATION: Most Vietnamese university EFL students score 4.5-6.0. Band 6.5 = above average. Band 7.0 = genuinely good. Band 8+ = near-native (very rare). Band 9 = exceptional.
-- MUST differentiate criteria — awarding all 4 the same score is always wrong.`;}
+  const lines = [];
+  lines.push('### 📝 BÁO CÁO KẾT QUẢ IELTS SPEAKING');
+  lines.push(`**Dự đoán Band Score tổng: ${overall||'—'}**`);
+  // Minh bạch khi điểm được dùng lại — và nhắc SV rằng nói lại y hệt thì không tiến bộ
+  const cached = answered.filter(x => x._fromCache);
+  if(cached.length){
+    lines.push('');
+    lines.push(`> ⚠️ **${cached.length}/${answered.length} câu bạn nói gần giống hệt lần trước** (độ giống ~${Math.round(Math.max(...cached.map(x=>x._cacheSim||0))*100)}%) nên điểm giữ nguyên. Muốn lên band, hãy đổi cách diễn đạt: dùng từ vựng khác, thêm ví dụ cụ thể, hoặc nói dài hơn.`);
+  }
+  lines.push('');
+  lines.push('| Tiêu chí | Band | Phân tích |');
+  lines.push('| :--- | :---: | :--- |');
+  lines.push(`| **Fluency & Coherence** | ${avg('fluency')||'—'} | ${cmt('fluency')} |`);
+  lines.push(`| **Lexical Resource** | ${avg('lexical')||'—'} | ${cmt('lexical')} |`);
+  lines.push(`| **Grammar Range** | ${avg('grammar')||'—'} | ${cmt('grammar')} |`);
+  lines.push(`| **Pronunciation** | ${avg('pronunciation')||'—'} | ${cmt('pronunciation')} |`);
+  lines.push('');
+  lines.push('### 📊 SỐ LIỆU BUỔI NÓI');
+  lines.push(`- **Tổng số từ:** ${M.wordCount||0} · **Từ khác nhau:** ${M.uniqueWords||0} · **Độ đa dạng từ vựng (TTR):** ${M.ttr||0}`);
+  lines.push(`- **Từ đệm (uh/um/er/ah):** ${M.fillerCount||0} lần${M.fillerMidClause?` — trong đó ${M.fillerMidClause} lần nằm giữa câu (dấu hiệu đang tìm từ)`:''}`);
+  if(M.wpm) lines.push(`- **Tốc độ nói:** ${M.wpm} từ/phút ${M.wpm<100?'(hơi chậm)':M.wpm>170?'(hơi nhanh)':'(hợp lý)'}`);
+  lines.push('');
+  lines.push('### 🛠 PHÂN TÍCH CHUYÊN SÂU');
+  if(r.good && r.good.length) lines.push(`- **Cụm từ dùng tốt:** ${r.good.join(' · ')}`);
+  const allErrs = answered.flatMap(x => x.errors||[]).slice(0,5);
+  if(allErrs.length){
+    lines.push('- **Lỗi cần sửa:**');
+    allErrs.forEach(e => lines.push(`  - ❌ ${e.wrong} → ✅ ${e.correct} — *${e.reason||''}*`));
+  }
+  if(r.weak) lines.push(`- **Vùng cần cải thiện nhất:** ${r.weak}`);
+  if(r.up){
+    lines.push('');
+    lines.push('### 🚀 BẢN NÂNG CẤP (BAND 8.0+)');
+    lines.push(r.up);
+  }
+  if(r.adv){
+    lines.push('');
+    lines.push('### 💡 LỜI KHUYÊN');
+    lines.push(r.adv);
+  }
+  return lines.join('\n');
+}
 
 // ── SAVE TO GAS (async + proper error) ──
 async function saveToGASAsync(mode,results,report,durationSec,retryCount){
