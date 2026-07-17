@@ -291,6 +291,23 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
   </div>
 </div>
 
+<!-- Modal: topic/câu hỏi đã luyện trước đây -->
+<div id="dup-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,15,20,.66);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px">
+  <div style="background:#fff;border-radius:18px;max-width:460px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.4)">
+    <div style="font-size:32px;margin-bottom:6px">📚</div>
+    <div style="font-family:var(--font-display,serif);font-size:1.3rem;font-weight:800;margin-bottom:6px">Topic này bạn đã luyện rồi</div>
+    <div id="dup-msg" style="font-size:13.5px;color:var(--g600,#555);line-height:1.6;margin-bottom:16px"></div>
+    <div style="background:var(--g100,#f5f5f5);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--g600,#555);line-height:1.6;margin-bottom:16px">
+      Hãy vào <strong>My History</strong> rồi bấm <strong>Retry</strong> ở topic đó — số lần luyện sẽ được cộng dồn đúng.
+      Tạo topic mới sẽ làm kết quả bị tách rời, giáo viên không thấy được tiến bộ của bạn.
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-purple" style="flex:1" onclick="dupGoHistory()">📚 Vào My History</button>
+      <button class="btn btn-ghost" onclick="dupClose()" style="border:1.5px solid var(--g200,#ddd)">Quay lại sửa</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════
      HOME
 ══════════════════════════════════════════════ -->
@@ -1254,10 +1271,10 @@ function pickSub(sub){
 
 // ── SETUP ─────────────────────────────────────────────────────────────
 const PCFG={
-  part1:{icon:'📝',title:'Part 1 Setup',n:5,isLive:false},
+  part1:{icon:'📝',title:'Part 1 Setup',n:4,isLive:false},   // mặc định 4 câu — thêm bằng nút "Add another question"
   part2:{icon:'🗣️',title:'Part 2 Setup',n:1,isLive:false},
   part3:{icon:'💡',title:'Part 3 Setup',n:4,isLive:false},
-  custom:{icon:'✍️',title:'Custom Questions',n:3,isLive:false},
+  custom:{icon:'✍️',title:'Custom Questions',n:4,isLive:false},
   full:{icon:'🎭',title:'Full Simulation Setup',n:0,isLive:false},
   'ielts-live':{icon:'🎙️',title:'IELTS Live Simulation',n:0,isLive:true},
 };
@@ -1307,9 +1324,14 @@ function buildIeltsLiveSetup(wrap){
 
 function mkQCard(prefix,idx,defQ,isLive){
   const key=prefix+'_'+idx;KW[key]=[];
+  // Ô câu hỏi để TRỐNG — SV tự nhập. Câu mẫu (nếu có) chỉ dùng làm PLACEHOLDER
+  // gợi ý định dạng, không phải nội dung thật, tránh việc SV luyện luôn câu mẫu.
+  const ph = defQ
+    ? 'Vd: ' + String(defQ).split('\n')[0].replace(/"/g,'&quot;').replace(/</g,'&lt;')
+    : 'Nhập câu hỏi…';
   const d=document.createElement('div');d.className='qcard';
   d.innerHTML=`<div class="qlbl">Question ${idx+1}</div>
-    <textarea class="qta" id="qt-${key}" rows="2" placeholder="Enter question…">${defQ}</textarea>`
+    <textarea class="qta" id="qt-${key}" rows="2" placeholder="${ph}"></textarea>`
     +(isLive?'':`<div class="kw-box">
       <div class="kw-lbl">💡 KEY WORDS <span>(từ muốn dùng khi nói)</span></div>
       <div class="kw-row"><input class="kw-inp" id="ki-${key}" type="text" placeholder="Nhập từ khoá + Enter"><button class="btn btn-gold btn-sm" onclick="addKW('${prefix}','${idx}')">+</button></div>
@@ -1386,20 +1408,34 @@ async function startFromSetup(){
   }
   if(!(await geminiPreflight())) return;   // check key chấm điểm TRƯỚC khi tập nói
   if(!needGroqKey()) return;               // check key transcribe (Groq)
-  // Fix #2: dò xem bộ câu hỏi này (đã chuẩn hoá) đã luyện trước đây chưa —
-  // tránh tạo topic trùng chỉ vì gõ khác chút (colors/colours...), backend so
-  // theo nội dung câu hỏi thật chứ không theo tên topic gõ tay.
+  // ── Chặn tạo topic trùng ──────────────────────────────────────────
+  // Backend so khớp MỜ: trùng tên topic HOẶC ≥60% câu hỏi giống → coi là đã luyện.
+  // (Trước đây so hash tuyệt đối nên lệch 1 từ là lọt, SV cứ thế tạo topic mới.)
+  // Không tự nhảy trang nữa — hiện modal để SV tự chọn.
   try{
-    const chk=await gasCall('speak.findExistingSession',{mode:S.mode,questions:qs});
+    const chk=await gasCall('speak.findExistingSession',{mode:S.mode,questions:qs,topic:topic});
     if(chk&&chk.success&&chk.exists){
-      toast('Topic này (câu hỏi giống) đã luyện '+(chk.retryCount+1)+' lần trước đây — vào My History để luyện tiếp',
-        'info',5000);
-      SS('S-history');loadSpeakHistory();
+      showDupModal(chk);
       return;
     }
   }catch(e){/* lỗi kiểm tra không nên chặn SV luyện tập — bỏ qua, luyện bình thường */}
   launch(S.mode,qs);
 }
+
+// ── Modal cảnh báo trùng topic ────────────────────────────────────
+function showDupModal(chk){
+  const why = chk.matchedBy==='topic'
+    ? `bạn đã có topic tên <strong>"${(chk.topic||'').replace(/</g,'&lt;')}"</strong>`
+    : `bộ câu hỏi này trùng <strong>${chk.overlapPct}%</strong> với topic <strong>"${(chk.topic||'').replace(/</g,'&lt;')}"</strong>`;
+  const times = (parseInt(chk.retryCount)||0)+1;
+  const band  = chk.overall ? ` · điểm cao nhất <strong>${chk.overall}</strong>` : '';
+  const el=document.getElementById('dup-msg');
+  if(el) el.innerHTML = `Theo lịch sử luyện tập, ${why} — đã luyện <strong>${times} lần</strong>${band}.`;
+  const m=document.getElementById('dup-modal');
+  if(m) m.style.display='flex';
+}
+function dupClose(){ const m=document.getElementById('dup-modal'); if(m) m.style.display='none'; }
+function dupGoHistory(){ dupClose(); SS('S-history'); loadSpeakHistory(); }
 async function startForecast(){
   const lines=document.getElementById('fc-bank').value.split('\n').map(l=>l.trim()).filter(Boolean);
   if(lines.length<2){toast('Nhập ít nhất 2 câu hỏi','error');return;}
