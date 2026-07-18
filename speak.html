@@ -663,6 +663,13 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       <div class="live-sum-row"><span class="live-sum-lbl">⏱ Duration</span><span class="live-sum-val" id="sum-dur">—</span></div>
       <div class="live-sum-row"><span class="live-sum-lbl">❓ Questions answered</span><span class="live-sum-val" id="sum-qs">—</span></div>
     </div>
+    <!-- ── PHÂN TÍCH FLUENCY — dựng 100% từ word timestamps của Groq, 0 token ── -->
+    <div class="card" id="flu-card" style="display:none">
+      <div class="sec-lbl" style="margin-bottom:12px">⚡ Phân tích độ trôi chảy</div>
+      <div id="flu-speed"></div>
+      <div id="flu-tips"></div>
+      <div id="flu-transcript"></div>
+    </div>
     <div class="card" id="rpt-card" style="display:none">
       <div class="sec-lbl" style="margin-bottom:12px">📋 Examiner's Report</div>
       <div class="rpt-box" id="rpt-body"></div>
@@ -1818,6 +1825,10 @@ const FILLER_RE = /\b(uh+m*|um+|er+m*|erm+|ah+|hmm+)\b/gi;
 // KHÔNG áp hard cap cho nhóm này — chỉ đếm rồi báo Gemini tự phán theo ngữ cảnh,
 // vì phân biệt được hay không mới đúng là việc cần AI.
 const HEDGE_RE  = /\b(like|well|you know|i mean|sort of|kind of|basically|actually)\b/gi;
+// Bản KHÔNG cờ /g, neo 2 đầu — dùng để test MỘT từ đơn lẻ.
+// BẮT BUỘC tách riêng: .test() trên regex có cờ /g sẽ tự đẩy lastIndex giữa các
+// lần gọi → kết quả đúng/sai xen kẽ. Đây là bẫy kinh điển của JS.
+const FILLER_TEST = /^(uh+m*|um+|er+m*|erm+|ah+|hmm+)$/i;
 
 function _words(t){ return String(t||'').toLowerCase().match(/\b[a-z']+\b/g) || []; }
 
@@ -1856,7 +1867,7 @@ function localMetrics(text, wordTimestamps){
 
   // Chuỗi filler liên tiếp dài nhất ("uh um uh")
   let longestRun = 0, run = 0;
-  ws.forEach(w=>{ if(/^(uh+m*|um+|er+m*|ah+|hmm+)$/.test(w)){run++;longestRun=Math.max(longestRun,run);} else run=0; });
+  ws.forEach(w=>{ if(FILLER_TEST.test(w)){run++;longestRun=Math.max(longestRun,run);} else run=0; });
 
   // Cụm 3 từ lặp lại (dấu hiệu bí từ / học vẹt)
   const tri = {}; let repeatedPhrases = 0;
@@ -1991,11 +2002,13 @@ Grade the ${count} answer(s) below. STATS are pre-computed — do NOT recount, j
 ${qaBlock}
 
 Return ONLY this JSON (no markdown). Keys are short — follow exactly:
-{"qs":[{"b":6,"f":[6,"nhận xét ngắn tiếng Việt"],"l":[6,"..."],"g":[5.5,"..."],"p":[5.5,"..."],"e":[["exact wrong substring","correction","lý do tiếng Việt"]],"s":"gợi ý cải thiện tiếng Việt"}],"r":{"good":["cụm từ dùng tốt"],"weak":"điểm yếu lớn nhất, tiếng Việt","up":"viết lại câu yếu nhất theo chuẩn Band 8","adv":"lời khuyên luyện tập tiếng Việt"}}
+{"qs":[{"b":6,"f":[6,"nhận xét ngắn tiếng Việt"],"l":[6,"..."],"g":[5.5,"..."],"p":[5.5,"..."],"e":[["exact wrong substring","correction","lý do tiếng Việt","Subject-Verb Agreement"]],"s":"gợi ý cải thiện tiếng Việt"}],"r":{"good":["cụm từ dùng tốt"],"weak":"điểm yếu lớn nhất, tiếng Việt","up":"viết lại câu yếu nhất theo chuẩn Band 8","adv":"lời khuyên luyện tập tiếng Việt"}}
 
 qs = ${count} object, đúng thứ tự câu hỏi.
 b=overall, f=fluency, l=lexical, g=grammar, p=pronunciation. Mỗi tiêu chí = [điểm, nhận xét].
-e = tối đa 3 lỗi ngữ pháp/từ vựng, "exact wrong substring" PHẢI copy nguyên văn từ câu trả lời.
+e = tối đa 3 lỗi ngữ pháp/từ vựng. Phần tử = [sai, đúng, lý do tiếng Việt, LOẠI LỖI].
+LOẠI LỖI chọn 1 trong: Subject-Verb Agreement | Verb Tense | Word Form | Article | Preposition | Plural | Word Choice | Sentence Structure.
+"sai" PHẢI copy nguyên văn từ câu trả lời.
 r = báo cáo chung cho cả session (1 object duy nhất).`;
 }
 
@@ -2023,13 +2036,174 @@ function expandGrade(o){
     overall: parseFloat(o.b)||0,
     scores: { fluency:pair(o.f), lexical:pair(o.l), grammar:pair(o.g), pronunciation:pair(o.p) },
     errors: (o.e||[]).map(e => Array.isArray(e)
-      ? { wrong:String(e[0]||''), correct:String(e[1]||''), reason:String(e[2]||'') }
+      ? { wrong:String(e[0]||''), correct:String(e[1]||''), reason:String(e[2]||''), type:String(e[3]||'') }
       : e),
     suggestion: String(o.s||'')
   };
 }
 
-// ── BÁO CÁO DỰNG LOCAL (thay cho call Gemini thứ 2) ───────────────
+// ════════════════════════════════════════════════════════════════════
+// ĐỢT 1 — FLUENCY INSIGHTS (0 token, dựng từ word timestamps đã có)
+// ════════════════════════════════════════════════════════════════════
+
+// Ngưỡng ngắt (giây). Dưới 0.3s là nhịp nói bình thường, không tính là ngắt.
+const PAUSE_MED = 0.5, PAUSE_LONG = 1.0;
+
+// Bảng paraphrase TĨNH — tập cụm SV Việt lạm dụng là HỮU HẠN, không cần gọi AI.
+// Key phải viết thường, khớp theo cụm nguyên vẹn (word boundary).
+const PARAPHRASE = {
+  'i think':        ['in my opinion','I believe','from my perspective','I would say'],
+  'a lot of':       ['many','numerous','a wide range of','a great deal of'],
+  'very good':      ['excellent','outstanding','remarkable'],
+  'very bad':       ['terrible','awful','dreadful'],
+  'very big':       ['enormous','massive','substantial'],
+  'very important': ['crucial','vital','essential'],
+  'nice':           ['pleasant','delightful','appealing'],
+  'good':           ['beneficial','worthwhile','favourable'],
+  'bad':            ['harmful','detrimental','unfavourable'],
+  'big':            ['significant','considerable','substantial'],
+  'get':            ['obtain','acquire','receive'],
+  'a lot':          ['considerably','significantly','to a great extent'],
+  'and so on':      ['and the like','among others','to name a few'],
+  'i like':         ['I am fond of','I am keen on','I really enjoy'],
+  'i want':         ['I would like to','I am eager to','I intend to'],
+  'people say':     ['it is often argued','many would contend','it is widely held'],
+  'more and more':  ['increasingly','a growing number of'],
+  'nowadays':       ['these days','in this day and age','currently'],
+  'because of':     ['due to','owing to','as a result of'],
+  'in my country':  ['where I come from','in my home country'],
+  'so so':          ['average','mediocre','unremarkable'],
+  'stuff':          ['things','items','belongings'],
+  'kids':           ['children','youngsters'],
+  'i guess':        ['I suppose','I presume','I would imagine']
+};
+
+// Đếm cụm bị lặp ≥2 lần trong toàn session → gợi ý thay thế.
+// Duyệt cụm DÀI trước rồi bỏ cụm NGẮN nằm trong nó — nếu không, "a lot of" và
+// "a lot" sẽ cùng hiện cho cùng một chỗ, gây nhiễu.
+function findParaphraseTips(fullText){
+  const low = ' ' + String(fullText||'').toLowerCase().replace(/\s+/g,' ') + ' ';
+  const tips = [];
+  const keys = Object.keys(PARAPHRASE).sort((a,b)=>b.length-a.length);
+  keys.forEach(k => {
+    if(tips.some(t => t.phrase.includes(k))) return;   // đã có cụm dài hơn chứa cụm này
+    const esc = k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const m = low.match(new RegExp('\\b'+esc+'\\b','g'));
+    if(m && m.length >= 2) tips.push({ phrase:k, count:m.length, alts:PARAPHRASE[k] });
+  });
+  return tips.sort((a,b)=>b.count-a.count).slice(0,5);
+}
+
+// Cắt mảng word timestamps thành đoạn theo khoảng ngắt DÀI; ngắt vừa thì chèn marker.
+function segmentByPauses(ws){
+  if(!Array.isArray(ws) || !ws.length) return [];
+  const segs=[]; let cur=[];
+  for(let i=0;i<ws.length;i++){
+    cur.push(ws[i]);
+    const gap = i<ws.length-1 ? (ws[i+1].start - ws[i].end) : 0;
+    if(i===ws.length-1 || gap>=PAUSE_LONG){ segs.push({words:cur, gapAfter:gap}); cur=[]; }
+    else if(gap>=PAUSE_MED){ cur.push({_pause:gap}); }
+  }
+  return segs;
+}
+
+const _fmtTs = s => Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+// Render card Fluency. results = mảng câu đã chấm (mỗi câu có _m + _wordTimestamps + audioUrl)
+function renderFluencyCard(results){
+  const card = document.getElementById('flu-card');
+  if(!card) return;
+  const withTs = results.filter(r => Array.isArray(r._wordTimestamps) && r._wordTimestamps.length>1);
+  if(!withTs.length){ card.style.display='none'; return; }   // không có timestamp → ẩn hẳn
+
+  // ── Tốc độ nói: gộp toàn session, KHÔNG đếm từ đệm (đệm không phải nội dung) ──
+  let realWords=0, totalDur=0, totalFillers=0;
+  withTs.forEach(r=>{
+    const ws=r._wordTimestamps;
+    totalDur += (ws[ws.length-1].end - ws[0].start);
+    ws.forEach(w=>{ if(FILLER_TEST.test(w.word)) totalFillers++; else realWords++; });
+  });
+  const wpm = totalDur>0 ? Math.round(realWords/(totalDur/60)) : 0;
+  const pos = Math.max(0, Math.min(1, (wpm-60)/140));   // thang 60→200
+  const verdict = wpm<100 ? ['Hơi chậm','#d97706'] : wpm>170 ? ['Hơi nhanh','#d97706'] : ['Nhịp tốt','#16a34a'];
+
+  document.getElementById('flu-speed').innerHTML = `
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+      <span style="font-size:2.6rem;font-weight:800;color:var(--blue,#4f46e5);line-height:1">${wpm||'—'}</span>
+      <span style="font-size:13px;color:var(--g600,#666)">từ / phút</span>
+      <span style="margin-left:auto;font-size:12px;font-weight:700;color:${verdict[1]}">${verdict[0]}</span>
+    </div>
+    <div style="position:relative;height:9px;border-radius:5px;margin:14px 0 6px;
+      background:linear-gradient(90deg,#dc2626 0%,#16a34a 30%,#16a34a 68%,#dc2626 100%)">
+      <div style="position:absolute;left:${(pos*100).toFixed(1)}%;top:50%;transform:translate(-50%,-50%);
+        width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--blue,#4f46e5)"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--g600,#888)">
+      <span>60 · quá chậm</span><span style="font-weight:700;color:#16a34a">120–150 lý tưởng</span><span>200 · quá nhanh</span>
+    </div>
+    <div style="font-size:12px;color:var(--g600,#666);line-height:1.6;margin-top:10px;background:var(--g100,#f6f6f8);border-radius:8px;padding:9px 11px">
+      Giám khảo đánh giá cao <strong>nhịp nói tự nhiên</strong> — đủ nhanh để nghe trôi chảy, đủ chậm để rõ ràng.
+      Bạn dùng <strong>${totalFillers}</strong> từ đệm (uh/um/ah). Tính từ audio thật của bạn.
+    </div>`;
+
+  // ── Paraphrasing tips (bảng tĩnh, 0 token) ──
+  const tips = findParaphraseTips(results.map(r=>r.studentAnswer||'').join(' '));
+  document.getElementById('flu-tips').innerHTML = !tips.length ? '' : `
+    <div class="sec-lbl" style="margin:18px 0 8px">🔁 Cụm bị lặp — thử thay để nâng Lexical Resource</div>
+    ${tips.map(t=>`<div style="border:1.5px solid var(--g200,#e5e7eb);border-radius:10px;padding:10px 12px;margin-bottom:7px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:5px">"${t.phrase}" <span style="font-weight:500;color:var(--g600,#888);font-size:11.5px">— dùng ${t.count} lần</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${t.alts.map(a=>`<span style="background:rgba(79,70,229,.09);color:var(--blue,#4f46e5);border-radius:12px;padding:3px 9px;font-size:11.5px;font-weight:600">${a}</span>`).join('')}</div>
+    </div>`).join('')}`;
+
+  // ── Transcript có timestamp + đánh dấu ngắt + tô từ đệm ──
+  document.getElementById('flu-transcript').innerHTML =
+    '<div class="sec-lbl" style="margin:18px 0 8px">🎧 Transcript theo thời gian</div>' +
+    withTs.map((r,qi)=>{
+      const segs = segmentByPauses(r._wordTimestamps);
+      const t0 = r._wordTimestamps[0].start;
+      const body = segs.map(sg=>{
+        const segStart = sg.words.find(w=>w.start!=null).start - t0;
+        const html = sg.words.map(w=>{
+          if(w._pause) return `<span title="ngắt ${w._pause.toFixed(1)}s" style="display:inline-block;width:7px;height:13px;border-radius:3px;background:#f59e0b;margin:0 3px;vertical-align:middle"></span>`;
+          return FILLER_TEST.test(w.word)
+            ? `<span style="background:#fee2e2;color:#dc2626;border-radius:5px;padding:0 5px;font-weight:600;font-size:12px">${esc(w.word)}</span>`
+            : esc(w.word);
+        }).join(' ');
+        const playBtn = r.audioUrl
+          ? `<button onclick="fluPlay('${r.audioUrl}',${segStart.toFixed(2)})" title="Nghe từ ${_fmtTs(segStart)}"
+               style="border:none;background:rgba(79,70,229,.1);color:var(--blue,#4f46e5);border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:10px;flex-shrink:0">▶</button>`
+          : '<span style="width:22px;flex-shrink:0"></span>';
+        return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:7px">
+          ${playBtn}
+          <span style="font-size:10.5px;color:var(--g600,#999);font-family:var(--font-mono,monospace);flex-shrink:0;padding-top:3px">${_fmtTs(segStart)}</span>
+          <span style="font-size:13px;line-height:1.75">${html}</span>
+        </div>`;
+      }).join('');
+      const gapCount = segs.filter(s=>s.gapAfter>=PAUSE_LONG).length;
+      return `<div style="border:1.5px solid var(--g200,#e5e7eb);border-radius:10px;padding:11px 12px;margin-bottom:9px">
+        <div style="font-size:11px;font-weight:700;color:var(--g600,#888);margin-bottom:7px">
+          Q${qi+1} · ${r._m?.wpm||'—'} wpm${gapCount?` · ${gapCount} lần ngắt dài`:''}
+        </div>${body}</div>`;
+    }).join('') +
+    `<div style="font-size:11px;color:var(--g600,#888);margin-top:6px">
+       <span style="display:inline-block;width:7px;height:11px;border-radius:3px;background:#f59e0b;vertical-align:middle"></span> ngắt giữa câu
+       &nbsp;·&nbsp; <span style="background:#fee2e2;color:#dc2626;border-radius:5px;padding:0 5px;font-weight:600">uh</span> từ đệm
+     </div>`;
+
+  card.style.display='';
+}
+
+// Phát audio từ đúng mốc giây. Dùng 1 thẻ audio duy nhất, tái sử dụng.
+let _fluAudio = null;
+function fluPlay(url, atSec){
+  try{
+    if(!_fluAudio){ _fluAudio = new Audio(); }
+    if(_fluAudio.src !== url){ _fluAudio.src = url; }
+    const go = () => { try{ _fluAudio.currentTime = atSec; _fluAudio.play(); }catch(e){} };
+    if(_fluAudio.readyState >= 1) go();
+    else _fluAudio.addEventListener('loadedmetadata', go, { once:true });
+  }catch(e){ console.warn('fluPlay:', e); }
+}
 // Số liệu + bảng điểm hoàn toàn tính được bằng code. Phần cần AI (cụm từ tốt,
 // bản nâng cấp Band 8, lời khuyên) đã nằm trong field "r" của cùng 1 call.
 function buildLocalReport(answered, r, sessionMetrics){
@@ -2070,7 +2244,7 @@ function buildLocalReport(answered, r, sessionMetrics){
   const allErrs = answered.flatMap(x => x.errors||[]).slice(0,5);
   if(allErrs.length){
     lines.push('- **Lỗi cần sửa:**');
-    allErrs.forEach(e => lines.push(`  - ❌ ${e.wrong} → ✅ ${e.correct} — *${e.reason||''}*`));
+    allErrs.forEach(e => lines.push(`  - ❌ ${e.wrong} → ✅ ${e.correct}${e.type?` \`${e.type}\``:''} — *${e.reason||''}*`));
   }
   if(r.weak) lines.push(`- **Vùng cần cải thiện nhất:** ${r.weak}`);
   if(r.up){
@@ -2520,7 +2694,7 @@ function renderCorrected(studentAnswer, errors) {
         `<span class="err-wrong">${esc(e.wrong)}</span>` +
         `<span class="err-arrow"> → </span>` +
         `<span class="err-right">${esc(e.correct)}</span>` +
-        `<span class="err-tip">${esc(e.reason || '')}</span>` +
+        `<span class="err-tip">${e.type?'['+esc(e.type)+'] ':''}${esc(e.reason || '')}</span>` +
       `</span>`
     );
     cursor = e.idx + e.wrong.length;
@@ -3185,6 +3359,10 @@ function renderResults(results,report,mode,liveData){
 
   document.getElementById('live-sum').style.display='none';
   document.getElementById('rpt-card').style.display='none';
+
+  // ── Card phân tích Fluency (0 token — từ word timestamps của Groq) ──
+  // Tự ẩn nếu không có timestamp (vd xem lại kết quả cũ từ History).
+  try{ renderFluencyCard(results); }catch(e){ console.warn('renderFluencyCard:',e); }
 
   // ── Score summary table (Q1/Q2/… + overall each) ──
   const qaList = document.getElementById('qa-list');

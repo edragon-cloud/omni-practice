@@ -96,6 +96,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
 .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:600}
 .badge-red{background:var(--red-light);color:var(--red)}
 .badge-green{background:var(--green-light);color:var(--green)}
+.badge-blue{background:#eef2ff;color:#4f46e5}
 .badge-grey{background:var(--grey-100);color:var(--grey-600)}
 .badge-gold{background:#FFF8E6;color:var(--gold)}
 
@@ -368,6 +369,7 @@ tr:hover td{background:var(--grey-100)}
             <div class="app-checkbox checked" data-app="write" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">✍️</div><div class="app-checkbox-label">ArticuWrite</div><input type="checkbox" checked></div>
             <div class="app-checkbox checked" data-app="listen" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">🎧</div><div class="app-checkbox-label">LisDictation</div><input type="checkbox" checked></div>
             <div class="app-checkbox checked" data-app="speak" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">🎙️</div><div class="app-checkbox-label">Fluentalk</div><input type="checkbox" checked></div>
+            <div class="app-checkbox checked" data-app="read" onclick="toggleAppCheck(this)"><div class="app-checkbox-icon">📖</div><div class="app-checkbox-label">ReadWise</div><input type="checkbox" checked></div>
           </div>
           <div class="form-hint">Chưa kích hoạt app nào thì sẽ bị mờ sau khi đăng nhập</div>
         </div>
@@ -412,6 +414,9 @@ tr:hover td{background:var(--grey-100)}
       </button>
       <button class="nav-item" onclick="openApp('speak')" id="nav-speak" data-app="speak">
         <span class="nav-icon">🎙️</span> Fluentalk
+      </button>
+      <button class="nav-item" onclick="openApp('read')" id="nav-read" data-app="read">
+        <span class="nav-icon">📖</span> ReadWise
       </button>
     </nav>
     <div style="padding:16px 12px;border-top:1px solid rgba(255,255,255,.06)">
@@ -509,6 +514,14 @@ tr:hover td{background:var(--grey-100)}
               <div class="app-card-name">Fluentalk</div>
               <div class="app-card-desc">AI speaking coach &amp; CEFR test</div>
               <div class="app-card-start">Start Speaking →</div>
+            </div>
+            <div class="app-card" id="appcard-read" data-app="read" onclick="openApp('read')">
+              <div class="locked-overlay hidden" id="lock-read">🔒</div>
+              <div class="app-card-badge"><span class="badge badge-blue">READ</span></div>
+              <div class="app-card-icon" style="background:#eef2ff">📖</div>
+              <div class="app-card-name">ReadWise</div>
+              <div class="app-card-desc">Đọc hiểu có CEFR, gloss &amp; quiz</div>
+              <div class="app-card-start">Start Reading →</div>
             </div>
           </div>
           <p style="font-size:12px;color:var(--grey-400);margin-top:16px;text-align:center">🔒 Dimmed apps are not yet activated. Contact your teacher.</p>
@@ -1315,7 +1328,7 @@ function initStudentDashboard() {
   el = document.getElementById('topbar-date'); if(el) el.textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 
   var access = u.appAccess || [];
-  ['vocab','write','listen','speak'].forEach(function(app) {
+  ['vocab','write','listen','speak','read'].forEach(function(app) {
     var hasAccess = access.includes(app);
     var card = document.getElementById('appcard-' + app);
     var lock = document.getElementById('lock-' + app);
@@ -1416,7 +1429,7 @@ function showStudentSection(name) {
   var nav = document.getElementById('nav-' + name);
   if (sec) sec.classList.add('active');
   if (nav) nav.classList.add('active');
-  var titles = {home:'Dashboard',vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk'};
+  var titles = {home:'Dashboard',vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk',read:'ReadWise'};
   var t = document.getElementById('student-section-title');
   if (t) t.textContent = titles[name] || name;
 }
@@ -1432,7 +1445,10 @@ function openApp(app) {
   // Also persist to localStorage so write-detail.html can read it when opened from email links
   localStorage.setItem('ielts_hub_token', App.sessionToken);
   localStorage.setItem('ielts_hub_user', JSON.stringify(App.user));
-  var urls = {vocab:'./vocab.html',write:'./write.html',listen:'./listen.html',speak:'./speak.html'};
+  // read.html (ReadWise) đọc key lh_user/lh_token → lưu thêm cho khớp
+  localStorage.setItem('lh_token', App.sessionToken);
+  localStorage.setItem('lh_user', JSON.stringify(App.user));
+  var urls = {vocab:'./vocab.html',write:'./write.html',listen:'./listen.html',speak:'./speak.html',read:'./read.html'};
   window.location.href = urls[app] || './';
 }
 
@@ -1715,7 +1731,7 @@ function filterOverviewTable(search) {
   });
   const sorted = _sortStudents(withDays, _ovSortField, _ovSortAsc);
 
-  const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️' };
+  const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️', read:'📖' };
   tbody.innerHTML = sorted.map(s => {
     const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
     const appChips = apps.map(a => '<span title="' + a + '" style="font-size:16px">' + (appIcons[a]||a) + '</span>').join('');
@@ -1807,11 +1823,11 @@ function renderStudentsActivationTab() {
   if (!tbody) return;
   if (!students.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--grey-400)">No students registered yet.</td></tr>'; return; }
 
-  const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️' };
+  const appIcons = { vocab:'📚', write:'✍️', listen:'🎧', speak:'🎙️', read:'📖' };
   const sortedSt = _sortStudents(students, _stSortField, _stSortAsc);
   tbody.innerHTML = sortedSt.map(s => {
     const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
-    const appChips = ['vocab','write','listen','speak'].map(a =>
+    const appChips = ['vocab','write','listen','speak','read'].map(a =>
       '<span style="font-size:16px;opacity:' + (apps.includes(a)?'1':'0.2') + '" title="' + a + '">' + appIcons[a] + '</span>'
     ).join('');
     const statusColor = s.status==='Active'?'var(--green)':s.status==='Pending'?'var(--gold)':'var(--red)';
@@ -1843,7 +1859,7 @@ function renderStudentsActivationTab() {
 // ── Activate modal ──
 function openActivateModal(student) {
   const s = norm(student);
-  const apps = ['vocab','write','listen','speak'];
+  const apps = ['vocab','write','listen','speak','read'];
   const current = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
   const isPending = s.status === 'Pending';
   // Auto-calculate expiry: if no expiry set, compute from package
@@ -1891,8 +1907,8 @@ function openActivateModal(student) {
       <div class="app-access-grid">
         ${apps.map(a => `
           <div class="app-checkbox ${current.includes(a)?'checked':''}" data-app="${a}" onclick="this.classList.toggle('checked')">
-            <div class="app-checkbox-icon">${{vocab:'📚',write:'✍️',listen:'🎧',speak:'🎙️'}[a]}</div>
-            <div class="app-checkbox-label">${{vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk'}[a]}</div>
+            <div class="app-checkbox-icon">${{vocab:'📚',write:'✍️',listen:'🎧',speak:'🎙️',read:'📖'}[a]}</div>
+            <div class="app-checkbox-label">${{vocab:'VocabMaster',write:'ArticuWrite',listen:'LisDictation',speak:'Fluentalk',read:'ReadWise'}[a]}</div>
           </div>`).join('')}
       </div>
     </div>
@@ -1955,7 +1971,7 @@ async function activateAllPending() {
     const res = await api('teacher.activateUser', {
       studentId: s.studentId,
       status: 'Active',
-      appAccess: apps.length ? apps : ['vocab','write','listen','speak'],
+      appAccess: apps.length ? apps : ['vocab','write','listen','speak','read'],
       packageMonths: pkg,
       expiryDate: exp.toISOString().split('T')[0],
       sendEmail: true
@@ -1978,7 +1994,7 @@ function renderUsersTable(filter) {
   tbody.innerHTML = students.map(raw => {
     const s = norm(raw);
     const apps = s.appAccess.split(',').map(a=>a.trim()).filter(Boolean);
-    const appChips = ['vocab','write','listen','speak'].map(a =>
+    const appChips = ['vocab','write','listen','speak','read'].map(a =>
       '<span class="app-access-chip ' + (apps.includes(a)?'active':'') + '">' + a + '</span>'
     ).join('');
     const statusCls = s.status==='Active' ? 'user-status-active' : 'user-status-pending';
