@@ -242,6 +242,25 @@ tr:hover td{background:var(--grey-100)}
 .teacher-tab.active{background:rgba(200,16,46,.25);color:var(--red-mid);font-weight:600}
 .teacher-logout{background:rgba(255,255,255,.08);border:none;border-radius:8px;padding:8px 16px;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:var(--font-body);transition:var(--transition);margin-left:auto;white-space:nowrap}
 .teacher-logout:hover{color:var(--white);background:rgba(255,255,255,.12)}
+/* Hamburger — chỉ hiện ở mobile */
+.teacher-burger{display:none;background:rgba(255,255,255,.1);border:none;border-radius:8px;width:40px;height:40px;cursor:pointer;color:#fff;font-size:20px;margin-left:auto;flex-shrink:0}
+@media(max-width:820px){
+  .teacher-nav{padding:0 16px;height:56px;flex-wrap:nowrap}
+  .teacher-brand{margin-right:0;font-size:1rem}
+  .teacher-burger{display:flex;align-items:center;justify-content:center}
+  .teacher-logout{display:none}
+  /* Tabs → dropdown dọc, ẩn mặc định, bật khi .open */
+  .teacher-nav-tabs{position:fixed;top:56px;left:0;right:0;flex-direction:column;gap:2px;
+    background:var(--black);padding:8px;max-height:0;overflow:hidden;transition:max-height .28s ease;
+    z-index:199;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .teacher-nav-tabs.open{max-height:80vh;overflow-y:auto}
+  .teacher-tab{font-size:15px;padding:13px 16px;text-align:left;width:100%;border-radius:9px}
+  .teacher-tab.active{background:rgba(200,16,46,.3)}
+  /* Nút Sign Out cho vào trong dropdown ở mobile */
+  .teacher-tabs-logout{display:block !important}
+  .teacher-main{padding:20px 14px}
+}
+.teacher-tabs-logout{display:none;background:rgba(255,255,255,.08);border:none;border-radius:9px;padding:13px 16px;color:rgba(255,255,255,.7);font-size:15px;cursor:pointer;font-family:var(--font-body);text-align:left;width:100%;margin-top:6px;border-top:1px solid rgba(255,255,255,.1)}
 .teacher-main{flex:1;padding:32px;max-width:1200px;width:100%;margin:0 auto}
 .teacher-section{display:none}
 .teacher-section.active{display:block;animation:fadeIn .3s ease}
@@ -540,15 +559,18 @@ tr:hover td{background:var(--grey-100)}
 <div class="teacher-layout">
   <nav class="teacher-nav">
     <div class="teacher-brand">Language <em>Hub</em></div>
-    <div class="teacher-nav-tabs">
+    <button class="teacher-burger" onclick="toggleBurger()" aria-label="Menu">☰</button>
+    <div class="teacher-nav-tabs" id="teacher-nav-tabs">
       <button class="teacher-tab active" onclick="showTeacherTab('overview')" id="ttab-overview">🏠 Overview</button>
       <button class="teacher-tab" onclick="showTeacherTab('students')" id="ttab-students">👥 Students</button>
       <button class="teacher-tab" onclick="showTeacherTab('vocab')" id="ttab-vocab">📚 VocabMaster</button>
       <button class="teacher-tab" onclick="showTeacherTab('write')" id="ttab-write">✍️ ArticuWrite</button>
       <button class="teacher-tab" onclick="showTeacherTab('listen')" id="ttab-listen">🎧 LisDictation</button>
       <button class="teacher-tab" onclick="showTeacherTab('speak')" id="ttab-speak">🎙️ Fluentalk</button>
+      <button class="teacher-tab" onclick="showTeacherTab('read')" id="ttab-read">📖 ReadWise</button>
       <button class="teacher-tab" onclick="showTeacherTab('homework')" id="ttab-homework">📁 Homework</button>
       <button class="teacher-tab" onclick="showTeacherTab('settings')" id="ttab-settings">⚙️ Settings</button>
+      <button class="teacher-tabs-logout" onclick="teacherLogout()">🚪 Sign Out</button>
     </div>
     <button class="teacher-logout" onclick="teacherLogout()">Sign Out</button>
   </nav>
@@ -856,6 +878,96 @@ tr:hover td{background:var(--grey-100)}
       <div id="spk-matrix-wrap" style="display:none"><div id="spk-matrix-infobar"></div><div id="spk-matrix-container"></div><div id="spk-matrix-tooltip" style="position:fixed;opacity:0;pointer-events:none"></div></div>
       <div id="spk-progress-wrap" style="display:none"><div id="spk-progress-infobar"></div><div id="spk-progress-container"></div><div id="spk-progress-tooltip" style="position:fixed;opacity:0;pointer-events:none"></div></div>
       <div id="spk-table-wrap" style="display:none"></div>
+    </div>
+
+    <!-- READWISE TAB -->
+    <div id="tsec-read" class="teacher-section">
+      <div class="section-header">
+        <div><h1>ReadWise — Reading &amp; Quiz Results</h1><p>Bài đọc đã phân tích và kết quả quiz của sinh viên</p></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="loadReadResults()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Sub-tabs: Passages vs Quiz results -->
+      <div style="display:flex;gap:4px;background:var(--grey-100);border-radius:var(--radius);padding:4px;margin-bottom:16px;max-width:420px">
+        <button id="rdcat-quiz" onclick="rdSetCat('quiz')" style="flex:1;padding:8px;border:none;background:#fff;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;box-shadow:var(--shadow-sm)">📝 Kết quả Quiz</button>
+        <button id="rdcat-docs" onclick="rdSetCat('docs')" style="flex:1;padding:8px;border:none;background:transparent;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--grey-600);cursor:pointer">📚 Bài đọc</button>
+      </div>
+
+      <!-- Filters -->
+      <div id="rd-quiz-view">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+          <select id="rd-f-class" class="form-select" style="width:140px;font-size:13px" onchange="renderReadQuiz()"><option value="">Tất cả lớp</option></select>
+          <select id="rd-f-type" class="form-select" style="width:150px;font-size:13px" onchange="renderReadQuiz()">
+            <option value="">Cả 2 loại quiz</option><option value="vocab">Từ vựng</option><option value="comp">Đọc hiểu</option>
+          </select>
+          <input type="text" id="rd-f-search" class="form-input" placeholder="🔍 Tên / MSSV / bài..." style="max-width:240px;font-size:13px" oninput="renderReadQuiz()">
+          <button class="btn btn-outline btn-sm" onclick="clearRdFilters()">Xóa lọc</button>
+          <span id="rd-quiz-count" style="font-size:13px;color:var(--grey-600)"></span>
+        </div>
+        <div class="table-wrap" style="overflow-x:auto">
+          <table style="min-width:820px">
+            <thead><tr>
+              <th onclick="_rdSort('StudentID')" style="cursor:pointer">Student ID ↕</th>
+              <th onclick="_rdSort('FullName')" style="cursor:pointer">Full Name ↕</th>
+              <th onclick="_rdSort('Class')" style="cursor:pointer">Class ↕</th>
+              <th onclick="_rdSort('Title')" style="cursor:pointer">Bài đọc ↕</th>
+              <th style="text-align:center">Loại</th>
+              <th style="text-align:center" onclick="_rdSort('Score')" style="cursor:pointer">Điểm ↕</th>
+              <th style="text-align:center">Đúng/Tổng</th>
+              <th onclick="_rdSort('Timestamp')" style="cursor:pointer">Thời gian ↕</th>
+              <th style="text-align:center">Chi tiết</th>
+            </tr></thead>
+            <tbody id="read-quiz-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Passages list -->
+      <div id="rd-docs-view" style="display:none">
+        <div class="table-wrap" style="overflow-x:auto">
+          <table style="min-width:720px">
+            <thead><tr>
+              <th>Tiêu đề</th><th style="text-align:center">Số từ</th>
+              <th style="text-align:center" title="Số lượt mở đọc">Lượt đọc</th>
+              <th>Người tạo</th><th>Ngày tạo</th><th style="text-align:center">Xem</th>
+            </tr></thead>
+            <tbody id="read-docs-tbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MODAL: chi tiết 1 lượt quiz -->
+      <div id="rd-quiz-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.6);overflow-y:auto;padding:20px" onclick="if(event.target===this)rdCloseModal()">
+        <div style="max-width:760px;margin:20px auto;background:var(--white);border-radius:16px;overflow:hidden">
+          <div style="background:var(--black);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px">
+            <div style="flex:1"><div id="rd-m-title" style="font-weight:700;font-size:15px"></div><div id="rd-m-sub" style="font-size:12px;opacity:.65;margin-top:2px"></div></div>
+            <div id="rd-m-score" style="font-size:1.5rem;font-weight:800"></div>
+            <button onclick="rdCloseModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">×</button>
+          </div>
+          <div id="rd-m-body" style="padding:20px;max-height:70vh;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- MODAL: xem bài đọc -->
+      <div id="rd-doc-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.6);overflow-y:auto;padding:20px" onclick="if(event.target===this)rdCloseDoc()">
+        <div style="max-width:820px;margin:20px auto;background:var(--white);border-radius:16px;overflow:hidden">
+          <div style="background:var(--black);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px">
+            <div style="flex:1"><div id="rd-d-title" style="font-weight:700;font-size:15px"></div><div id="rd-d-sub" style="font-size:12px;opacity:.65;margin-top:2px"></div></div>
+            <button onclick="rdCloseDoc()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px">×</button>
+          </div>
+          <div style="padding:20px;max-height:74vh;overflow-y:auto">
+            <div id="rd-d-tabs" style="display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--grey-200);padding-bottom:10px">
+              <button class="btn btn-sm" id="rdd-t-text" onclick="rdDocTab('text')">📄 Bài đọc</button>
+              <button class="btn btn-sm" id="rdd-t-phr" onclick="rdDocTab('phr')">🔗 Cụm từ</button>
+              <button class="btn btn-sm" id="rdd-t-qv" onclick="rdDocTab('qv')">📝 Quiz từ vựng</button>
+              <button class="btn btn-sm" id="rdd-t-qc" onclick="rdDocTab('qc')">🧠 Quiz đọc hiểu</button>
+            </div>
+            <div id="rd-d-content"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- HOMEWORK TAB -->
@@ -1601,7 +1713,14 @@ async function loadTeacherData() {
   if (sel) sel.innerHTML = '<option value="">All Classes</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
+function toggleBurger(){
+  const el = document.getElementById('teacher-nav-tabs');
+  if (el) el.classList.toggle('open');
+}
 function showTeacherTab(tab) {
+  // Đóng dropdown mobile sau khi chọn
+  const nav = document.getElementById('teacher-nav-tabs');
+  if (nav) nav.classList.remove('open');
   document.querySelectorAll('.teacher-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.teacher-section').forEach(s => s.classList.remove('active'));
   const tabEl = document.getElementById('ttab-' + tab);
@@ -1611,6 +1730,7 @@ function showTeacherTab(tab) {
   if (tab === 'write')    loadWriteResults();
   if (tab === 'listen')   { loadListenResults(); }
   if (tab === 'speak')    { loadSpeakResults(true); }
+  if (tab === 'read')     { loadReadResults(); }
   if (tab === 'settings') loadSettings();
   if (tab === 'homework') hwLoadPanel();
 }
@@ -3590,6 +3710,207 @@ function _spkAvgCrit(results, keys){
   if(!vals.length) return null;
   return Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length*2)/2;
 }
+
+// ═══════════════════════════════════════════════════
+// READWISE TAB (Teacher)
+// ═══════════════════════════════════════════════════
+var _rdQuiz = [], _rdDocs = [], _rdLoaded = false, _rdCat = 'quiz';
+var _rdSortKey = 'Timestamp', _rdSortDir = -1;
+var _rdQuizView = [], _rdDocCache = {};
+
+async function loadReadResults(){
+  const qb = document.getElementById('read-quiz-tbody');
+  const db = document.getElementById('read-docs-tbody');
+  if (qb) qb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  try{
+    const [q, d] = await Promise.all([ api('teacher.read.quiz'), api('teacher.read.docs') ]);
+    _rdQuiz = (q && q.success && q.rows) || [];
+    _rdDocs = (d && d.success && d.rows) || [];
+    _rdLoaded = true;
+    // Nạp dropdown lớp từ dữ liệu quiz
+    const classes = [...new Set(_rdQuiz.map(r => String(r.class||'').trim()).filter(Boolean))].sort();
+    const sel = document.getElementById('rd-f-class');
+    if (sel) sel.innerHTML = '<option value="">Tất cả lớp</option>' + classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    renderReadQuiz(); renderReadDocs();
+  }catch(e){
+    if (qb) qb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--red)">${esc(e.message)}</td></tr>`;
+  }
+}
+
+function rdSetCat(cat){
+  _rdCat = cat;
+  document.getElementById('rd-quiz-view').style.display = cat==='quiz' ? '' : 'none';
+  document.getElementById('rd-docs-view').style.display = cat==='docs' ? '' : 'none';
+  const q = document.getElementById('rdcat-quiz'), d = document.getElementById('rdcat-docs');
+  const on = 'background:#fff;color:var(--red);box-shadow:var(--shadow-sm)', off='background:transparent;color:var(--grey-600)';
+  q.style.cssText = 'flex:1;padding:8px;border:none;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;'+(cat==='quiz'?on:off);
+  d.style.cssText = 'flex:1;padding:8px;border:none;border-radius:9px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer;'+(cat==='docs'?on:off);
+}
+
+function _rdSort(key){
+  if (_rdSortKey===key) _rdSortDir *= -1; else { _rdSortKey=key; _rdSortDir=1; }
+  renderReadQuiz();
+}
+function clearRdFilters(){
+  document.getElementById('rd-f-class').value='';
+  document.getElementById('rd-f-type').value='';
+  document.getElementById('rd-f-search').value='';
+  renderReadQuiz();
+}
+
+function renderReadQuiz(){
+  const tbody = document.getElementById('read-quiz-tbody');
+  if (!tbody) return;
+  const fCls = (document.getElementById('rd-f-class')||{}).value || '';
+  const fType = (document.getElementById('rd-f-type')||{}).value || '';
+  const fSearch = ((document.getElementById('rd-f-search')||{}).value || '').trim().toLowerCase();
+
+  let rows = _rdQuiz.filter(r=>{
+    if (fCls && String(r.class||'')!==fCls) return false;
+    if (fType && String(r.quizType||'')!==fType) return false;
+    if (fSearch){
+      const hay = (String(r.fullName||'')+' '+String(r.studentId||'')+' '+String(r.title||'')).toLowerCase();
+      if (!hay.includes(fSearch)) return false;
+    }
+    return true;
+  });
+
+  const k=_rdSortKey, dir=_rdSortDir;
+  rows.sort((a,b)=>{
+    let va, vb;
+    if (k==='Score'){ va=parseFloat(a.score)||0; vb=parseFloat(b.score)||0; }
+    else if (k==='Timestamp'){ va=new Date(a.timestamp||0).getTime(); vb=new Date(b.timestamp||0).getTime(); }
+    else { va=String(a[({StudentID:'studentId',FullName:'fullName',Class:'class',Title:'title'}[k])||'']||'').toLowerCase();
+           vb=String(b[({StudentID:'studentId',FullName:'fullName',Class:'class',Title:'title'}[k])||'']||'').toLowerCase(); }
+    return va<vb?-dir:va>vb?dir:0;
+  });
+
+  document.getElementById('rd-quiz-count').textContent = rows.length + ' kết quả';
+  if (!rows.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--grey-400)">Chưa có kết quả quiz nào</td></tr>'; return; }
+
+  // Gán _rid bền vững để modal tra đúng dòng dù bảng đã lọc/sort
+  rows.forEach((r,i)=>r._rid=i);
+  _rdQuizView = rows;
+
+  tbody.innerHTML = rows.map(r=>{
+    const pct = parseFloat(r.score)||0;
+    const color = pct>=70?'var(--green)':pct>=50?'#B45309':'var(--red)';
+    const typeLabel = r.quizType==='vocab' ? '📝 Từ vựng' : r.quizType==='comp' ? '🧠 Đọc hiểu' : esc(r.quizType||'');
+    return `<tr>
+      <td>${esc(r.studentId||'—')}</td>
+      <td>${esc(r.fullName||'—')}</td>
+      <td>${esc(r.class||'—')}</td>
+      <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.title||'')}">${esc(r.title||'—')}</td>
+      <td style="text-align:center">${typeLabel}</td>
+      <td style="text-align:center;font-weight:700;color:${color}">${pct}%</td>
+      <td style="text-align:center">${r.correct||0}/${r.total||0}</td>
+      <td style="font-size:12px;color:var(--grey-600)">${r.timestamp?new Date(r.timestamp).toLocaleString('vi-VN'):'—'}</td>
+      <td style="text-align:center"><button class="btn btn-outline btn-sm" onclick="rdOpenQuizDetail(${r._rid})">Xem →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal chi tiết quiz: join answersJSON (SV chọn) với câu hỏi trong Read_Docs ──
+async function rdOpenQuizDetail(rid){
+  const r = (_rdQuizView||[]).find(x=>x._rid===rid);
+  if (!r) return;
+  document.getElementById('rd-m-title').textContent = (r.fullName||'—')+' · '+(r.title||'');
+  document.getElementById('rd-m-sub').textContent = (r.class||'—')+' · '+(r.quizType==='vocab'?'Quiz từ vựng':'Quiz đọc hiểu')+' · '+(r.timestamp?new Date(r.timestamp).toLocaleString('vi-VN'):'');
+  const pct = parseFloat(r.score)||0;
+  const mScore = document.getElementById('rd-m-score');
+  mScore.textContent = pct+'%'; mScore.style.color = pct>=70?'#4ade80':pct>=50?'#fbbf24':'#f87171';
+  const body = document.getElementById('rd-m-body');
+  body.innerHTML = '<div style="text-align:center;color:var(--grey-400);padding:30px">Đang tải câu hỏi...</div>';
+  document.getElementById('rd-quiz-modal').style.display='block';
+
+  let ans = []; try{ ans = JSON.parse(r.answersJSON||'[]'); }catch(e){}
+  // Lấy bộ câu hỏi gốc từ Read_Docs (cache theo docId để không gọi lại)
+  let doc = _rdDocCache[r.docId];
+  if (!doc){
+    try{ const res = await api('teacher.read.getDoc',{docId:r.docId}); if(res&&res.success&&res.doc){ doc=res.doc; _rdDocCache[r.docId]=doc; } }
+    catch(e){}
+  }
+  const items = doc ? ((r.quizType==='vocab' ? (doc.quiz&&doc.quiz.vocab) : (doc.quiz&&doc.quiz.comp))||[]) : [];
+  if (!items.length){
+    body.innerHTML = `<div style="color:var(--grey-600);font-size:13px">Không tải được câu hỏi gốc (bài có thể đã bị xoá). SV chọn: <code>${esc(JSON.stringify(ans))}</code></div>`;
+    return;
+  }
+  body.innerHTML = items.map((q,i)=>{
+    const picked = ans[i], correct = q.a;
+    const rightWrong = picked===correct
+      ? '<span style="color:var(--green);font-weight:700">✓ Đúng</span>'
+      : (picked==null||picked<0 ? '<span style="color:var(--grey-500)">— Bỏ trống</span>' : '<span style="color:var(--red);font-weight:700">✗ Sai</span>');
+    const opts = (q.o||[]).map((o,j)=>{
+      let bg='', mark='';
+      if (j===correct){ bg='background:rgba(26,122,74,.12);border-color:var(--green)'; mark=' ✓'; }
+      if (j===picked && picked!==correct){ bg='background:rgba(200,16,46,.1);border-color:var(--red)'; mark=' ← SV chọn'; }
+      else if (j===picked){ mark=' ← SV chọn'; }
+      return `<div style="border:1.5px solid var(--grey-200);border-radius:8px;padding:7px 11px;margin-bottom:5px;font-size:13px;${bg}">${esc(o)}<span style="font-size:11px;color:var(--grey-600)">${mark}</span></div>`;
+    }).join('');
+    return `<div style="border:1px solid var(--grey-200);border-radius:10px;padding:13px;margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:9px">
+        <div style="font-weight:600;font-size:13.5px">${i+1}. ${esc(q.q)}</div>${rightWrong}
+      </div>${opts}
+      ${q.e?`<div style="font-size:12px;color:var(--grey-600);background:var(--grey-100);border-radius:7px;padding:7px 10px;margin-top:7px">💡 ${esc(q.e)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function rdCloseModal(){ document.getElementById('rd-quiz-modal').style.display='none'; }
+
+function renderReadDocs(){
+  const tbody = document.getElementById('read-docs-tbody');
+  if (!tbody) return;
+  if (!_rdDocs.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--grey-400)">Chưa có bài đọc nào</td></tr>'; return; }
+  tbody.innerHTML = _rdDocs.map(d=>`<tr>
+    <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(d.title||'')}"><strong>${esc(d.title||'—')}</strong></td>
+    <td style="text-align:center">${d.words||0}</td>
+    <td style="text-align:center">${d.opens||0}</td>
+    <td>${esc(d.owner||'—')}</td>
+    <td style="font-size:12px;color:var(--grey-600)">${d.createdAt?new Date(d.createdAt).toLocaleDateString('vi-VN'):'—'}</td>
+    <td style="text-align:center"><button class="btn btn-outline btn-sm" onclick="rdOpenDoc('${esc(d.docId)}')">Xem →</button></td>
+  </tr>`).join('');
+}
+
+// ── Modal xem bài đọc (full: text + phrases + 2 quiz) ──
+var _rdCurDoc = null;
+async function rdOpenDoc(docId){
+  document.getElementById('rd-d-title').textContent = 'Đang tải...';
+  document.getElementById('rd-d-sub').textContent = '';
+  document.getElementById('rd-d-content').innerHTML = '<div style="text-align:center;color:var(--grey-400);padding:30px">Đang tải bài đọc...</div>';
+  document.getElementById('rd-doc-modal').style.display='block';
+  let doc = _rdDocCache[docId];
+  if (!doc){
+    try{ const res = await api('teacher.read.getDoc',{docId}); if(res&&res.success&&res.doc){ doc=res.doc; _rdDocCache[docId]=doc; } }catch(e){}
+  }
+  if (!doc){ document.getElementById('rd-d-content').innerHTML='<div style="color:var(--red)">Không tải được bài đọc</div>'; return; }
+  _rdCurDoc = doc;
+  document.getElementById('rd-d-title').textContent = doc.title||'—';
+  const nq = ((doc.quiz&&doc.quiz.vocab)||[]).length + ((doc.quiz&&doc.quiz.comp)||[]).length;
+  document.getElementById('rd-d-sub').textContent = (doc.words||0)+' từ · '+((doc.phrases||[]).length)+' cụm từ · '+nq+' câu quiz';
+  rdDocTab('text');
+}
+function rdDocTab(t){
+  ['text','phr','qv','qc'].forEach(x=>{
+    const b=document.getElementById('rdd-t-'+x); if(b) b.classList.toggle('on', x===t);
+  });
+  const el = document.getElementById('rd-d-content'); const doc=_rdCurDoc; if(!doc) return;
+  if (t==='text'){
+    el.innerHTML = `<div style="font-family:var(--font-display,serif);font-size:15px;line-height:1.9;white-space:pre-wrap">${esc(doc.text||'')}</div>`;
+  } else if (t==='phr'){
+    const ph = doc.phrases||[];
+    el.innerHTML = !ph.length ? '<div style="color:var(--grey-500)">Không có cụm từ</div>'
+      : ph.map((p,i)=>`<div style="border-bottom:1px solid var(--grey-200);padding:8px 0"><span style="font-weight:700;color:var(--blue,#4f46e5)">${esc(p.en)}</span> <span style="color:var(--grey-600);font-style:italic;font-size:13px">— ${esc(p.vi)}</span></div>`).join('');
+  } else {
+    const items = (t==='qv' ? (doc.quiz&&doc.quiz.vocab) : (doc.quiz&&doc.quiz.comp))||[];
+    el.innerHTML = !items.length ? '<div style="color:var(--grey-500)">Không có câu hỏi</div>'
+      : items.map((q,i)=>`<div style="border:1px solid var(--grey-200);border-radius:9px;padding:12px;margin-bottom:9px">
+          <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">${i+1}. ${esc(q.q)}</div>
+          ${(q.o||[]).map((o,j)=>`<div style="padding:6px 10px;border-radius:7px;margin-bottom:4px;font-size:13px;${j===q.a?'background:rgba(26,122,74,.12);border:1.5px solid var(--green);font-weight:600':'border:1.5px solid var(--grey-200)'}">${esc(o)}${j===q.a?' ✓':''}</div>`).join('')}
+          ${q.e?`<div style="font-size:12px;color:var(--grey-600);background:var(--grey-100);border-radius:7px;padding:7px 10px;margin-top:6px">💡 ${esc(q.e)}</div>`:''}
+        </div>`).join('');
+  }
+}
+function rdCloseDoc(){ document.getElementById('rd-doc-modal').style.display='none'; _rdCurDoc=null; }
 
 async function loadSpeakResults(force){
   const tbody = document.getElementById('speak-results-tbody');
