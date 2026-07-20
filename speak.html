@@ -547,9 +547,9 @@ body{font-family:var(--f);background:var(--bg);color:var(--black);min-height:100
       </div>
       <audio id="rec-player" controls style="display:none;width:100%;margin-top:8px"></audio>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <button class="btn btn-outline btn-lg" id="prev-q-btn" onclick="prevQuestion()" style="flex:0 0 auto" disabled>◀ Prev</button>
-      <button class="btn btn-primary btn-lg" id="next-q-btn" onclick="nextQuestion()" style="flex:1">Next →</button>
+    <div style="display:flex;gap:8px;margin-bottom:14px;justify-content:flex-end;align-items:center">
+      <button class="btn btn-outline" id="prev-q-btn" onclick="prevQuestion()" style="flex:0 0 auto;font-size:13px;padding:7px 14px" disabled>◀ Prev</button>
+      <button class="btn btn-outline" id="next-q-btn" onclick="nextQuestion()" style="flex:0 0 auto;font-size:13px;padding:7px 16px">Next →</button>
     </div>
     <div id="submit-wrap" style="display:none;margin-bottom:14px">
       <button class="btn btn-green btn-lg btn-full" onclick="finishSession()">✅ Xem kết quả</button>
@@ -953,7 +953,7 @@ function closeDetailModal(){
   document.body.style.overflow='';
 }
 
-function openDetailModal({title, meta, results, qs, topic, rowIdx}){
+function openDetailModal({title, meta, results, qs, topic, rowIdx, milestones, msDetail, curMs}){
   const bc = v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#9ca3af';
   const esc2 = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const CKS=[['fluency','FC'],['lexical','LR'],['grammar','GR'],['pronunciation','P']];
@@ -961,6 +961,22 @@ function openDetailModal({title, meta, results, qs, topic, rowIdx}){
 
   document.getElementById('dm-title').textContent=title||'Session Detail';
   document.getElementById('dm-meta').textContent=meta||'';
+
+  // Dropdown + bảng chọn mốc (chỉ khi có ≥2 mốc đã chấm)
+  const msEl = document.getElementById('dm-milestone');
+  if(msEl){
+    const ms = milestones||[];
+    const detailKeys = Object.keys(msDetail||{}).map(Number).sort((a,b)=>a-b);
+    if(detailKeys.length>=2){
+      const dd = `<div style="padding:12px 20px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:12px;color:#9ca3af">Xem nhận xét lần:</span>
+          ${detailKeys.map(n=>`<button onclick="showHistDetail(${rowIdx},${n})" style="padding:5px 12px;border-radius:7px;font-size:12.5px;font-weight:700;cursor:pointer;border:1.5px solid ${n===curMs?'#4f46e5':'rgba(255,255,255,.15)'};background:${n===curMs?'#4f46e5':'transparent'};color:#fff">Lần ${n} · ${(ms.find(m=>m.n===n)||{}).overall||'—'}</button>`).join('')}
+        </div>
+      </div>`;
+      msEl.innerHTML = dd;
+    } else msEl.innerHTML='';
+  }
 
   // Score strip (overall + 4 criteria averages)
   const oa=results.map(r=>parseFloat(r.overall)||0).filter(v=>v>0);
@@ -1050,17 +1066,24 @@ function openDetailModal({title, meta, results, qs, topic, rowIdx}){
   document.body.style.overflow='hidden';
 }
 
-function showHistDetail(i){
+function showHistDetail(i, viewMs){
   const row=(window._histRows||[])[i];if(!row)return;
-  let results=[];try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){}
   let qs=[];try{qs=JSON.parse(row.QuestionsJSON||'[]');}catch(e){}
+  let msDetail={};try{msDetail=JSON.parse(row.MilestoneDetailJSON||'{}');}catch(e){}
+  let milestones=[];try{milestones=JSON.parse(row.MilestoneJSON||'[]');}catch(e){}
+  const msKeys=Object.keys(msDetail).map(Number).sort((a,b)=>a-b);
+  const curMs = viewMs!=null ? Number(viewMs) : (msKeys.length ? msKeys[msKeys.length-1] : null);
+  let results=[];
+  if(curMs!=null && msDetail[curMs]) results=msDetail[curMs];
+  else { try{results=JSON.parse(row.ResultsJSON||'[]');}catch(e){} }
   const fmtD=v=>{try{const d=new Date(v);return isNaN(d)?'—':d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',hour12:false});}catch(e){return '—';}};
   openDetailModal({
     title: (row.Topic?'📌 '+row.Topic+' · ':'')+((row.Mode||'').toUpperCase()),
-    meta: fmtD(row.StartingTime)+' · Lần '+(parseInt(row.RetryCount||0)+1),
+    meta: fmtD(row.StartingTime)+(curMs!=null?(' · Nhận xét lần '+curMs):(' · Lần '+(parseInt(row.RetryCount||0)+1))),
     results, qs,
     topic: row.Topic||'',
-    rowIdx: i
+    rowIdx: i,
+    milestones, msDetail, curMs
   });
 }
 function SS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
@@ -1390,7 +1413,13 @@ function setSetupMode(m){
 // ── START FROM SETUP ──────────────────────────────────────────────────
 async function startFromSetup(){
   const qs=collectQs(S.mode);
+  // Live/full mode không áp luật 4 câu (part 2 chỉ 1 câu, full là mô phỏng)
+  const enforce4 = ['part1','part3','custom'].includes(S.mode);
   if(!qs.length){toast('Vui lòng nhập ít nhất 1 câu hỏi','error');return;}
+  if(enforce4 && qs.length<4){
+    toast('Mỗi topic cần tối thiểu 4 câu hỏi (hiện '+qs.length+'). Bấm "+ Add another question" để thêm.','error',4500);
+    return;
+  }
   // ── Topic BẮT BUỘC ──────────────────────────────────────────────
   // Không có topic thì GV không thể biết SV luyện chủ đề nào / mấy lần.
   const ti=document.getElementById('topic-inp');
@@ -1483,7 +1512,13 @@ function loadQ(idx){
   S.talking=false;
   resetTalkUI();
   document.getElementById('submit-wrap').style.display='none';
-  document.getElementById('next-q-btn').textContent=(idx>=S.qs.length-1)?'Hoàn thành ✓':'Next →';
+  const nq=document.getElementById('next-q-btn');
+  const isLast=(idx>=S.qs.length-1);
+  nq.textContent=isLast?'Hoàn thành ✓':'Next →';
+  // Câu cuối → nổi bật (primary) vì "Hoàn thành" là hành động đúng lúc này.
+  // Các câu khác → outline mờ, tránh SV bấm nhầm khi chưa kịp nói.
+  nq.className='btn '+(isLast?'btn-green':'btn-outline');
+  nq.style.fontWeight=isLast?'700':'';
   const pb=document.getElementById('prev-q-btn');if(pb)pb.disabled=(idx<=0);
   // Fix #5: nếu câu này đã có câu trả lời từ trước (đang quay lại xem/sửa) → khôi phục
   const prev=S.recs[idx];
@@ -1729,38 +1764,35 @@ async function finishSession(){
   // ── LAYER 2: chỉ số local (0 token) ──
   answered.forEach(r => { r._m = localMetrics(r.studentAnswer, r._wordTimestamps); });
 
-  // ── LAYER 3: quyết định câu nào thực sự cần Gemini ──
-  const { toGrade, reused, milestone } = decideGrading(answered);
-  if(reused.length){
-    gStep(`${reused.length} câu nói gần giống lần trước → dùng lại điểm cũ (tiết kiệm AI)`, true);
-  }
+  // ── LAYER 3: buổi này có phải mốc chấm điểm (3/5/8/10) không? ──
+  const { toGrade, isMilestone, attemptNo } = decideGrading(answered);
 
-  // ── LAYER 4: 1 call Gemini DUY NHẤT — chấm điểm + báo cáo chung ──
+  // ── LAYER 4: CHỈ chấm điểm ở mốc ──
   let rpt = null;
   let gradeFailed = false;
-  if(toGrade.length){
-    gStep(milestone ? 'Mốc kiểm tra — đang chấm lại toàn bộ…' : 'Đang chấm điểm…');
+  if(isMilestone){
+    gStep(`Lần luyện thứ ${attemptNo} — MỐC chấm điểm, đang chấm…`);
     try{
       const qaBlock = toGrade.map((r,i) => {
         const kw = (r.keywords||[]).join(', ');
         return `Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer}"\nSTATS: ${metricsLine(r._m)}${kw?'\nKeywords: '+kw:''}`;
       }).join('\n\n');
       const batchPrompt = buildBatchGradePrompt(qaBlock, toGrade.length);
-      const cap = Math.min(700*toGrade.length + 400, 4000);
-      // jsonMode=true → ép Gemini trả JSON thuần (giảm hẳn lỗi parse)
+      // Output JSON: ~300 token/câu (4 tiêu chí có comment tiếng Việt + errors) + ~250 cho report.
+      // Cap cũ (700*n+400) quá thấp cho 4+ câu → Gemini cắt ngang → JSON thiếu } → parse fail.
+      const cap = Math.min(900*toGrade.length + 700, 8192);
       const rawGrade = await gemFetch('IELTS Speaking examiner. Return ONLY valid JSON.', batchPrompt, cap, 1, true);
       const parsed = _parseGradeJSON(rawGrade);
-      if(!parsed || !(parsed.qs||parsed.questions)) throw new Error('JSON chấm điểm không hợp lệ');
+      if(!parsed || !(parsed.qs||parsed.questions)){
+        console.warn('[grade] JSON parse fail. Raw (500 ký tự đầu):', String(rawGrade).slice(0,500));
+        throw new Error('JSON chấm điểm không hợp lệ');
+      }
       const arr = parsed.qs || parsed.questions || [];
       let gotAny = false;
       arr.forEach((g,i) => {
         if(!toGrade[i]) return;
         const full = expandGrade(g);
-        if(full && (full.overall || full.scores)){
-          Object.assign(toGrade[i], full);
-          cacheStore(toGrade[i].question, toGrade[i].studentAnswer, full);
-          gotAny = true;
-        }
+        if(full && (full.overall || full.scores)){ Object.assign(toGrade[i], full); gotAny = true; }
       });
       rpt = parsed.r || parsed.report || null;
       if(!gotAny) throw new Error('Không có câu nào được chấm');
@@ -1769,24 +1801,20 @@ async function finishSession(){
       gradeFailed = true;
       toast('AI chấm điểm gặp lỗi — dùng điểm ước tính từ số liệu nói','error',5500);
     }
+    // Lưới an toàn: câu chưa có điểm → ước tính từ metrics (không bao giờ trắng điểm)
+    answered.forEach(r => {
+      if(r.overall == null || r.overall === '' || !r.scores){
+        const est = estimateBandFromMetrics(r._m, r);
+        r.overall = est.overall; r.scores = est.scores;
+        r.errors = r.errors || []; r._estimated = true;
+        r.suggestion = r.suggestion || 'Điểm ước tính từ số liệu nói (AI chấm chi tiết gặp lỗi, hãy thử lại).';
+      }
+    });
+    answered.forEach(r => applyLocalCaps(r, r._m));
     gStep(gradeFailed ? '⚠ Chấm điểm lỗi — dùng ước tính' : 'Chấm điểm xong ✓', true);
+  } else {
+    gStep(`Lần luyện thứ ${attemptNo} — chỉ ghi nhận (chấm điểm ở lần 3, 5, 8, 10)`, true);
   }
-
-  // ── LƯỚI AN TOÀN: mọi câu CHƯA có điểm → tính điểm ước tính từ metrics local ──
-  // Trước đây nếu Gemini trả JSON hỏng, câu bị lưu Overall=0/scores rỗng (SV luyện
-  // 10 lần vẫn trắng điểm). Giờ luôn có điểm dự phòng, không bao giờ lưu trắng.
-  answered.forEach(r => {
-    if(r.overall == null || r.overall === '' || !r.scores){
-      const est = estimateBandFromMetrics(r._m);
-      r.overall = est.overall; r.scores = est.scores;
-      r.errors = r.errors || [];
-      r.suggestion = r.suggestion || 'Điểm ước tính từ số liệu nói (AI chấm chi tiết gặp lỗi, hãy thử lại để có nhận xét đầy đủ).';
-      r._estimated = true;
-    }
-  });
-
-  // ── Áp HARD CAP bằng code (deterministic, 0 token) ──
-  answered.forEach(r => applyLocalCaps(r, r._m));
 
   // ── STEP 2: Upload audio lên Drive ──
   gStep('Đang lưu ghi âm…');
@@ -1816,14 +1844,16 @@ async function finishSession(){
   sessM.uniqueWords = sessM._u.reduce((a,b)=>a+b,0);
   sessM.wpm = sessM._w.length ? Math.round(sessM._w.reduce((a,b)=>a+b,0)/sessM._w.length) : 0;
   sessM.ttr = sessM._t.length ? Math.round(sessM._t.reduce((a,b)=>a+b,0)/sessM._t.length*100)/100 : 0;
-  const report = buildLocalReport(answered, rpt, sessM);
+  const report = isMilestone
+    ? buildLocalReport(answered, rpt, sessM)
+    : buildNonMilestoneReport(attemptNo, sessM);
   gStep('Báo cáo xong ✓',true);
 
   // ── STEP 4: Lưu kết quả (retry 3 lần nếu lỗi mạng) ──
   gStep('Đang lưu kết quả…');
   let saveOk=false;
   for(let at=0;at<3&&!saveOk;at++){
-    try{await saveToGASAsync(S.mode||'ielts',answered,report,S.t0?Math.round((new Date()-new Date(S.t0))/1000):0,S.retryCount||0);saveOk=true;}
+    try{await saveToGASAsync(S.mode||'ielts',answered,report,S.t0?Math.round((new Date()-new Date(S.t0))/1000):0,S.retryCount||0,isMilestone);saveOk=true;}
     catch(e){if(at<2)await new Promise(r=>setTimeout(r,2000));}
   }
   if(!saveOk)toast('Không lưu được kết quả — kiểm tra mạng','error',7000);
@@ -1966,7 +1996,9 @@ function applyLocalCaps(rec, m){
 // Cache sống trên S nên tồn tại qua các lần retry (launch() không xoá S._gradeCache).
 // Mỗi entry: {q, text, metrics, grade}
 const SIM_THRESHOLD  = 0.92;   // ≥ mức này coi như "nói lại gần y hệt"
-const MILESTONE_EVERY = 5;     // cứ 5 lần luyện thì bắt buộc chấm tươi 1 lần
+// Các MỐC chấm điểm cố định. SV luyện 10 lần/topic nhưng CHỈ chấm ở 4 lần này
+// (tiết kiệm token + đúng yêu cầu sư phạm). Lần luyện = retryCount + 1.
+const GRADE_MILESTONES = [3, 5, 8, 10];
 
 function _cacheKey(question){ return String(question||'').trim().toLowerCase().slice(0,120); }
 
@@ -1991,22 +2023,17 @@ function cacheStore(question, text, grade){
 
 // Quyết định cho TOÀN session: những câu nào cần gửi Gemini.
 // Trả về {toGrade:[...], reused:[...]}
+// Quyết định CÓ chấm điểm buổi này không. Lần luyện hiện tại = retryCount + 1.
+// CHỈ chấm ở các mốc 3/5/8/10 → tiết kiệm token, đúng yêu cầu.
+// Trả isMilestone=false nghĩa là buổi này KHÔNG chấm (chỉ ghi nhận đã luyện).
 function decideGrading(answered){
-  const rc = S.retryCount || 0;
-  const milestone = (rc > 0) && (rc % MILESTONE_EVERY === 0);   // lần 6, 11, 16…
-  const toGrade = [], reused = [];
-  answered.forEach(r => {
-    const hit = cacheLookup(r.question, r.studentAnswer);
-    // Không có bản gần giống trong cache → bắt buộc gọi Gemini
-    if(!hit){ toGrade.push(r); return; }
-    // Mốc kiểm tra: chấm tươi lại — NHƯNG chỉ khi SV thực sự đổi cách nói.
-    // Nếu nói y hệt (sim ≥ .98) thì điểm cũ vẫn đúng, chấm lại chỉ tốn token vô ích.
-    if(milestone && hit.sim < 0.98){ toGrade.push(r); return; }
-    Object.assign(r, hit.grade);
-    r._fromCache = true; r._cacheSim = hit.sim;
-    reused.push(r);
-  });
-  return { toGrade, reused, milestone };
+  const attemptNo = (S.retryCount || 0) + 1;   // lần luyện thứ mấy
+  const isMilestone = GRADE_MILESTONES.indexOf(attemptNo) !== -1;
+  if(!isMilestone){
+    return { toGrade: [], reused: [], isMilestone: false, attemptNo };
+  }
+  // Là mốc chấm → chấm toàn bộ câu (không dùng cache; mốc phải là điểm tươi thật)
+  return { toGrade: answered.slice(), reused: [], isMilestone: true, attemptNo };
 }
 
 // ── BATCH GRADE PROMPT (Layer 4) ──────────────────────────────────
@@ -2037,7 +2064,7 @@ Score FC/LR/GRA/P in 0.5 steps 4.0-9.0. b = mean of 4, rounded to 0.5.
 CALIBRATION (quan trọng nhất): typical student = 4.5-6.0. 6.5 = above average. 7.0 = genuinely good. 8.0+ = near-native, rare. When torn between two bands, pick the LOWER.
 LR: award 7+ only for natural ROTATION of phrasal verbs / collocations / idioms across the answer. Forced or memorized-sounding vocab -> max 6.5.
 GRA: award 7+ only for accurate tense shifts between sentences AND correct complex syntax (relative clause / conditional / passive). Repeated S-V agreement or article errors -> max 6.0.
-P: inferred from the Whisper transcript. Evidence = phonetic substitutions (e.g. "tree" for "three"), Vietnamese L1 signs (dropped final consonants, th-sounds, vowel length).
+P: inferred from the Whisper transcript. Evidence = phonetic substitutions (e.g. "tree" for "three"), Vietnamese L1 signs (dropped final consonants, th-sounds, vowel length). ALSO treat systematic missing -s (3rd-person "he go", plural "two cat") and wrong word-forms as evidence of dropped final sounds → lower P accordingly. Many such errors = P capped at 5.5.
 The 4 criteria MUST differ — identical scores across all 4 is always wrong.
 Transcript keeps fillers verbatim; filler counts are in STATS and are already penalised downstream — judge only what fillers reveal about language-searching.`;}
 
@@ -2049,12 +2076,30 @@ Transcript keeps fillers verbatim; filler counts are in STATS and are already pe
 function _parseGradeJSON(raw){
   if(!raw) return null;
   let s = String(raw).replace(/```json/gi,'').replace(/```/g,'').trim();
-  const i = s.indexOf('{'), j = s.lastIndexOf('}')+1;
-  if(i===-1 || j<=i) return null;
-  s = s.slice(i,j);
-  try{ return JSON.parse(s); }catch(e){}
-  // Vá: bỏ dấu phẩy trước } hoặc ]
-  try{ return JSON.parse(s.replace(/,\s*([}\]])/g,'$1')); }catch(e){}
+  const i = s.indexOf('{');
+  if(i===-1) return null;
+  s = s.slice(i);
+  // Thử 1: parse nguyên (cắt tới } cuối)
+  const j = s.lastIndexOf('}')+1;
+  if(j>0){
+    const cand = s.slice(0,j);
+    try{ return JSON.parse(cand); }catch(e){}
+    try{ return JSON.parse(cand.replace(/,\s*([}\]])/g,'$1')); }catch(e){}
+  }
+  // Thử 2: JSON bị CẮT NGANG (Gemini hết token) → tự đóng ngoặc thiếu.
+  // Đếm { [ chưa đóng rồi thêm } ] cho đủ. Cứu được phần lớn dữ liệu đã có.
+  try{
+    let t = s;
+    // Bỏ chuỗi dở dang ở cuối (nếu đang giữa 1 chuỗi "...)
+    const quotes = (t.match(/"/g)||[]).length;
+    if(quotes % 2 === 1) t = t.slice(0, t.lastIndexOf('"'));
+    // Bỏ dấu phẩy/token thừa ở cuối
+    t = t.replace(/[,\s]+$/,'');
+    let open=0, sq=0;
+    for(const ch of t){ if(ch==='{')open++; else if(ch==='}')open--; else if(ch==='[')sq++; else if(ch===']')sq--; }
+    t += ']'.repeat(Math.max(0,sq)) + '}'.repeat(Math.max(0,open));
+    return JSON.parse(t.replace(/,\s*([}\]])/g,'$1'));
+  }catch(e){}
   return null;
 }
 
@@ -2062,7 +2107,7 @@ function _parseGradeJSON(raw){
 // KHÔNG thay thế điểm AI; chỉ dùng khi AI fail, để SV không bị trắng điểm sau khi
 // luyện tập thật. Ước tính bảo thủ dựa trên các tín hiệu đo được (độ dài, đa dạng
 // từ vựng, từ đệm, tốc độ). Đánh dấu _estimated để báo cáo ghi rõ "ước tính".
-function estimateBandFromMetrics(m){
+function estimateBandFromMetrics(m, rec){
   m = m || {};
   const wc = m.wordCount||0, ttr = m.ttr||0, fillers = m.fillerCount||0, wpm = m.wpm||0;
   // Fluency: dựa độ dài + tốc độ + mật độ từ đệm
@@ -2079,8 +2124,28 @@ function estimateBandFromMetrics(m){
     if(ttr >= 0.65) lr += 0.5;
     if(ttr < 0.4) lr -= 0.5;
   }
-  // Grammar & Pronunciation: không đo được → giữ mức trung bình thận trọng
+  // Grammar: trừ theo số lỗi ngữ pháp/từ vựng phát hiện được
   let gr = 5.0, pr = 5.0;
+  // ── Pronunciation suy từ lỗi văn bản (yêu cầu #4) ──
+  // Người Việt hay nuốt âm cuối → thiếu -s ngôi 3/số nhiều, sai loại từ (noun↔verb↔adj),
+  // sai dạng từ. Các lỗi này TRONG TRANSCRIPT là dấu hiệu phát âm sai → trừ điểm P.
+  const errs = (rec && rec.errors) || [];
+  const pronErrTypes = /agreement|plural|word form|word choice|tense/i;
+  let pronSignals = 0;
+  errs.forEach(e => {
+    const type = String(e.type||'');
+    if(pronErrTypes.test(type)) pronSignals++;
+    // Bắt trực tiếp lỗi thiếu -s: "he go" → "he goes", "two cat" → "two cats"
+    const wrong = String(e.wrong||'').toLowerCase(), right = String(e.correct||'').toLowerCase();
+    if(right && wrong && right.replace(/s\b/g,'') === wrong.replace(/\s+/g,' ')) pronSignals++;
+  });
+  const grErrs = errs.length;
+  if(grErrs >= 2) gr -= 0.5;
+  if(grErrs >= 4) gr -= 0.5;
+  if(pronSignals >= 2) pr -= 0.5;
+  if(pronSignals >= 4) pr -= 1.0;
+  if(fillers >= 6 && m.avgSentLen < 9) pr -= 0.5;   // câu vụn + nhiều đệm = phát âm không liền mạch
+
   const clamp = x => Math.max(4.0, Math.min(6.5, Math.round(x*2)/2));   // trần 6.5 vì chỉ là ước tính
   fc=clamp(fc); lr=clamp(lr); gr=clamp(gr); pr=clamp(pr);
   const overall = Math.round((fc+lr+gr+pr)/4*2)/2;
@@ -2091,7 +2156,7 @@ function estimateBandFromMetrics(m){
       fluency:      { score:fc, comment:note },
       lexical:      { score:lr, comment:note },
       grammar:      { score:gr, comment:note },
-      pronunciation:{ score:pr, comment:note }
+      pronunciation:{ score:pr, comment:note + (pronSignals>=2?' · nhiều lỗi âm cuối/loại từ':'') }
     }
   };
 }
@@ -2278,6 +2343,30 @@ function fluPlay(url, atSec){
 }
 // Số liệu + bảng điểm hoàn toàn tính được bằng code. Phần cần AI (cụm từ tốt,
 // bản nâng cấp Band 8, lời khuyên) đã nằm trong field "r" của cùng 1 call.
+// Báo cáo cho lần KHÔNG phải mốc chấm — không có điểm, chỉ ghi nhận + động viên.
+function buildNonMilestoneReport(attemptNo, M){
+  const next = GRADE_MILESTONES.find(n => n > attemptNo);
+  const lines = [];
+  lines.push('### ✅ Đã ghi nhận lần luyện thứ '+attemptNo);
+  lines.push('');
+  lines.push('> Buổi này **chưa chấm điểm**. Điểm được chấm ở các mốc **lần 3, 5, 8 và 10** để bạn có thời gian cải thiện giữa các lần.');
+  if(next){
+    lines.push('>');
+    lines.push('> 🎯 Còn **'+(next-attemptNo)+' lần** nữa (lần '+next+') sẽ được chấm điểm. Hãy tiếp tục luyện!');
+  } else {
+    lines.push('>');
+    lines.push('> 🎉 Bạn đã hoàn thành cả 10 lần luyện cho chủ đề này!');
+  }
+  lines.push('');
+  lines.push('### 📊 SỐ LIỆU BUỔI NÓI');
+  lines.push('- **Tổng số từ:** '+(M.wordCount||0)+' · **Từ khác nhau:** '+(M.uniqueWords||0)+' · **Độ đa dạng (TTR):** '+(M.ttr||0));
+  lines.push('- **Từ đệm:** '+(M.fillerCount||0)+' lần'+(M.fillerMidClause?' ('+M.fillerMidClause+' lần giữa câu)':''));
+  if(M.wpm) lines.push('- **Tốc độ nói:** '+M.wpm+' từ/phút');
+  lines.push('');
+  lines.push('*Xem chi tiết độ trôi chảy, từ đệm và transcript ở phần bên dưới.*');
+  return lines.join('\n');
+}
+
 function buildLocalReport(answered, r, sessionMetrics){
   const avg = k => {
     const v = answered.map(x => parseFloat(x.scores?.[k]?.score)||0).filter(x=>x>0);
@@ -2338,7 +2427,7 @@ function buildLocalReport(answered, r, sessionMetrics){
 }
 
 // ── SAVE TO GAS (async + proper error) ──
-async function saveToGASAsync(mode,results,report,durationSec,retryCount){
+async function saveToGASAsync(mode,results,report,durationSec,retryCount,isMilestone){
   const user=S.user||{};const now=new Date();
   const startTime=S.liveStartTime||S.t0||new Date(now-(durationSec||0)*1000);
   const qArr=(results||[]).map(r=>({question:r.question||'',keywords:r.keywords||[]}));
@@ -2352,7 +2441,8 @@ async function saveToGASAsync(mode,results,report,durationSec,retryCount){
     submittingTime:now.toISOString(),
     studentName:user.fullName||'',accessCode:user.studentId||'',class:user.class||'',
     mode:mode,durationMin:Math.round((durationSec||0)/60),topic:S.topic||'',
-    retryCount:retryCount||0,questionsJSON:JSON.stringify(qArr),resultsJSON:JSON.stringify(rArr),
+    retryCount:retryCount||0, attemptNo:(retryCount||0)+1, isMilestone:!!isMilestone,
+    questionsJSON:JSON.stringify(qArr),resultsJSON:JSON.stringify(rArr),
     reportText:(report||'').substring(0,4000)
   };
   const res=await gasPost('speak.saveResult',payload);
@@ -3422,12 +3512,41 @@ function renderResults(results,report,mode,liveData){
   const oa = results.map(r=>parseFloat(r.overall)||0).filter(s=>s>0);
   const avg = oa.length ? Math.round(oa.reduce((a,b)=>a+b,0)/oa.length*2)/2 : 0;
   const rc  = S.retryCount||0;
+  const attemptNo = rc+1;
+  // Lần này có được chấm điểm không? (mốc 3/5/8/10). avg>0 nghĩa là có điểm.
+  const graded = avg > 0;
+
+  // ── Banner cho lần KHÔNG chấm điểm ──
+  const heroEl = document.querySelector('#S-results .res-hero');
+  const oldBanner = document.getElementById('milestone-banner');
+  if(oldBanner) oldBanner.remove();
+  if(!graded && heroEl){
+    const nextMs = (typeof GRADE_MILESTONES!=='undefined' ? GRADE_MILESTONES : [3,5,8,10]).find(n=>n>attemptNo);
+    const remain = nextMs ? nextMs - attemptNo : 0;
+    const msg = nextMs
+      ? `Còn <b>${remain} lần</b> nữa (lần ${nextMs}) sẽ được AI chấm điểm`
+      : `Bạn đã hoàn thành cả 10 lần luyện! 🎉`;
+    const banner = document.createElement('div');
+    banner.id = 'milestone-banner';
+    banner.style.cssText = 'background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-radius:16px;padding:20px 24px;margin-bottom:16px;text-align:center';
+    banner.innerHTML = `
+      <div style="font-size:2.2rem;margin-bottom:4px">✅</div>
+      <div style="font-size:1.15rem;font-weight:800;margin-bottom:6px">Đã ghi nhận lần luyện thứ ${attemptNo}</div>
+      <div style="font-size:13.5px;opacity:.92;line-height:1.6">Buổi này <b>chưa chấm điểm</b>. Điểm được chấm ở các mốc <b>lần 3, 5, 8 và 10</b>.<br>${msg}</div>
+      <div style="margin-top:12px;display:flex;gap:5px;justify-content:center">
+        ${[3,5,8,10].map(n=>`<span style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;${n<=attemptNo?'background:rgba(255,255,255,.9);color:#4f46e5':n===nextMs?'background:rgba(255,255,255,.25);border:2px solid #fff':'background:rgba(255,255,255,.12)'}">${n}</span>`).join('')}
+      </div>`;
+    heroEl.parentNode.insertBefore(banner, heroEl);
+    heroEl.style.display='none';
+  } else if(heroEl){
+    heroEl.style.display='';
+  }
 
   // ── Hero header ──
   document.getElementById('res-mode').textContent = topic
     ? `🎙 ${S.mode?.toUpperCase()||'IELTS'} · ${topic}` : 'IELTS SPEAKING';
   document.getElementById('res-sc').textContent  = avg||'—';
-  document.getElementById('res-lb').textContent  = `Overall Band · Lần ${rc+1}`;
+  document.getElementById('res-lb').textContent  = graded ? `Overall Band · Lần ${attemptNo}` : `Lần ${attemptNo} · chưa chấm`;
 
   // ── Criterion averages (4 pills) ──
   const CKS=[['fluency','Fluency & Coherence'],['lexical','Lexical Resource'],['grammar','Grammatical Range'],['pronunciation','Pronunciation']];
@@ -3750,6 +3869,7 @@ function retryFromHistory(i){
       </div>
       <!-- Score summary strip -->
       <div id="dm-scores" style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08)"></div>
+      <div id="dm-milestone"></div>
       <!-- Per-question cards -->
       <div id="dm-body" style="padding:16px 20px"></div>
       <!-- Footer actions -->

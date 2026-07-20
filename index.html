@@ -862,15 +862,11 @@ tr:hover td{background:var(--grey-100)}
             <th style="text-align:center">Duration</th>
             <th style="text-align:center" title="Số câu hỏi">Q</th>
             <th style="text-align:center" title="Lần luyện tập">Lần</th>
-            <th style="text-align:center">Fluency</th>
-            <th style="text-align:center">Vocab</th>
-            <th style="text-align:center">Grammar</th>
-            <th style="text-align:center">Pron.</th>
-            <th onclick="_spkSort('_avgBand')" style="cursor:pointer;text-align:center">Overall ↕</th>
+            <th onclick="_spkSort('_avgBand')" style="cursor:pointer;text-align:center" title="Điểm overall các mốc 3/5/8/10 — di chuột để xem chi tiết">Điểm các mốc ↕</th>
             <th style="text-align:center" title="Số file ghi âm có sẵn (lưu trên Drive, tự xóa sau 30 ngày)">🎧 Audio</th>
             <th></th>
           </tr></thead>
-          <tbody id="speak-results-tbody"><tr><td colspan="17" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
+          <tbody id="speak-results-tbody"><tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr></tbody>
         </table>
       </div>
 
@@ -3704,6 +3700,76 @@ function _spkCrit(scores, keys){
   return null;
 }
 // Session-average for a criterion across all questions
+// Bảng điểm các mốc 3/5/8/10 trong modal detail + dropdown chọn mốc xem chi tiết.
+function _milestoneBlock(r, curMs){
+  const ms = r._milestones || [];
+  if(!ms.length) return '';
+  const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#9ca3af';
+  const msDetail = r._msDetail || {};
+  const detailKeys = Object.keys(msDetail).map(Number).sort((a,b)=>a-b);
+  // Dropdown chỉ hiện khi có ≥2 mốc có nhận xét chi tiết
+  const dropdown = detailKeys.length >= 2 ? `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:12px;color:var(--grey-600)">Xem nhận xét chi tiết của:</span>
+      <select onchange="openSpkDetailModal(${r._rid}, this.value)" style="padding:5px 10px;border:1.5px solid var(--grey-200);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">
+        ${detailKeys.map(n=>`<option value="${n}" ${n===curMs?'selected':''}>Lần ${n} — Overall ${(ms.find(m=>m.n===n)||{}).overall||'—'}</option>`).join('')}
+      </select>
+    </div>` : '';
+  const rows = ms.map(m=>{
+    const isViewing = m.n===curMs;
+    return `<tr style="${isViewing?'background:rgba(79,70,229,.08)':''}">
+      <td style="padding:6px 10px;font-weight:700">${isViewing?'▶ ':''}Lần ${m.n}</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:700;color:${bc(m.overall)}">${m.overall||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${m.fc||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${m.lr||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${m.gr||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${m.p||'—'}</td>
+      <td style="padding:6px 10px;font-size:11px;color:var(--grey-500)">${m.at?new Date(m.at).toLocaleDateString('vi-VN'):''}</td>
+    </tr>`;
+  }).join('');
+  let trend = '';
+  if(ms.length>=2){
+    const d = ms[ms.length-1].overall - ms[0].overall;
+    trend = d>0 ? `<span style="color:#16a34a">↑ tiến bộ +${d.toFixed(1)}</span>`
+          : d<0 ? `<span style="color:#dc2626">↓ giảm ${d.toFixed(1)}</span>`
+          : `<span style="color:var(--grey-500)">→ giữ nguyên</span>`;
+  }
+  return `<div style="padding:14px 20px;background:#fafafa;border-bottom:1px solid var(--grey-200)">
+    <div style="font-size:11px;font-weight:700;color:var(--grey-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+      📊 Điểm qua các mốc chấm ${trend?'· '+trend:''}
+    </div>
+    ${dropdown}
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="border-bottom:2px solid var(--grey-200)">
+        <th style="padding:5px 10px;text-align:left;font-size:11px;color:var(--grey-500)">Mốc</th>
+        <th style="padding:5px 10px;font-size:11px;color:var(--grey-500)">Overall</th>
+        <th style="padding:5px 10px;font-size:11px;color:var(--grey-500)">FC</th>
+        <th style="padding:5px 10px;font-size:11px;color:var(--grey-500)">LR</th>
+        <th style="padding:5px 10px;font-size:11px;color:var(--grey-500)">GR</th>
+        <th style="padding:5px 10px;font-size:11px;color:var(--grey-500)">P</th>
+        <th style="padding:5px 10px;text-align:left;font-size:11px;color:var(--grey-500)">Ngày</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+// Cell điểm các mốc 3/5/8/10 với tooltip chi tiết khi hover.
+// _milestones = [{n,overall,fc,lr,gr,p,at}] — chỉ các lần thực sự được chấm.
+function _milestoneCell(r){
+  const ms = r._milestones || [];
+  if(!ms.length){
+    // Chưa tới mốc chấm nào → hiện điểm gần nhất (nếu có) hoặc gạch
+    return r._avgBand ? `<strong style="color:${bandColor(r._avgBand)}">${r._avgBand}</strong>` : '<span style="color:var(--grey-400)">chưa chấm</span>';
+  }
+  // Chuỗi điểm các mốc: "3:6.5 · 5:7 · 8:7 · 10:7.5"
+  const chips = ms.map(m=>`<span style="color:${bandColor(m.overall)};font-weight:700">${m.overall}</span>`).join('<span style="color:var(--grey-300)">·</span>');
+  // Tooltip chi tiết từng mốc
+  const rows = ms.map(m=>`Lần ${m.n}: Overall ${m.overall} (F${m.fc||'—'} L${m.lr||'—'} G${m.gr||'—'} P${m.p||'—'})`).join('&#10;');
+  const latest = ms[ms.length-1];
+  return `<span title="${rows}" style="cursor:help;border-bottom:1px dotted var(--grey-400);display:inline-flex;gap:4px;align-items:center">${chips}</span>`;
+}
+
 function _spkAvgCrit(results, keys){
   var vals=[];
   (results||[]).forEach(function(x){ var s=_spkCrit(x.scores||x.score||x, keys); if(s!=null && !isNaN(parseFloat(s))) vals.push(parseFloat(s)); });
@@ -3914,10 +3980,10 @@ function rdCloseDoc(){ document.getElementById('rd-doc-modal').style.display='no
 
 async function loadSpeakResults(force){
   const tbody = document.getElementById('speak-results-tbody');
-  if (tbody && !_spkLoaded) tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
+  if (tbody && !_spkLoaded) tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Loading...</td></tr>';
   if (_spkLoaded && !force) { renderSpeakDetailed(); return; }
   const res = await api('teacher.getAllResults');
-  if (!res.success) { if (tbody) tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
+  if (!res.success) { if (tbody) tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;color:var(--red)">${res.error||'Error'}</td></tr>`; return; }
 
   const studentMap = {};
   (App.teacherData.students||[]).forEach(s => {
@@ -3937,7 +4003,9 @@ async function loadSpeakResults(force){
       const graded = results.map(x => parseFloat(x.overall)||0).filter(v => v>0);
       if (graded.length) avgBand = Math.round(graded.reduce((a,b)=>a+b,0)/graded.length*2)/2;
     }
-    return Object.assign({}, r, { _cls: info.cls, _sid: info.sid, _results: results, _questions: questions, _avgBand: avgBand });
+    let milestones = []; try { milestones = JSON.parse(r.MilestoneJSON||'[]'); } catch(e) {}
+    let msDetail = {}; try { msDetail = JSON.parse(r.MilestoneDetailJSON||'{}'); } catch(e) {}
+    return Object.assign({}, r, { _cls: info.cls, _sid: info.sid, _results: results, _questions: questions, _avgBand: avgBand, _milestones: milestones, _msDetail: msDetail });
   });
   { var _arc=_archivedIdSet(); _spkRows = _spkRows.filter(function(r){ return !_arc[String(r._sid||'')]; }); }
   // Gán ID BỀN VỮNG cho từng dòng. BẮT BUỘC phải có: bảng hiển thị là bản đã LỌC
@@ -3993,7 +4061,7 @@ function renderSpeakDetailed(){
   const cnt=document.getElementById('spk-result-count');
   if(cnt) cnt.textContent = rows.length + ' kết quả';
 
-  if(!rows.length){ tbody.innerHTML='<tr><td colspan="17" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--grey-400)">Không có kết quả.</td></tr>'; return; }
 
   const bandColor = b => b>=7?'var(--green)':b>=5.5?'var(--gold)':b>0?'var(--red)':'var(--grey-400)';
   const cell = v => v!=null ? `<span style="font-weight:600;color:${bandColor(v)}">${v}</span>` : '<span style="color:var(--grey-400)">—</span>';
@@ -4021,11 +4089,7 @@ function renderSpeakDetailed(){
       <td style="text-align:center;font-size:12px">${dur}</td>
       <td style="text-align:center">${r._questions.length||'—'}</td>
       <td style="text-align:center">${retryBadge}</td>
-      <td style="text-align:center">${cell(flA)}</td>
-      <td style="text-align:center">${cell(vcA)}</td>
-      <td style="text-align:center">${cell(grA)}</td>
-      <td style="text-align:center">${cell(prA)}</td>
-      <td style="text-align:center"><strong style="color:${bandColor(r._avgBand)}">${r._avgBand||'—'}</strong></td>
+      <td style="text-align:center">${_milestoneCell(r)}</td>
       <td style="text-align:center">${audioBadge}</td>
       <td style="white-space:nowrap">
         <button onclick="openSpkDetailModal(${r._rid})" style="border:none;background:var(--red);color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">🔍 Detail</button>
@@ -5211,12 +5275,15 @@ function hwProg(done,total,label){
 }
 
 // ── SPEAKING DETAIL MODAL (Teacher) ──────────────────────────────────────
-function openSpkDetailModal(rid){
+function openSpkDetailModal(rid, viewMs){
   // Tra theo _rid (ID bền vững) — KHÔNG dùng index mảng. Bảng hiển thị đã bị lọc
   // và sắp xếp nên index trong bảng lệch với index trong _spkRows → trước đây mở
   // nhầm dữ liệu của sinh viên khác.
   const r=(_spkRows||[]).find(x=>x._rid===rid);if(!r)return;
-  const results=r._results||[];
+  const msDetail = r._msDetail || {};
+  const msKeys = Object.keys(msDetail).map(Number).sort((a,b)=>a-b);   // các mốc đã chấm
+  const curMs = viewMs!=null ? Number(viewMs) : (msKeys.length ? msKeys[msKeys.length-1] : null);
+  const results = (curMs!=null && msDetail[curMs]) ? msDetail[curMs] : (r._results||[]);
   const qs=r._questions||[];
   const bc=v=>v>=7?'#16a34a':v>=5.5?'#d97706':v>0?'#dc2626':'#9ca3af';
   const esc2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -5291,11 +5358,12 @@ function openSpkDetailModal(rid){
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--grey-50,#f9f9f7);border-bottom:1px solid var(--grey-200)">
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--black)">${r.StudentName||'—'} · ${r._cls||'—'}${r.Topic?' · 📌 '+esc2(r.Topic):''}</div>
-          <div style="font-size:11px;color:var(--grey-500);margin-top:2px">${(r.Mode||'').toUpperCase()} · ${fmtT(r.StartingTime)} · Lần ${parseInt(r.RetryCount||0)+1}</div>
+          <div style="font-size:11px;color:var(--grey-500);margin-top:2px">${(r.Mode||'').toUpperCase()} · ${fmtT(r.StartingTime)} · ${curMs!=null?('Nhận xét lần '+curMs):('Lần '+(parseInt(r.RetryCount||0)+1))}</div>
         </div>
         <button onclick="document.getElementById('spk-detail-modal').style.display='none';document.body.style.overflow=''" style="border:none;background:var(--grey-100);color:var(--grey-600);border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer">×</button>
       </div>
       <div style="display:flex;border-bottom:1px solid var(--grey-200)">${scoreStrip}</div>
+      ${_milestoneBlock(r, curMs)}
       <div style="padding:16px 20px">${cards}</div>
     </div>
   </div>`;
