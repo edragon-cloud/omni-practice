@@ -1737,6 +1737,7 @@ async function finishSession(){
 
   // ── LAYER 4: 1 call Gemini DUY NHẤT — chấm điểm + báo cáo chung ──
   let rpt = null;
+  let gradeFailed = false;
   if(toGrade.length){
     gStep(milestone ? 'Mốc kiểm tra — đang chấm lại toàn bộ…' : 'Đang chấm điểm…');
     try{
@@ -1745,25 +1746,44 @@ async function finishSession(){
         return `Q${i+1}: "${r.question}"\nA${i+1}: "${r.studentAnswer}"\nSTATS: ${metricsLine(r._m)}${kw?'\nKeywords: '+kw:''}`;
       }).join('\n\n');
       const batchPrompt = buildBatchGradePrompt(qaBlock, toGrade.length);
-      // Output nén → cần ít token hơn nhiều so với schema cũ
       const cap = Math.min(700*toGrade.length + 400, 4000);
-      const rawGrade = await gemFetch('IELTS Speaking examiner. Return ONLY valid JSON.', batchPrompt, cap);
-      const clean = rawGrade.replace(/```json|```/g,'').trim();
-      const si = clean.indexOf('{'), ei = clean.lastIndexOf('}')+1;
-      if(si!==-1 && ei>si){
-        const parsed = JSON.parse(clean.substring(si,ei));
-        const arr = parsed.qs || parsed.questions || [];
-        arr.forEach((g,i) => {
-          if(!toGrade[i]) return;
-          const full = expandGrade(g);
+      // jsonMode=true → ép Gemini trả JSON thuần (giảm hẳn lỗi parse)
+      const rawGrade = await gemFetch('IELTS Speaking examiner. Return ONLY valid JSON.', batchPrompt, cap, 1, true);
+      const parsed = _parseGradeJSON(rawGrade);
+      if(!parsed || !(parsed.qs||parsed.questions)) throw new Error('JSON chấm điểm không hợp lệ');
+      const arr = parsed.qs || parsed.questions || [];
+      let gotAny = false;
+      arr.forEach((g,i) => {
+        if(!toGrade[i]) return;
+        const full = expandGrade(g);
+        if(full && (full.overall || full.scores)){
           Object.assign(toGrade[i], full);
-          cacheStore(toGrade[i].question, toGrade[i].studentAnswer, full);   // nạp cache cho lần retry sau
-        });
-        rpt = parsed.r || parsed.report || null;
-      }
-    }catch(eg){ console.warn('Batch grade failed:',eg); toast('Chấm điểm lỗi: '+eg.message,'error',5000); }
-    gStep('Chấm điểm xong ✓',true);
+          cacheStore(toGrade[i].question, toGrade[i].studentAnswer, full);
+          gotAny = true;
+        }
+      });
+      rpt = parsed.r || parsed.report || null;
+      if(!gotAny) throw new Error('Không có câu nào được chấm');
+    }catch(eg){
+      console.warn('Batch grade failed:',eg);
+      gradeFailed = true;
+      toast('AI chấm điểm gặp lỗi — dùng điểm ước tính từ số liệu nói','error',5500);
+    }
+    gStep(gradeFailed ? '⚠ Chấm điểm lỗi — dùng ước tính' : 'Chấm điểm xong ✓', true);
   }
+
+  // ── LƯỚI AN TOÀN: mọi câu CHƯA có điểm → tính điểm ước tính từ metrics local ──
+  // Trước đây nếu Gemini trả JSON hỏng, câu bị lưu Overall=0/scores rỗng (SV luyện
+  // 10 lần vẫn trắng điểm). Giờ luôn có điểm dự phòng, không bao giờ lưu trắng.
+  answered.forEach(r => {
+    if(r.overall == null || r.overall === '' || !r.scores){
+      const est = estimateBandFromMetrics(r._m);
+      r.overall = est.overall; r.scores = est.scores;
+      r.errors = r.errors || [];
+      r.suggestion = r.suggestion || 'Điểm ước tính từ số liệu nói (AI chấm chi tiết gặp lỗi, hãy thử lại để có nhận xét đầy đủ).';
+      r._estimated = true;
+    }
+  });
 
   // ── Áp HARD CAP bằng code (deterministic, 0 token) ──
   answered.forEach(r => applyLocalCaps(r, r._m));
@@ -2024,6 +2044,58 @@ Transcript keeps fillers verbatim; filler counts are in STATS and are already pe
 // Giãn JSON nén của Gemini về đúng shape mà renderResults/saveToGAS đang dùng.
 // Chấp nhận CẢ shape nén (b/f/l/g/p/e/s) lẫn shape cũ (overall/scores/errors/suggestion)
 // để lỡ Gemini trả về kiểu cũ thì vẫn không vỡ.
+// Parse JSON chấm điểm chịu lỗi: bỏ markdown fence, cắt từ { đầu tới } cuối,
+// vá vài lỗi thường gặp (dấu phẩy thừa). Trả null nếu vẫn không parse được.
+function _parseGradeJSON(raw){
+  if(!raw) return null;
+  let s = String(raw).replace(/```json/gi,'').replace(/```/g,'').trim();
+  const i = s.indexOf('{'), j = s.lastIndexOf('}')+1;
+  if(i===-1 || j<=i) return null;
+  s = s.slice(i,j);
+  try{ return JSON.parse(s); }catch(e){}
+  // Vá: bỏ dấu phẩy trước } hoặc ]
+  try{ return JSON.parse(s.replace(/,\s*([}\]])/g,'$1')); }catch(e){}
+  return null;
+}
+
+// Điểm ƯỚC TÍNH từ metrics local — LƯỚI AN TOÀN khi Gemini không chấm được.
+// KHÔNG thay thế điểm AI; chỉ dùng khi AI fail, để SV không bị trắng điểm sau khi
+// luyện tập thật. Ước tính bảo thủ dựa trên các tín hiệu đo được (độ dài, đa dạng
+// từ vựng, từ đệm, tốc độ). Đánh dấu _estimated để báo cáo ghi rõ "ước tính".
+function estimateBandFromMetrics(m){
+  m = m || {};
+  const wc = m.wordCount||0, ttr = m.ttr||0, fillers = m.fillerCount||0, wpm = m.wpm||0;
+  // Fluency: dựa độ dài + tốc độ + mật độ từ đệm
+  let fc = 5.0;
+  if(wc >= 60) fc += 0.5;
+  if(wc >= 100) fc += 0.5;
+  if(wpm >= 100 && wpm <= 160) fc += 0.5;
+  if(fillers >= 5) fc -= 0.5;
+  if(fillers >= 8) fc -= 0.5;
+  // Lexical: dựa độ đa dạng từ vựng (TTR) — chỉ tin khi câu đủ dài
+  let lr = 5.0;
+  if(wc >= 30){
+    if(ttr >= 0.55) lr += 0.5;
+    if(ttr >= 0.65) lr += 0.5;
+    if(ttr < 0.4) lr -= 0.5;
+  }
+  // Grammar & Pronunciation: không đo được → giữ mức trung bình thận trọng
+  let gr = 5.0, pr = 5.0;
+  const clamp = x => Math.max(4.0, Math.min(6.5, Math.round(x*2)/2));   // trần 6.5 vì chỉ là ước tính
+  fc=clamp(fc); lr=clamp(lr); gr=clamp(gr); pr=clamp(pr);
+  const overall = Math.round((fc+lr+gr+pr)/4*2)/2;
+  const note = '(ước tính từ số liệu — chưa qua AI)';
+  return {
+    overall,
+    scores: {
+      fluency:      { score:fc, comment:note },
+      lexical:      { score:lr, comment:note },
+      grammar:      { score:gr, comment:note },
+      pronunciation:{ score:pr, comment:note }
+    }
+  };
+}
+
 function expandGrade(o){
   if(!o || typeof o!=='object') return {};
   if(o.scores || o.overall!==undefined){          // đã là shape cũ → giữ nguyên
@@ -2219,6 +2291,11 @@ function buildLocalReport(answered, r, sessionMetrics){
 
   const lines = [];
   lines.push('### 📝 BÁO CÁO KẾT QUẢ IELTS SPEAKING');
+  // Cảnh báo nếu có câu phải dùng điểm ước tính (AI chấm lỗi)
+  if(answered.some(x => x._estimated)){
+    lines.push('');
+    lines.push('> ⚠️ **AI chấm điểm gặp lỗi ở buổi này** nên một số điểm là **ước tính từ số liệu nói** (độ dài, từ vựng, từ đệm). Kết quả vẫn được lưu. Bạn nên **luyện lại** để nhận điểm và nhận xét chi tiết từ AI.');
+  }
   lines.push(`**Dự đoán Band Score tổng: ${overall||'—'}**`);
   // Minh bạch khi điểm được dùng lại — và nhắc SV rằng nói lại y hệt thì không tiến bộ
   const cached = answered.filter(x => x._fromCache);
@@ -2393,10 +2470,12 @@ async function transcribeAudio(input, mime){
 }
 
 // ── GEMINI FETCH — direct REST, no SDK, with model fallback ──────────
-async function gemFetch(sys, usr, mx, _attempt){
+async function gemFetch(sys, usr, mx, _attempt, jsonMode){
   mx=mx||1024; _attempt=_attempt||1;
   if(!S.gkey) throw new Error('Chưa có API key — vui lòng nhập key Gemini');
-  const body={contents:[{parts:[{text:usr}]}],generationConfig:{maxOutputTokens:mx,temperature:0.45}};
+  const gc={maxOutputTokens:mx,temperature:0.45};
+  if(jsonMode) gc.responseMimeType='application/json';   // ép JSON thuần — tránh Gemini chèn text/markdown làm hỏng parse
+  const body={contents:[{parts:[{text:usr}]}],generationConfig:gc};
   if(sys) body.systemInstruction={parts:[{text:sys}]};
   const base='https://generativelanguage.googleapis.com/v1beta/models/';
   const models=[GM_PRIMARY, GM_FALLBACK, 'gemini-2.5-flash'];
@@ -2412,14 +2491,16 @@ async function gemFetch(sys, usr, mx, _attempt){
         if(_attempt<=2){
           const el=document.getElementById('g-title');
           for(let i=ds;i>0;i--){if(el)el.textContent=`⏳ Đang thử lại sau ${i}s…`;await new Promise(res=>setTimeout(res,1000));}
-          return gemFetch(sys,usr,mx,_attempt+1);
+          return gemFetch(sys,usr,mx,_attempt+1,jsonMode);
         }
         // Gemini hết quota sau các lần retry → thử shared keys pool
         if(S._sharedGeminiKeys&&S._sharedGeminiKeys.length){
           for(const sk of S._sharedGeminiKeys){
             if(sk===S.gkey) continue;
             try{
-              const body2={contents:[{parts:[{text:usr}]}],generationConfig:{maxOutputTokens:mx,temperature:0.45}};
+              const gc2={maxOutputTokens:mx,temperature:0.45};
+              if(jsonMode) gc2.responseMimeType='application/json';
+              const body2={contents:[{parts:[{text:usr}]}],generationConfig:gc2};
               if(sys) body2.systemInstruction={parts:[{text:sys}]};
               const r2=await fetch(base+GM_PRIMARY+':generateContent?key='+sk,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body2)});
               if(r2.ok){const j2=await r2.json();const t2=j2.candidates?.[0]?.content?.parts?.[0]?.text||'';if(t2)return t2.trim();}
@@ -2432,7 +2513,7 @@ async function gemFetch(sys, usr, mx, _attempt){
           return await groqChatFetch(sys,usr,mx);
         }
         errMsg=`Quota hết. Thử lại sau ${ds}s hoặc đổi key.`;
-      }else if(r.status===404){errMsg=`Model không tồn tại. Thử model khác.`; if(_attempt<=2) return gemFetch(sys,usr,mx,_attempt+1);}
+      }else if(r.status===404){errMsg=`Model không tồn tại. Thử model khác.`; if(_attempt<=2) return gemFetch(sys,usr,mx,_attempt+1,jsonMode);}
       else{errMsg=raw.split('\n')[0].substring(0,120)||errMsg;}
     }catch(_){}
     // Bất kỳ lỗi Gemini nào khác (không chỉ 429) — vẫn thử Groq nếu có key, còn hơn báo lỗi trắng
