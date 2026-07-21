@@ -3757,6 +3757,7 @@ function _milestoneBlock(r, curMs){
 // Cell điểm các mốc 3/5/8/10 với tooltip chi tiết khi hover.
 // _milestones = [{n,overall,fc,lr,gr,p,at}] — chỉ các lần thực sự được chấm.
 function _milestoneCell(r){
+  const bandColor = b => b>=7?'var(--green)':b>=5.5?'var(--gold)':b>0?'var(--red)':'var(--grey-400)';
   const ms = r._milestones || [];
   if(!ms.length){
     // Chưa tới mốc chấm nào → hiện điểm gần nhất (nếu có) hoặc gạch
