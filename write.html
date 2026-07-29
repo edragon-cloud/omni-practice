@@ -1046,21 +1046,22 @@ function countErrors(result, criterion) {
 // Cộng thêm 1 band cho mỗi tiêu chí để khích lệ sinh viên
 // Tối đa 9, overall tính lại từ 4 tiêu chí sau boost
 function applyMotivationBoost(scores, result) {
+  // Boost đã được GỠ BỎ theo yêu cầu: hiển thị đúng điểm AI chấm để phản ánh
+  // thực lực. Chỉ chuẩn hoá borderline .5 → làm tròn theo số lỗi (không cộng điểm).
   if (!scores || typeof scores !== 'object') return scores;
-  const boosted = {};
+  const out = {};
   ['TR','CC','LR','GRA'].forEach(k => {
     const v = parseFloat(scores[k]);
-    if (isNaN(v)) { boosted[k] = scores[k]; return; }
-    // Nếu AI cho X.5 (borderline) → làm tròn theo số lỗi trước khi boost
-    let base = v;
+    if (isNaN(v)) { out[k] = scores[k]; return; }
+    // AI cho X.5 (borderline) → làm tròn theo số lỗi: ít lỗi lên, nhiều lỗi xuống.
     if (!Number.isInteger(v)) {
       const errCount = countErrors(result, k);
-      base = errCount < 4 ? Math.floor(v) + 1 : Math.floor(v);
+      out[k] = errCount < 4 ? Math.ceil(v) : Math.floor(v);
+    } else {
+      out[k] = v;   // giữ nguyên điểm AI
     }
-    // Boost +1, tối đa 9
-    boosted[k] = Math.min(9, base + 1);
   });
-  return boosted;
+  return out;
 }
 function calcOverallFromBoosted(s) {
   const vals = ['TR','CC','LR','GRA'].map(k => parseFloat(s[k])).filter(v => !isNaN(v));
@@ -1101,16 +1102,61 @@ async function gradeWithGemini(payload, geminiKey) {
 
 IELTS BAND DESCRIPTORS:
 TR/TA: Band 7=covers all parts, clear position, ideas developed. Band 6=addresses parts but some inadequately. Band 5=partial, limited. Band 4=minimal.
-CC: Band 7=logical, varied cohesion, good paragraphing. Band 6=mostly coherent, some misuse. Band 5=some org, limited devices. Band 4=incoherent.
-LR: Band 7=flexible range, minor errors. Band 6=adequate, noticeable errors. Band 5=limited, impedes. Band 4=basic, causes difficulty.
-GRA: Band 7=complex structures, frequent error-free sentences. Band 6=mix, some error-free. Band 5=limited, frequent errors. Band 4=mostly simple, many errors.
+CC: Band 7=logical, varied cohesion, good paragraphing. Band 6=mostly coherent. Band 5=some org. Band 4=incoherent.
+LR: Band 7=flexible range, minor errors. Band 6=adequate. Band 5=limited. Band 4=basic.
+GRA: Band 7=complex structures, frequent error-free. Band 6=mix. Band 5=frequent errors. Band 4=many errors.
 
 SCORING RULES:
-- Components: whole numbers or X.5 if truly borderline.
+- Components: whole numbers or X.5 if borderline.
 - Overall = average of 4, round to 0.5.
-- Most students score 5-6. Band 7 = genuinely good. Band 8+ = near-native, very rare.
+- Most students score 5-6. Band 7 = genuinely good. Band 8+ very rare.
 - Grammar errors → GRA ≤ 6. Basic vocab → LR ≤ 6.
+
+[CONDITIONAL RULES — enforce strictly, do not overlook any]
+1) LEXICAL RESOURCE & GRAMMAR — HARD LIMITS:
+- Spelling: count the spelling mistakes. IF more than 5 (frequent, causing difficulty) THEN cap LR at Band 5 and warn in Vietnamese: "Sai chính tả trên 5 lỗi không thể đạt Band 6 tiêu chí Vocab". IF 1-5 (occasional slips) THEN cap LR at Band 6 and list every error found.
+- IF there are basic punctuation errors or failure to capitalize proper nouns (e.g. "zoom" instead of "Zoom", "google meet" instead of "Google Meet") THEN cap GRA at Band 6.
+- IF the student uses contractions (it's, don't) or informal vocabulary ("costly mistakes", "thanks to" instead of "due to") THEN penalize and require formal academic alternatives.
+- IF a body paragraph consists entirely of simple sentences without subordinating conjunctions (although, whereas, provided that) or relative clauses (which, who, that) THEN flag as "Lack of Grammatical Variety" and warn that Band 7 in GRA requires a mix of complex sentence structures.
+- Repetition: IF a topic-specific keyword (e.g. "online meetings") appears more than 2 times in one body paragraph, OR more than once in the Intro/Conclusion, THEN flag it as a repetition error and suggest pronouns or contextual synonyms — BUT only when the repetition shows a lack of vocabulary. ACCEPT the repetition if replacing it with a synonym would distort the meaning (fixed technical terms).
+- IF the word "nowadays" is used THEN flag it as a cliché and demand removal or replacement.
+- IF the student uses an unnatural word combination ("do a mistake" instead of "make a mistake", "heavy traffic jam" instead of "heavy traffic") THEN quote the phrase, label it "Unnatural Collocation", and give the correct academic alternative.
+- IF the student uses informal phrasal verbs ("look into", "come up with", "get rid of") in an academic context THEN penalize the tone and suggest formal single-word equivalents ("investigate", "develop/invent", "eliminate").
+2) TASK RESPONSE (CONTENT & LOGIC):
+- IF an example or argument shifts context away from the prompt (prompt about "business" but student writes about "education"/"students") THEN flag as "Sai bối cảnh / Off-topic".
+- IF an argument lacks real-world logic THEN counter-argue with a critical question exposing the logical flaw.
+- IF the student introduces a new idea (especially at the end of a paragraph) without a supporting sentence THEN flag as "Lỗi liệt kê" (Listing error): the idea lacks development.
+- IF the prompt does NOT ask to discuss "benefits and drawbacks" BUT the student includes them in the introductory paraphrase THEN flag as an inaccurate paraphrase.
+- IF the opinion in the Conclusion contradicts or shifts away from the thesis statement in the Introduction THEN flag as "Inconsistent Position" and cap Task Response at Band 6.
+- THESIS–TOPIC ALIGNMENT CHECK (high-priority, affects BOTH TR and CC): (1) Extract the thesis statement. (2) Identify its SEMANTIC TARGETS (the exact objects/policies being evaluated). (3) Extract each Body paragraph's topic sentence. (4) Check topic sentences evaluate the SAME targets the thesis mapped.
+  • FATAL ERROR 1 — Target Shift: thesis maps Target A but a topic sentence discusses Target B THEN cap TR at 6.0 AND CC at 6.0. State exactly which target shifted (from what, to what) and quote the offending topic sentence.
+  • FATAL ERROR 2 — Contradiction: a topic sentence contradicts the thesis THEN cap BOTH TR and CC at 6.0.
+  • SAFE EXCEPTION — Concession: thesis "While A has drawbacks, its benefits are greater" + Body 1 drawbacks of A + Body 2 benefits of A = PERFECT alignment — do NOT penalize; reward it.
+3) COHERENCE & COHESION:
+- IF an example merely rewrites the previous sentence without concrete details THEN flag as "Invalid Example".
+- IF a sentence states a result but the preceding sentence did not mention the corresponding cause THEN flag as a logical disconnect.
+- IF transition words are combined redundantly ("Consequently, this...") THEN correct to a single cohesive device.
+- Conclusion: IF it introduces new ideas THEN penalize. IF it copies body sentences word-for-word THEN advise paraphrasing. Concisely summarizing main points IS acceptable — do NOT penalize.
+- IF the student starts almost every sentence with a basic transition ("Firstly,", "Secondly,", "Moreover,") THEN flag as "Mechanical Cohesion" and suggest referencing pronouns (this, these, such).
+- IF a body paragraph has fewer than 3 sentences OR discusses two unrelated ideas THEN flag as "Paragraphing Error".
+
+[ANTI-OVER-CORRECTION PROTOCOL — evaluate the writer's real language; do not rewrite it in your own preferred style; do not unfairly downgrade]
+PRECEDENCE: The specific hard-cap rules ABOVE always win. If a hard cap applies, keep the cap even if this protocol would otherwise raise the score. This protocol only PREVENTS unjustified downgrades where NO hard cap has triggered — it never lifts a cap.
+1) LEXICAL RESOURCE — naturalness over complexity: do NOT "upgrade" vocabulary that is already natural, accurate and appropriate (accept "heavy financial burden"; do not force "significant financial burden"). Only correct vocabulary that is grammatically wrong, factually wrong, too informal, or noticeably repetitive. Effective precise collocations deserve LR 7.0+.
+2) GRAMMAR — holistic: do NOT penalize clear pronoun referencing when the antecedent is logically clear. If most sentences are error-free and meaning is clear, GRA MUST be 7.0+. A few minor slips do NOT drag a strong essay down to 6.0.
+3) COHERENCE — reward implicit cohesion: do NOT penalize an essay for lacking mechanical transitions when it coheres through referencing ("this trend", "these drawbacks") or logical sequencing. Flowing logically WITHOUT template transitions is a Band 7.0+ trait.
+VERIFICATION BEFORE ANY 6.0: before downgrading LR, GRA or CC to 6.0 on error frequency, confirm errors are genuinely "frequent" or "cause difficulty" per official descriptors. If errors are only occasional and meaning is clear, the score must be at least 7.0. (Does not apply to hard-cap rules above.)
+
+[FEEDBACK FORMAT]
+When any rule triggers, quote the exact sentence containing the error, use "=>", and give a precise correction based ONLY on the rules above. Tone: professional, direct, academic. Caps set the MAXIMUM; genuine weaknesses may score lower.
 - corrected_text: copy essay word-for-word, only add ~~wrong~~correct~~ on real errors found.
+
+[MINIMUM DEPTH — a strong essay still gets detailed feedback]
+A high band is NEVER a reason to return short/empty feedback. Band 7 still has imprecise word choice, unnatural collocations, over-long sentences, weak examples. Praise alone is not useful.
+- ALWAYS return at least 3 items in "lr_issues" and at least 2 in "gra_errors". If no outright errors, use these for PRECISION upgrades: quote the exact wording and offer a more precise/natural/academic alternative. Never invent an error — word an upgrade as an improvement, not a mistake.
+- ALWAYS return one tr_comments entry for EVERY paragraph (Opening, each Body, Conclusion), even when good: say what works and what single change would strengthen it.
+- "cc_feedback.assessment_vi" must name at least one concrete improvement, not only praise.
+- "overall_feedback_vi" must state both what the student did well AND the single most important thing to work on next. Never end with praise only.
 
 Return ONLY a JSON object with these fields: scores(TR,CC,LR,GRA), overall, band_description, overall_feedback_vi, tr_comments(array of {original_idea,assessment_vi,suggestion_en}), gra_errors(array of {wrong,correct,explanation_vi}), lr_issues(array of {original,better,explanation_vi,alternatives}), cc_feedback({assessment_vi,issues,suggestions}), corrected_text.`;
 
@@ -1124,9 +1170,15 @@ STUDENT ESSAY TO GRADE:
 ${text}
 ---
 
-Important: All feedback fields (tr_comments, gra_errors, lr_issues, corrected_text) must only reference text from the student essay above.`;
+All feedback must reference the student essay above and be thorough. Task Response MUST assess how directly the essay addresses the task prompt. If off-topic or missing the task, TR ≤ 5.`;
 
-    const prompt = systemInstruction + '\n\n' + userMessage;
+    let prompt = systemInstruction + '\n\n' + userMessage;
+    // Teacher's grading rules override default strictness (nếu có)
+    if (payload.aiNotes && payload.aiNotes.trim()) {
+      prompt += '\n\n=== TEACHER\'S GRADING RULES (HIGHEST PRIORITY — OVERRIDE default IELTS strictness) ===\n'
+        + payload.aiNotes.trim()
+        + '\n\nYou MUST follow these teacher rules. Do NOT flag or deduct for anything the teacher has explicitly allowed. Only report errors that remain genuine problems given these rules.';
+    }
 
   const maxTokens = 12000;
   const resp = await fetch(
@@ -1138,6 +1190,9 @@ Important: All feedback fields (tr_comments, gra_errors, lr_issues, corrected_te
         contents: [{parts: [{text: prompt}]}],
         generationConfig: {
           temperature: 0.1,
+          topK: 1,
+          topP: 0.1,
+          candidateCount: 1,
           maxOutputTokens: maxTokens
         }
       })
