@@ -316,6 +316,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
             <textarea id="raw-script-input" class="form-textarea" rows="9"
               style="font-size:14px;resize:vertical;min-height:420px;line-height:1.7"
               placeholder="Paste the full listening script here…"
+              onpaste="onScriptPaste(event)"
               oninput="onScriptInput()"></textarea>
             <!-- Word count indicator -->
             <div id="script-word-bar" style="display:none;margin-top:6px">
@@ -344,7 +345,7 @@ body{font-family:var(--font-body);background:var(--off-white);color:var(--black)
               </div>
             </div>
             <button class="ai-split-btn" id="btn-ai-split" onclick="aiCheckSpelling()" style="display:none">
-              🤖 AI Check Spelling &amp; Split
+              🤖 Auto Fix Spelling &amp; Split
             </button>
             <div class="split-preview-box" id="split-preview-box">
               <div class="split-preview-header">
@@ -841,6 +842,14 @@ function api(action,payload){
   });
 }
 function gasRun(action,payload){api(action,payload).catch(function(e){console.warn(action+' failed:',e);});}
+// ── POST cho payload lớn (sentences + gapScript + dictationState vượt giới hạn URL của JSONP) ──
+async function gasPost(action,payload){
+  var body=JSON.stringify({action:action,payload:payload||{},sessionToken:App.token||''});
+  var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body,redirect:'follow'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  var text=await r.text();
+  try{return JSON.parse(text);}catch(e){throw new Error('Bad JSON: '+text.substring(0,120));}
+}
 
 // ===== TOAST =====
 function toast(msg,type,dur){
@@ -1074,60 +1083,90 @@ function onScriptInput(){
 // tách bạch 2 trách nhiệm, tránh AI phải trả về JSON array cồng kềnh (tốn token cho việc
 // mà regex làm được miễn phí). Đây là bước BẮT BUỘC (không có nhánh bỏ qua) vì mục đích
 // chính của key là kiểm tra chính tả, không phải tách câu.
+// ── PASTE HANDLER: chuẩn hóa Unicode/dấu câu NGAY khi dán (onpaste) ──
+// Chặn paste mặc định, lấy plain text, normalize apostrophe/quote/space rồi chèn vào.
+// Kết quả: script sạch 100% về Unicode ngay lập tức, không còn ký tự ẩn gây lỗi.
+function onScriptPaste(e){
+  e.preventDefault();
+  var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  text = normalizeApostrophes(text);
+  var ta = document.getElementById('raw-script-input');
+  // Chèn tại vị trí con trỏ (giữ nội dung đã có nếu SV dán nhiều đoạn)
+  var start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.substring(0,start) + text + ta.value.substring(end);
+  ta.selectionStart = ta.selectionEnd = start + text.length;
+  onScriptInput();
+}
+
+// AI CHỈ trả về JSON danh sách từ sai chính tả [{wrong,right}]. JS tự Find & Replace.
+// AI KHÔNG viết lại script → không bao giờ rút gọn/mất câu ở lần chạy thứ 2, 3…
+// Tách câu do smartSplit() (regex client-side) đảm nhiệm sau khi đã sửa chính tả.
 async function aiCheckSpelling(){
-  var script=document.getElementById('raw-script-input').value.trim();
+  var script = document.getElementById('raw-script-input').value.trim();
   if (!script) return false;
   var key = getLisGeminiKey();
   if (!key) {
     showKeyModal('Cần key để AI kiểm tra chính tả script.', function(){ aiCheckSpelling(); });
     return false;
   }
-  var btn=document.getElementById('btn-ai-split');
-  // ── Normalize unicode apostrophes/quotes BEFORE sending to AI ──
-  // Covers copy-paste from Word, PDF, Pages, Google Docs
+  var btn = document.getElementById('btn-ai-split');
+  // Chuẩn hóa lần cuối (phòng khi SV gõ tay thêm ký tự lạ sau khi paste)
   script = normalizeApostrophes(script);
+  document.getElementById('raw-script-input').value = script;
   if (btn) { btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Checking spelling…'; }
   try{
-    var prompt = 'TASK: You are a text corrector. I will give you a script. You must return the EXACT SAME script text, word-for-word, with ONLY these mechanical fixes:\n'
-      + '- Fix spelling mistakes\n'
-      + '- Convert curly apostrophes (\u2018 \u2019 \u02BC) to straight apostrophe \' (U+0027)\n'
-      + '- Fix capitalization of the first word of each sentence and proper nouns\n\n'
-      + 'ABSOLUTE RULES:\n'
-      + '1. Return the FULL script text exactly as given, start to finish. Do NOT shorten, summarize, or omit any part.\n'
-      + '2. Do NOT describe your changes. Do NOT write things like \'"Yoga" -> capitalized\' or \'"Monday" -> fixed\'.\n'
-      + '3. Do NOT output a list. Do NOT number anything. Do NOT split into separate lines per sentence.\n'
-      + '4. Keep the original paragraph breaks (blank lines between paragraphs).\n'
-      + '5. Output ONLY the corrected running text, nothing else — no preamble, no markdown, no explanation.\n\n'
-      + 'EXAMPLE:\n'
-      + 'INPUT: "yoga is good. we teach it on mondays. childern love it."\n'
-      + 'CORRECT OUTPUT: "Yoga is good. We teach it on Mondays. Children love it."\n'
-      + 'WRONG OUTPUT (never do this): "Yoga -> capitalized. Mondays -> capitalized. childern -> children."\n\n'
-      + 'Now correct this script and return the full corrected text:\n\n' + script;
-    var raw = await callGeminiLis(prompt, 8192);
-    var corrected = normalizeApostrophes(String(raw).trim());
-    if (!corrected) throw new Error('AI trả về rỗng');
-    // ── Guard: phát hiện AI trả về danh sách thay đổi thay vì script ──
-    // Nếu output chứa nhiều dấu "-> " hoặc "→ " (dấu hiệu AI liệt kê thay đổi) → bỏ AI,
-    // dùng thẳng script gốc (chỉ normalize apostrophe) để KHÔNG BAO GIỜ mất chữ.
-    var arrowCount = (corrected.match(/->|\u2192/g) || []).length;
-    var looksLikeChangeList = arrowCount >= 3 && corrected.length < script.length * 0.8;
-    if (looksLikeChangeList) {
-      console.warn('AI trả về danh sách thay đổi — dùng script gốc thay thế');
-      corrected = normalizeApostrophes(script);
-      toast('⚠️ AI trả về sai định dạng — dùng script gốc, chỉ chia câu.','info');
-    }
-    App._spellChecked = true;   // flag: script đã qua AI spellcheck — startSession() sẽ không chặn nữa
-    _splitSentences = smartSplit(corrected);   // chia câu bằng regex (miễn phí) trên bản đã sửa
+    // AI chỉ tìm từ sai → trả JSON. Output cực ngắn → tốn rất ít token, không thể rút gọn script.
+    var prompt = 'Find English spelling mistakes in the text below. '
+      + 'Return ONLY a JSON array of objects with "wrong" (the misspelled word exactly as it appears) '
+      + 'and "right" (the correct spelling). Do NOT include correctly-spelled words. '
+      + 'Do NOT rewrite the text. Do NOT explain. If there are no spelling mistakes, return [].\n'
+      + 'Example: [{"wrong":"teh","dung":"the"},{"wrong":"recieve","right":"receive"}]\n\n'
+      + 'Text:\n' + script;
+    var raw = await callGeminiLis(prompt, 1024);
+    var corrected = script;
+    var fixCount = 0;
+    try{
+      var jsonStart = raw.indexOf('['), jsonEnd = raw.lastIndexOf(']')+1;
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        var fixes = JSON.parse(raw.substring(jsonStart, jsonEnd));
+        fixes.forEach(function(f){
+          var wrong = f.wrong || f.sai;
+          var right = f.right || f.dung || f.correct;
+          if (wrong && right && wrong !== right) {
+            // Find & Replace toàn bộ, giữ nguyên hoa/thường qua word boundary
+            var esc = wrong.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var re = new RegExp('\\b' + esc + '\\b', 'g');
+            if (re.test(corrected)) {
+              corrected = corrected.replace(re, right);
+              fixCount++;
+            }
+          }
+        });
+      }
+    }catch(parseErr){ console.warn('Không parse được JSON sửa lỗi, giữ nguyên script:', parseErr); }
+    // Dù AI lỗi hay không có từ sai → LUÔN có script đầy đủ (corrected = script gốc nếu không sửa gì)
+    corrected = normalizeApostrophes(corrected);
+    App._spellChecked = true;
+    _splitSentences = smartSplit(corrected);   // tách câu bằng regex client-side
+    // Đồng bộ lại textarea = bản đã sửa để SV thấy
+    document.getElementById('raw-script-input').value = corrected;
     renderSplitPreview(_splitSentences);
-    toast('✅ Đã kiểm tra chính tả và chia thành '+_splitSentences.length+' câu!','success');
-    if (btn) { btn.disabled=false; btn.innerHTML='🤖 AI Check Spelling &amp; Split'; }
+    var msg = fixCount > 0
+      ? '✅ Đã sửa '+fixCount+' lỗi chính tả và chia thành '+_splitSentences.length+' câu!'
+      : '✅ Không có lỗi chính tả — đã chia thành '+_splitSentences.length+' câu!';
+    toast(msg, 'success');
+    if (btn) { btn.disabled=false; btn.innerHTML='🤖 Auto Fix Spelling &amp; Split'; }
     return true;
   }catch(e){
-    if (btn) { btn.disabled=false; btn.innerHTML='🤖 AI Check Spelling &amp; Split'; }
-    // Key có nhưng gọi AI fail (hết quota, key sai, lỗi mạng) → hiện modal cho SV sửa lại
-    // key ngay tại chỗ, nhập xong tự động thử lại luôn — không cần thao tác gì thêm.
-    showKeyModal('Lỗi: ' + e.message + ' — kiểm tra lại key.', function(){ aiCheckSpelling(); });
-    return false;
+    if (btn) { btn.disabled=false; btn.innerHTML='🤖 Auto Fix Spelling &amp; Split'; }
+    // AI lỗi (hết quota/key sai/mạng) → VẪN cho tách câu từ script gốc, không chặn SV
+    console.warn('AI spellcheck lỗi, tách câu từ script gốc:', e);
+    var fallback = normalizeApostrophes(script);
+    App._spellChecked = true;
+    _splitSentences = smartSplit(fallback);
+    renderSplitPreview(_splitSentences);
+    toast('⚠️ Không kiểm tra được chính tả (lỗi AI) — đã chia '+_splitSentences.length+' câu từ script gốc.','info');
+    return true;
   }
 }
 
@@ -1146,26 +1185,49 @@ function normalizeApostrophes(text){
     .replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 function smartSplit(text){
-  text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-  // ── Bảo vệ các dấu chấm KHÔNG phải kết thúc câu bằng placeholder tạm ──
-  // Sau khi tách xong sẽ khôi phục lại. Tránh tách sai ở: số thập phân, giá tiền,
-  // giờ (8.20 p.m.), viết tắt (Mr. Dr. p.m. a.m. e.g. i.e. U.S.), năm trong ngoặc.
-  var DOT='\u0001';  // placeholder không xuất hiện trong text thường
-  var protectedText=text
-    // Số thập phân / giá tiền / giờ: chữ số . chữ số  → 7.20, 19.99, 8.20
-    .replace(/(\d)\.(\d)/g, '$1'+DOT+'$2')
-    // Viết tắt phổ biến có dấu chấm (giữ nguyên dấu chấm)
-    .replace(/\b(Mr|Mrs|Ms|Dr|Prof|St|Ave|Rd|Blvd|Jr|Sr|vs|etc|e\.g|i\.e|a\.m|p\.m|No|Vol|Fig|Inc|Ltd|Co)\./gi,
-             function(m){ return m.replace(/\./g, DOT); })
-    // Initials & acronyms dạng A.B.C. hoặc U.S.A.
-    .replace(/\b([A-Z])\.(?=[A-Z]\.)/g, '$1'+DOT)
-    // p.m / a.m viết liền không space sau: 8.20p.m.
-    .replace(/([ap])\.(m)\b/gi, '$1'+DOT+'$2');
-  // ── Tách câu: kết thúc bằng . ! ? theo sau bởi space/xuống dòng/hết chuỗi ──
-  var raw=protectedText.match(/[^.!?]+[.!?]+(?:["'\u201D\u2019)]*)(?:[\s\n]|$)|[^.!?\n]+(?:\n|$)/g)||[protectedText];
-  return raw
-    .map(function(s){ return s.split(DOT).join('.').trim(); })  // khôi phục dấu chấm đã bảo vệ
-    .filter(function(s){ return s.length>2; });
+  // ── 1. Chuẩn hóa line endings ──
+  text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+
+  // ── 2. Bảo vệ dấu chấm KHÔNG phải cuối câu bằng placeholder ──
+  var D = '\u0001'; // ký tự không xuất hiện trong văn bản thường
+  var t = text
+    // Số thập phân / tiền / giờ: 7.20, $19.99, 8.20
+    .replace(/(\d)\.(\d)/g, '$1'+D+'$2')
+    // Viết tắt: Mr. Mrs. Dr. Prof. St. Ave. etc. e.g. i.e. a.m. p.m. ...
+    .replace(/\b(Mr|Mrs|Ms|Dr|Prof|Rev|St|Ave|Rd|Blvd|Jr|Sr|vs|etc|approx|dept|govt|No|Vol|Fig|Inc|Ltd|Co|Corp|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\./gi,
+             function(m){ return m.slice(0,-1)+D; })
+    // e.g. i.e. a.m. p.m. (dạng có dấu chấm giữa)
+    .replace(/\b(e\.g|i\.e|a\.m|p\.m|U\.S|U\.K)\./gi,
+             function(m){ return m.replace(/\./g, D); })
+    // Initials kiểu A.B. hoặc U.S.A.
+    .replace(/\b([A-Z])\.(?=[A-Z][.\s])/g, '$1'+D)
+    // Dấu ba chấm ... → placeholder (không tách câu ở đây)
+    .replace(/\.{3}/g, D+D+D);
+
+  // ── 3. Tách câu ──
+  // Ranh giới câu = [.!?] theo sau bởi space hoặc newline
+  // HOẶC newline đơn/đôi (script nghe thường được nhập mỗi câu 1 dòng)
+  var SENT = '\u0002';
+
+  t = t
+    // Newline (kể cả đơn) = ranh giới câu
+    .replace(/\n+/g, SENT)
+    // [.!?] + optional closing quote/bracket + space → ranh giới câu
+    .replace(/([.!?])([)"'\u2019\u201D]*) +/g, '$1$2'+SENT)
+    // [.!?] cuối chuỗi
+    .replace(/([.!?])([)"'\u2019\u201D]*)$/g, '$1$2'+SENT);
+
+  // ── 4. Khôi phục placeholder, split, trim, lọc rỗng ──
+  return t
+    .split(SENT)
+    .map(function(s){
+      return s
+        .replace(/\u0001\u0001\u0001/g, '...')  // khôi phục ...
+        .replace(/\u0001/g, '.')                 // khôi phục dấu chấm bảo vệ
+        .replace(/\s+/g, ' ')                    // collapse whitespace/newline trong câu
+        .trim();
+    })
+    .filter(function(s){ return s.length > 2; });
 }
 function renderSplitPreview(sents){
   document.getElementById('split-count').textContent=sents.length;
@@ -1769,7 +1831,7 @@ async function saveProgressGapFill(){
   var btn = document.getElementById('btn-gap-save');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu…'; }
   try {
-    var res = await api('lis.saveProgress', {
+    var res = await gasPost('lis.saveProgress', {
       sessionId: App.sessionId, bookTestPart: App.bookTestPart,
       audioDriveId: App.driveFileId || '', gapScript: App._gapScript,
       sentences: App.sentences, stage: 'gapfill', gapFillDone: true, compQuizDone: false
@@ -1915,7 +1977,7 @@ async function saveProgressCompQuiz(){
     // Nếu quiz vừa nộp CHƯA đạt → bước tiếp theo khi resume là redo Gap-Fill (gap mới).
     // Nếu đã đạt → bước tiếp theo là vào thẳng Dictation.
     var passed = !!App._compLastPassed;
-    var res = await api('lis.saveProgress', {
+    var res = await gasPost('lis.saveProgress', {
       sessionId: App.sessionId, bookTestPart: App.bookTestPart,
       audioDriveId: App.driveFileId || '', gapScript: App._gapScript,
       sentences: App.sentences,
@@ -2564,6 +2626,21 @@ async function saveProgressDictation(){
   var btn = document.getElementById('btn-dict-save');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu…'; }
   try {
+    // ── FLUSH tất cả câu đã gõ vào Lis_Attempts TRƯỚC (chờ hoàn tất, không fire-and-forget) ──
+    // Đảm bảo mọi câu SV đã làm đều được ghi nhận, kể cả khi gasRun lúc gõ bị rớt mạng.
+    // Không có bước này, câu đã gõ có thể không vào Lis_Attempts → GV/History không thấy.
+    var flushErrors = 0;
+    for (var idx = 0; idx < App.sentences.length; idx++) {
+      var ad = App.attemptData[idx];
+      if (!ad || ad.a1Text === undefined) continue;   // câu chưa gõ → bỏ qua
+      try {
+        await api('lis.saveAttempt', buildAttemptPayload(idx, 1));
+        if (ad.a2Text !== undefined) {
+          await api('lis.saveAttempt', buildAttemptPayload(idx, 2));
+        }
+      } catch(eFlush) { flushErrors++; console.warn('flush attempt '+(idx+1)+':', eFlush); }
+    }
+    // ── Lưu snapshot tiến trình để resume ──
     var dictationState = {
       currentIdx:   App.currentIdx,
       reviewData:   App.reviewData,
@@ -2572,15 +2649,18 @@ async function saveProgressDictation(){
       correctWords: App.correctWords,
       startTime:    App.startTime ? App.startTime.toISOString() : null
     };
-    var res = await api('lis.saveProgress', {
+    var res = await gasPost('lis.saveProgress', {
       sessionId: App.sessionId, bookTestPart: App.bookTestPart,
       audioDriveId: App.driveFileId || '', gapScript: App._gapScript,
       sentences: App.sentences, stage: 'dictation',
       gapFillDone: true, compQuizDone: true, dictationState: dictationState
     });
     if (res && res.success) {
-      toast('✅ Đã lưu tiến trình! Vào My History để tiếp tục sau.', 'success', 5000);
-      setTimeout(function(){ location.href = location.pathname; }, 1500);
+      var msg = flushErrors > 0
+        ? '✅ Đã lưu tiến trình (⚠️ '+flushErrors+' câu ghi nhận lại chưa chắc chắn). Vào My History để tiếp tục.'
+        : '✅ Đã lưu tiến trình! Vào My History để tiếp tục sau.';
+      toast(msg, 'success', 5000);
+      setTimeout(function(){ location.href = location.pathname; }, 1800);
     } else {
       toast('⚠️ Lưu thất bại: ' + (res && res.error || 'lỗi không xác định'), 'error', 5000);
       if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Exit'; }
@@ -2621,6 +2701,16 @@ async function submitResults(){
   var durationMin=Math.floor(durationMs/60000),durationSec=Math.floor((durationMs%60000)/1000);
   var durationStr=durationMin+'m '+durationSec+'s';
   var payload={startingTime:startStr,fullName:App.user.fullName||App.user.FullName||'',submittingTime:submitStr,duration:durationStr,sentencesDone:completed,totalSentences:App.sentences.length,bookTestPart:App.bookTestPart,totalWords:App.totalWords,correctWords:App.correctWords,accuracy:accuracy+'%',sessionId:App.sessionId};
+  // ── FLUSH tất cả câu đã gõ vào Lis_Attempts (chờ hoàn tất) trước khi lưu result ──
+  // Bảo hiểm cho trường hợp gasRun lúc gõ bị rớt mạng, hoặc SV resume từ phiên cũ.
+  for (var fi = 0; fi < App.sentences.length; fi++) {
+    var fad = App.attemptData[fi];
+    if (!fad || fad.a1Text === undefined) continue;
+    try {
+      await api('lis.saveAttempt', buildAttemptPayload(fi, 1));
+      if (fad.a2Text !== undefined) await api('lis.saveAttempt', buildAttemptPayload(fi, 2));
+    } catch(eF) { console.warn('submit flush attempt '+(fi+1)+':', eF); }
+  }
   try{
     var res=await api('lis.saveResult',payload);
     document.getElementById('submit-status').textContent=res&&res.success?'✅ Saved!':'⚠ Save failed.';
